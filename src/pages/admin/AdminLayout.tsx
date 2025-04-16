@@ -1,4 +1,3 @@
-
 import { useEffect, useState } from "react";
 import { Outlet, useNavigate } from "react-router-dom";
 import { useAuth } from "@/context/AuthContext";
@@ -18,7 +17,6 @@ const AdminLayout = () => {
   const [isAdmin, setIsAdmin] = useState<boolean>(false);
   const [isChecking, setIsChecking] = useState<boolean>(true);
 
-  // Check if user has admin role
   useEffect(() => {
     const checkAdminRole = async () => {
       if (user) {
@@ -48,11 +46,9 @@ const AdminLayout = () => {
     }
   }, [user, isLoading]);
 
-  // Protected route - redirect if not logged in or not admin
   useEffect(() => {
     if (!isLoading && !isChecking) {
       if (!user) {
-        // Redirect to home if not logged in
         toast({
           title: "Authentication required",
           description: "Please log in to access the admin dashboard",
@@ -60,7 +56,6 @@ const AdminLayout = () => {
         });
         navigate("/");
       } else if (!isAdmin) {
-        // Redirect to home if not admin
         toast({
           title: "Access denied",
           description: "You don't have permission to access the admin dashboard",
@@ -111,9 +106,6 @@ const AdminLayout = () => {
             </TabsTrigger>
             <TabsTrigger value="create-event" asChild>
               <Link to="/admin/create-event">Create Event</Link>
-            </TabsTrigger>
-            <TabsTrigger value="users" asChild>
-              <Link to="/admin/users">User Management</Link>
             </TabsTrigger>
           </TabsList>
         </Tabs>
