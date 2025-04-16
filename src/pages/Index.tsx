@@ -121,9 +121,9 @@ const Index = () => {
               <div className="relative">
                 <div className="relative rounded-lg overflow-hidden shadow-xl">
                   <img 
-                    src="https://images.unsplash.com/photo-1548353546-f6f6d5b98d7a" 
+                    src="https://images.unsplash.com/photo-1562426509-5044a121aa49" 
                     alt="Concert parking" 
-                    className="w-full h-auto object-cover"
+                    className="w-full h-auto object-cover aspect-[4/3]"
                   />
                   <div className="absolute inset-0 bg-gradient-to-t from-black/50 to-transparent"></div>
                   <div className="absolute bottom-0 left-0 p-6 text-white">
@@ -132,9 +132,18 @@ const Index = () => {
                   </div>
                 </div>
                 
-                {/* Decorative element */}
+                {/* Decorative elements */}
                 <div className="absolute -top-6 -right-6 w-48 h-48 bg-primary/20 rounded-full -z-10"></div>
                 <div className="absolute -bottom-6 -left-6 w-32 h-32 bg-accent/20 rounded-full -z-10"></div>
+                
+                {/* Additional small circular image */}
+                <div className="absolute -top-4 -right-4 w-24 h-24 rounded-full overflow-hidden border-4 border-white shadow-lg z-10">
+                  <img 
+                    src="https://images.unsplash.com/photo-1581344947731-3a8503c716fe" 
+                    alt="Parking close-up" 
+                    className="w-full h-full object-cover"
+                  />
+                </div>
               </div>
             </div>
           </div>
