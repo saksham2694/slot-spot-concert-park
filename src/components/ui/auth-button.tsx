@@ -6,6 +6,7 @@ import {
   DialogContent, 
   DialogHeader, 
   DialogTitle, 
+  DialogDescription,
   DialogTrigger 
 } from "../ui/dialog";
 import { Input } from "../ui/input";
@@ -14,6 +15,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "../ui/tabs";
 import { Eye, EyeOff, LogIn, Mail, UserPlus, Loader2 } from "lucide-react";
 import { useToast } from "../ui/use-toast";
 import { supabase } from "@/integrations/supabase/client";
+import { Alert, AlertDescription } from "../ui/alert";
 
 interface AuthButtonProps {
   className?: string;
@@ -27,11 +29,13 @@ const AuthButton = ({ className }: AuthButtonProps) => {
   const [firstName, setFirstName] = useState("");
   const [lastName, setLastName] = useState("");
   const [isOpen, setIsOpen] = useState(false);
+  const [error, setError] = useState<string | null>(null);
   const { toast } = useToast();
 
   const handleLogin = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     setIsLoading(true);
+    setError(null);
     
     try {
       console.log("Attempting login...");
@@ -54,9 +58,17 @@ const AuthButton = ({ className }: AuthButtonProps) => {
       setIsOpen(false);
     } catch (error: any) {
       console.error("Login error caught:", error);
+      
+      let errorMessage = "An error occurred during login. Please try again.";
+      if (error.message) {
+        errorMessage = error.message;
+      }
+      
+      setError(errorMessage);
+      
       toast({
         title: "Login failed",
-        description: error.message || "An error occurred during login. Please try again.",
+        description: errorMessage,
         variant: "destructive",
       });
     } finally {
@@ -67,6 +79,7 @@ const AuthButton = ({ className }: AuthButtonProps) => {
   const handleSignUp = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     setIsLoading(true);
+    setError(null);
     
     try {
       console.log("Attempting signup...");
@@ -113,9 +126,17 @@ const AuthButton = ({ className }: AuthButtonProps) => {
       setIsOpen(false);
     } catch (error: any) {
       console.error("Signup error caught:", error);
+      
+      let errorMessage = "An error occurred during sign up. Please try again.";
+      if (error.message) {
+        errorMessage = error.message;
+      }
+      
+      setError(errorMessage);
+      
       toast({
         title: "Sign up failed",
-        description: error.message || "An error occurred during sign up. Please try again.",
+        description: errorMessage,
         variant: "destructive",
       });
     } finally {
@@ -125,6 +146,7 @@ const AuthButton = ({ className }: AuthButtonProps) => {
 
   const handleGoogleAuth = async () => {
     setIsLoading(true);
+    setError(null);
     
     try {
       console.log("Attempting Google auth...");
@@ -143,9 +165,17 @@ const AuthButton = ({ className }: AuthButtonProps) => {
       // No toast here as the user will be redirected to Google
     } catch (error: any) {
       console.error("Google auth error caught:", error);
+      
+      let errorMessage = "An error occurred during Google authentication. Please try again.";
+      if (error.message) {
+        errorMessage = error.message;
+      }
+      
+      setError(errorMessage);
+      
       toast({
         title: "Google authentication failed",
-        description: error.message || "An error occurred during Google authentication. Please try again.",
+        description: errorMessage,
         variant: "destructive",
       });
       setIsLoading(false);
@@ -163,7 +193,16 @@ const AuthButton = ({ className }: AuthButtonProps) => {
       <DialogContent className="sm:max-w-[425px]">
         <DialogHeader>
           <DialogTitle className="text-2xl font-bold text-center mb-2">Welcome to SlotSpot</DialogTitle>
+          <DialogDescription className="text-center text-muted-foreground">
+            Sign in to your account or create a new one
+          </DialogDescription>
         </DialogHeader>
+        
+        {error && (
+          <Alert variant="destructive" className="mb-4">
+            <AlertDescription>{error}</AlertDescription>
+          </Alert>
+        )}
         
         <Tabs defaultValue="login" className="w-full">
           <TabsList className="grid w-full grid-cols-2 mb-4">

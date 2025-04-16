@@ -37,7 +37,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       .from('profiles')
       .select('*')
       .eq('id', userId)
-      .single();
+      .maybeSingle();
 
     if (error) {
       console.error('Error fetching profile:', error);
@@ -109,16 +109,24 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
 
   useEffect(() => {
     console.log('Setting up auth state listener');
+    
+    // Set up auth state listener FIRST
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      async (event, currentSession) => {
+      (event, currentSession) => {
         console.log('Auth state changed:', event);
+        
+        // Only synchronous state updates here
         setSession(currentSession);
         setUser(currentSession?.user ?? null);
         
+        // Defer Supabase calls with setTimeout
         if (currentSession?.user) {
           console.log('User authenticated:', currentSession.user.email);
-          const userProfile = await fetchProfile(currentSession.user.id);
-          setProfile(userProfile);
+          setTimeout(() => {
+            fetchProfile(currentSession.user.id).then(userProfile => {
+              setProfile(userProfile);
+            });
+          }, 0);
         } else {
           console.log('No authenticated user');
           setProfile(null);
@@ -149,8 +157,10 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       
       if (currentSession?.user) {
         console.log('User authenticated from session check:', currentSession.user.email);
-        const userProfile = await fetchProfile(currentSession.user.id);
-        setProfile(userProfile);
+        setTimeout(async () => {
+          const userProfile = await fetchProfile(currentSession.user.id);
+          setProfile(userProfile);
+        }, 0);
       }
       
       setIsLoading(false);
@@ -167,8 +177,17 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
 
   const signOut = async () => {
     console.log('Signing out...');
-    await supabase.auth.signOut();
-    console.log('Sign out complete');
+    try {
+      await supabase.auth.signOut();
+      console.log('Sign out complete');
+    } catch (error) {
+      console.error('Error signing out:', error);
+      toast({
+        title: 'Sign Out Failed',
+        description: 'There was an error signing you out. Please try again.',
+        variant: 'destructive'
+      });
+    }
   };
 
   const value = {
