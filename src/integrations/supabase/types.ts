@@ -155,6 +155,10 @@ export type Database = {
         Args: { x: number; row_id: string }
         Returns: number
       }
+      increment: {
+        Args: { x: number; row_id: string }
+        Returns: number
+      }
     }
     Enums: {
       [_ in never]: never
