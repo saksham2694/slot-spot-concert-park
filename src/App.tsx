@@ -10,6 +10,7 @@ import EventDetail from "./pages/EventDetail";
 import EventsPage from "./pages/EventsPage";
 import BookingsPage from "./pages/BookingsPage";
 import ProfilePage from "./pages/ProfilePage";
+import AboutPage from "./pages/AboutPage";
 import NotFound from "./pages/NotFound";
 import AdminLayout from "./pages/admin/AdminLayout";
 import AdminDashboard from "./pages/admin/AdminDashboard";
@@ -30,6 +31,7 @@ const App = () => (
             <Route path="/events/:eventId" element={<EventDetail />} />
             <Route path="/bookings" element={<BookingsPage />} />
             <Route path="/profile" element={<ProfilePage />} />
+            <Route path="/about" element={<AboutPage />} />
             
             {/* Admin Routes */}
             <Route path="/admin" element={<AdminLayout />}>
