@@ -70,6 +70,8 @@ export async function createEvent(eventData: {
 
 export async function deleteEvent(eventId: string): Promise<boolean> {
   try {
+    console.log("Deleting event with ID:", eventId);
+    
     // First, delete all associated parking layouts
     const { error: layoutError } = await supabase
       .from("parking_layouts")
@@ -103,6 +105,7 @@ export async function deleteEvent(eventId: string): Promise<boolean> {
       throw error;
     }
 
+    console.log("Event successfully deleted");
     return true;
   } catch (error) {
     console.error("Error in deleteEvent:", error);

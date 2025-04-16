@@ -57,6 +57,7 @@ const AdminDashboard = () => {
   });
 
   const handleDeleteEvent = (eventId: string) => {
+    console.log("Deleting event with ID:", eventId);
     deleteEventMutation.mutate(eventId);
   };
 
