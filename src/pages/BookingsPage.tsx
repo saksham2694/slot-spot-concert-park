@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import Navbar from "@/components/Navbar";
@@ -18,6 +19,15 @@ import { Calendar, Clock, Download, ExternalLink, MapPin, QrCode } from "lucide-
 import { useQuery } from "@tanstack/react-query";
 import { fetchUserBookings } from "@/services/bookingService";
 import { useAuth } from "@/context/AuthContext";
+import { downloadBookingPDF, showQRCode } from "@/services/pdfService";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+  DialogClose,
+} from "@/components/ui/dialog";
 
 interface Booking {
   id: string;
@@ -36,6 +46,8 @@ const BookingsPage = () => {
   const { toast } = useToast();
   const navigate = useNavigate();
   const { user } = useAuth();
+  const [selectedQRCode, setSelectedQRCode] = useState<string | null>(null);
+  const [qrDialogOpen, setQrDialogOpen] = useState(false);
 
   // Redirect to home page if user is not authenticated
   useEffect(() => {
@@ -125,19 +137,46 @@ const BookingsPage = () => {
   }, { upcoming: [], completed: [] });
 
   const handleShowQR = (bookingId: string) => {
-    // In a real app, this would fetch the QR from the server
-    toast({
-      title: "QR Code",
-      description: `QR code for booking ${bookingId} has been generated.`,
-    });
+    // Generate QR code data
+    const qrCodeData = `TIME2PARK-BOOKING-${bookingId}`;
+    setSelectedQRCode(qrCodeData);
+    setQrDialogOpen(true);
   };
 
-  const handleDownloadTicket = (bookingId: string) => {
-    // In a real app, this would download the ticket
-    toast({
-      title: "Ticket Downloaded",
-      description: `Ticket for booking ${bookingId} has been downloaded.`,
-    });
+  const handleDownloadTicket = (booking: Booking) => {
+    // Create mock event and slot data for the PDF generator
+    const event = {
+      title: booking.eventName,
+      date: booking.eventDate,
+      time: booking.eventTime,
+      location: booking.location
+    };
+    
+    const slot = {
+      id: booking.parkingSpot,
+      state: "reserved",
+      row: parseInt(booking.parkingSpot.charAt(1)),
+      column: parseInt(booking.parkingSpot.charAt(3)),
+      price: booking.price
+    };
+    
+    const qrCodeData = `TIME2PARK-BOOKING-${booking.id}`;
+    
+    downloadBookingPDF(event, [slot], booking.id, qrCodeData)
+      .then(() => {
+        toast({
+          title: "Ticket Downloaded",
+          description: `Ticket for booking ${booking.id.substring(0, 8)} has been downloaded.`,
+        });
+      })
+      .catch(error => {
+        console.error("Error downloading ticket:", error);
+        toast({
+          title: "Download Failed",
+          description: "Could not download the ticket. Please try again.",
+          variant: "destructive",
+        });
+      });
   };
 
   const BookingsList = ({ items, type }: { items: Booking[], type: string }) => {
@@ -289,6 +328,44 @@ const BookingsPage = () => {
       </main>
       
       <Footer />
+
+      {/* QR Code Dialog */}
+      <Dialog open={qrDialogOpen} onOpenChange={setQrDialogOpen}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Booking QR Code</DialogTitle>
+            <DialogDescription>
+              Present this QR code at the venue entrance for verification.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="flex flex-col items-center justify-center p-4">
+            {selectedQRCode && (
+              <img
+                src={showQRCode("", selectedQRCode)}
+                alt="Booking QR Code"
+                className="border rounded-lg p-3 w-full max-w-xs h-auto"
+              />
+            )}
+          </div>
+          <div className="flex justify-between mt-4">
+            {selectedQRCode && (
+              <a 
+                href={showQRCode("", selectedQRCode)} 
+                download="booking-qrcode.png"
+                className="w-full"
+              >
+                <Button variant="outline" className="w-full">
+                  <Download className="h-4 w-4 mr-2" />
+                  Save QR Code
+                </Button>
+              </a>
+            )}
+            <DialogClose asChild>
+              <Button className="ml-4">Close</Button>
+            </DialogClose>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };

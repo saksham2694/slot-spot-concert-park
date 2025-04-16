@@ -2,8 +2,18 @@
 import { Button } from "@/components/ui/button";
 import { useNavigate } from "react-router-dom";
 import { Event } from "@/types/event";
-import { Ticket, IndianRupee } from "lucide-react";
+import { Ticket, IndianRupee, Download, QrCode } from "lucide-react";
 import { toast } from "sonner";
+import { downloadBookingPDF, showQRCode } from "@/services/pdfService";
+import { useState } from "react";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+  DialogClose,
+} from "@/components/ui/dialog";
 
 interface ParkingSlot {
   id: string;
@@ -17,15 +27,33 @@ interface BookingConfirmationProps {
   event: Event;
   selectedSlots: ParkingSlot[];
   qrCodeData: string;
+  bookingId?: string;
 }
 
 const BookingConfirmation = ({ 
   event, 
   selectedSlots, 
-  qrCodeData 
+  qrCodeData,
+  bookingId 
 }: BookingConfirmationProps) => {
   const navigate = useNavigate();
   const totalPrice = selectedSlots.reduce((sum, slot) => sum + slot.price, 0);
+  const [qrDialogOpen, setQrDialogOpen] = useState(false);
+
+  const handleDownloadPDF = () => {
+    downloadBookingPDF(event, selectedSlots, bookingId || "", qrCodeData)
+      .then(() => {
+        toast("Your booking confirmation has been downloaded.", {
+          description: "PDF Generated",
+        });
+      })
+      .catch(error => {
+        console.error("Error downloading PDF:", error);
+        toast("Failed to download confirmation.", {
+          description: "Please try again later.",
+        });
+      });
+  };
 
   return (
     <div className="max-w-2xl mx-auto bg-white rounded-lg shadow-lg p-8 text-center">
@@ -41,7 +69,8 @@ const BookingConfirmation = ({
         <img
           src={`https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${encodeURIComponent(qrCodeData)}`}
           alt="Booking QR Code"
-          className="border rounded-lg p-3 max-w-full h-auto"
+          className="border rounded-lg p-3 max-w-full h-auto cursor-pointer"
+          onClick={() => setQrDialogOpen(true)}
         />
       </div>
       
@@ -74,19 +103,53 @@ const BookingConfirmation = ({
       
       <div className="flex flex-col sm:flex-row gap-4 justify-center">
         <Button 
-          onClick={() => {
-            toast("Your booking confirmation has been downloaded.", {
-              description: "PDF Generated",
-            });
-          }}
+          onClick={handleDownloadPDF}
           variant="outline"
         >
+          <Download className="h-4 w-4 mr-2" />
           Download PDF
         </Button>
         <Button onClick={() => navigate("/bookings")}>
           View My Bookings
         </Button>
       </div>
+
+      {/* QR Code Dialog */}
+      <Dialog open={qrDialogOpen} onOpenChange={setQrDialogOpen}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Your Booking QR Code</DialogTitle>
+            <DialogDescription>
+              Present this QR code at the venue entrance for verification.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="flex flex-col items-center justify-center p-4">
+            <img
+              src={showQRCode(bookingId || "", qrCodeData)}
+              alt="Booking QR Code"
+              className="border rounded-lg p-3 w-full max-w-xs h-auto"
+            />
+            <p className="mt-4 text-center text-sm text-muted-foreground">
+              Booking ID: {bookingId || "Temporary ID"}
+            </p>
+          </div>
+          <div className="flex justify-between mt-4">
+            <a 
+              href={showQRCode(bookingId || "", qrCodeData)} 
+              download={`qrcode-${bookingId || "booking"}.png`}
+              className="w-full"
+            >
+              <Button variant="outline" className="w-full">
+                <Download className="h-4 w-4 mr-2" />
+                Save QR Code
+              </Button>
+            </a>
+            <DialogClose asChild>
+              <Button className="ml-4">Close</Button>
+            </DialogClose>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };
