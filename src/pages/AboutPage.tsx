@@ -121,35 +121,27 @@ const AboutPage = () => {
         <section className="py-16">
           <div className="container mx-auto px-4">
             <div className="text-center mb-12">
-              <h2 className="text-3xl font-bold mb-4">Our Team</h2>
+              <h2 className="text-3xl font-bold mb-4">Our Founders</h2>
               <p className="text-lg text-muted-foreground max-w-2xl mx-auto">
-                Meet the passionate professionals behind Time2Park working to revolutionize event parking.
+                Meet the passionate entrepreneurs behind Time2Park working to revolutionize event parking.
               </p>
             </div>
 
-            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-8">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-8 justify-center">
               <div className="text-center">
                 <div className="w-32 h-32 bg-gray-200 rounded-full mx-auto mb-4 flex items-center justify-center">
                   <Users className="h-12 w-12 text-gray-400" />
                 </div>
-                <h3 className="text-xl font-semibold">Priya Sharma</h3>
-                <p className="text-muted-foreground">Founder & CEO</p>
+                <h3 className="text-xl font-semibold">Daksh</h3>
+                <p className="text-muted-foreground">Co-Founder</p>
               </div>
               
               <div className="text-center">
                 <div className="w-32 h-32 bg-gray-200 rounded-full mx-auto mb-4 flex items-center justify-center">
                   <Users className="h-12 w-12 text-gray-400" />
                 </div>
-                <h3 className="text-xl font-semibold">Arjun Patel</h3>
-                <p className="text-muted-foreground">CTO</p>
-              </div>
-              
-              <div className="text-center">
-                <div className="w-32 h-32 bg-gray-200 rounded-full mx-auto mb-4 flex items-center justify-center">
-                  <Users className="h-12 w-12 text-gray-400" />
-                </div>
-                <h3 className="text-xl font-semibold">Meera Reddy</h3>
-                <p className="text-muted-foreground">Head of Operations</p>
+                <h3 className="text-xl font-semibold">Arjun</h3>
+                <p className="text-muted-foreground">Co-Founder</p>
               </div>
             </div>
           </div>
