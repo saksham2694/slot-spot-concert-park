@@ -11,6 +11,9 @@ import EventsPage from "./pages/EventsPage";
 import BookingsPage from "./pages/BookingsPage";
 import ProfilePage from "./pages/ProfilePage";
 import NotFound from "./pages/NotFound";
+import AdminLayout from "./pages/admin/AdminLayout";
+import AdminDashboard from "./pages/admin/AdminDashboard";
+import AdminCreateEvent from "./pages/admin/AdminCreateEvent";
 
 const queryClient = new QueryClient();
 
@@ -27,6 +30,13 @@ const App = () => (
             <Route path="/events/:eventId" element={<EventDetail />} />
             <Route path="/bookings" element={<BookingsPage />} />
             <Route path="/profile" element={<ProfilePage />} />
+            
+            {/* Admin Routes */}
+            <Route path="/admin" element={<AdminLayout />}>
+              <Route index element={<AdminDashboard />} />
+              <Route path="create-event" element={<AdminCreateEvent />} />
+            </Route>
+            
             <Route path="*" element={<NotFound />} />
           </Routes>
         </BrowserRouter>

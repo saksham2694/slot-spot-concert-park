@@ -35,6 +35,28 @@ export async function fetchEventById(eventId: string): Promise<Event | null> {
   return data ? mapDbEventToEvent(data) : null;
 }
 
+export async function createEvent(eventData: {
+  title: string;
+  location: string;
+  date: string;
+  image_url?: string;
+  total_parking_slots: number;
+  available_parking_slots: number;
+}): Promise<string | null> {
+  const { data, error } = await supabase
+    .from("events")
+    .insert(eventData)
+    .select("id")
+    .single();
+
+  if (error) {
+    console.error("Error creating event:", error);
+    throw error;
+  }
+
+  return data?.id || null;
+}
+
 // Helper function to map database event to frontend Event type
 function mapDbEventToEvent(dbEvent: any): Event {
   return {
