@@ -28,6 +28,8 @@ import {
   DialogDescription,
   DialogClose,
 } from "@/components/ui/dialog";
+import { Event } from "@/types/event";
+import { ParkingSlot } from "@/types/parking";
 
 interface Booking {
   id: string;
@@ -145,14 +147,19 @@ const BookingsPage = () => {
 
   const handleDownloadTicket = (booking: Booking) => {
     // Create mock event and slot data for the PDF generator
-    const event = {
+    const mockEvent: Event = {
+      id: booking.eventId,
       title: booking.eventName,
       date: booking.eventDate,
       time: booking.eventTime,
-      location: booking.location
+      location: booking.location,
+      image: "", // Adding required properties with default values
+      parkingAvailable: 0,
+      parkingTotal: 0,
+      parkingPrice: booking.price
     };
     
-    const slot = {
+    const mockSlot: ParkingSlot = {
       id: booking.parkingSpot,
       state: "reserved",
       row: parseInt(booking.parkingSpot.charAt(1)),
@@ -162,7 +169,7 @@ const BookingsPage = () => {
     
     const qrCodeData = `TIME2PARK-BOOKING-${booking.id}`;
     
-    downloadBookingPDF(event, [slot], booking.id, qrCodeData)
+    downloadBookingPDF(mockEvent, [mockSlot], booking.id, qrCodeData)
       .then(() => {
         toast({
           title: "Ticket Downloaded",
@@ -266,7 +273,7 @@ const BookingsPage = () => {
                   <Button
                     variant="ghost"
                     size="icon"
-                    onClick={() => handleDownloadTicket(booking.id)}
+                    onClick={() => handleDownloadTicket(booking)}
                     title="Download Ticket"
                   >
                     <Download className="h-4 w-4" />

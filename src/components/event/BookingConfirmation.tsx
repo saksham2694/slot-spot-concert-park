@@ -6,6 +6,7 @@ import { Ticket, IndianRupee, Download, QrCode } from "lucide-react";
 import { toast } from "sonner";
 import { downloadBookingPDF, showQRCode } from "@/services/pdfService";
 import { useState } from "react";
+import { ParkingSlot } from "@/types/parking";
 import {
   Dialog,
   DialogContent,
@@ -14,14 +15,6 @@ import {
   DialogDescription,
   DialogClose,
 } from "@/components/ui/dialog";
-
-interface ParkingSlot {
-  id: string;
-  state: string;
-  row: number;
-  column: number;
-  price: number;
-}
 
 interface BookingConfirmationProps {
   event: Event;
