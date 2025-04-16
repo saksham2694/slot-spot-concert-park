@@ -40,9 +40,14 @@ const BookingsPage = () => {
   // Redirect to home page if user is not authenticated
   useEffect(() => {
     if (!user) {
+      toast({
+        title: "Authentication Required",
+        description: "Log in to view this page",
+        variant: "destructive"
+      });
       navigate("/", { replace: true });
     }
-  }, [user, navigate]);
+  }, [user, navigate, toast]);
 
   // Fetch bookings from the backend
   const { data: allBookings = [], isLoading, error } = useQuery({
