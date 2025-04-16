@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import Navbar from "@/components/Navbar";
@@ -11,6 +12,9 @@ import { Calendar, Clock, Info, MapPin, QrCode, Ticket } from "lucide-react";
 import { useToast } from "@/components/ui/use-toast";
 import { Event } from "@/types/event";
 import { fetchEventById } from "@/services/eventService";
+import { useAuth } from "@/context/AuthContext";
+import { createBooking } from "@/services/bookingService";
+import { toast } from "sonner";
 
 interface ParkingSlot {
   id: string;
@@ -27,8 +31,10 @@ const EventDetail = () => {
   const [selectedSlots, setSelectedSlots] = useState<ParkingSlot[]>([]);
   const [isBooking, setIsBooking] = useState(false);
   const [bookingComplete, setBookingComplete] = useState(false);
+  const [bookingId, setBookingId] = useState<string | null>(null);
   const { toast } = useToast();
   const navigate = useNavigate();
+  const { user } = useAuth();
 
   useEffect(() => {
     const fetchEvent = async () => {
@@ -75,7 +81,16 @@ const EventDetail = () => {
     setSelectedSlots(slots);
   };
 
-  const handleBooking = () => {
+  const handleBooking = async () => {
+    if (!user) {
+      toast({
+        title: "Authentication required",
+        description: "Please log in to book a parking spot.",
+        variant: "destructive",
+      });
+      return;
+    }
+    
     if (selectedSlots.length === 0) {
       toast({
         title: "No parking selected",
@@ -87,22 +102,57 @@ const EventDetail = () => {
 
     setIsBooking(true);
 
-    // Simulate booking process
-    setTimeout(() => {
-      setIsBooking(false);
-      setBookingComplete(true);
+    try {
+      // Create the booking in the database
+      const bookingData = {
+        eventId: eventId!,
+        parkingLayoutId: selectedSlots[0].id,
+      };
+      
+      const newBookingId = await createBooking(bookingData);
+      
+      if (newBookingId) {
+        setBookingId(newBookingId);
+        setIsBooking(false);
+        setBookingComplete(true);
+        toast({
+          title: "Booking successful!",
+          description: "Your parking spot has been reserved.",
+        });
+      } else {
+        throw new Error("Failed to create booking");
+      }
+    } catch (error) {
+      console.error("Error creating booking:", error);
       toast({
-        title: "Booking successful!",
-        description: "Your parking spot has been reserved.",
+        title: "Booking failed",
+        description: "Failed to create your booking. Please try again.",
+        variant: "destructive",
       });
-    }, 1500);
+      setIsBooking(false);
+    }
   };
 
   // Calculate total price
   const totalPrice = selectedSlots.reduce((sum, slot) => sum + slot.price, 0);
 
   // Generate QR code data (in a real app, this would be a unique identifier)
-  const qrCodeData = `SLOTSPOT-${eventId}-${selectedSlots.map(s => s.id).join('-')}-${Date.now()}`;
+  const qrCodeData = `SLOTSPOT-${eventId}-${selectedSlots.map(s => s.id).join('-')}-${bookingId || Date.now()}`;
+
+  // Check if user is authenticated
+  const renderAuthPrompt = () => {
+    return (
+      <div className="bg-white rounded-lg shadow-lg p-8 text-center">
+        <h2 className="text-2xl font-bold mb-4">Authentication Required</h2>
+        <p className="text-muted-foreground mb-6">
+          Please log in to book a parking spot for this event.
+        </p>
+        <Button onClick={() => navigate("/")}>
+          Go to Login
+        </Button>
+      </div>
+    );
+  };
 
   return (
     <div className="min-h-screen flex flex-col">
@@ -211,79 +261,88 @@ const EventDetail = () => {
                     >
                       Download PDF
                     </Button>
-                    <Button onClick={() => navigate("/")}>
-                      Return to Home
+                    <Button onClick={() => navigate("/bookings")}>
+                      View My Bookings
                     </Button>
                   </div>
                 </div>
               ) : (
                 <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
                   <div className="lg:col-span-2">
-                    <Tabs defaultValue="parking" className="w-full">
-                      <TabsList className="mb-6">
-                        <TabsTrigger value="parking">Parking</TabsTrigger>
-                        <TabsTrigger value="details">Event Details</TabsTrigger>
-                        <TabsTrigger value="venue">Venue Info</TabsTrigger>
-                      </TabsList>
-                      
-                      <TabsContent value="parking">
-                        <ParkingLayout eventId={Number(eventId)} onSlotSelect={handleSlotSelect} />
-                      </TabsContent>
-                      
-                      <TabsContent value="details">
-                        <div className="prose max-w-none">
-                          <h3>About This Event</h3>
-                          <p>
-                            {event.title} is coming to {event.location.split(',')[0]} on {event.date}! 
-                            Don't miss this incredible live performance featuring all their hit songs and amazing stage production.
-                          </p>
-                          
-                          <h3>Event Schedule</h3>
-                          <ul>
-                            <li><strong>Doors Open:</strong> 5:30 PM</li>
-                            <li><strong>Opening Act:</strong> 7:00 PM</li>
-                            <li><strong>Main Performance:</strong> 8:15 PM</li>
-                            <li><strong>Event End (Estimated):</strong> 11:00 PM</li>
-                          </ul>
-                          
-                          <h3>Important Information</h3>
-                          <p>
-                            Please arrive early to ensure smooth entry. All attendees must have valid tickets for the event.
-                            Photography is permitted but professional cameras and recording equipment are prohibited.
-                          </p>
-                        </div>
-                      </TabsContent>
-                      
-                      <TabsContent value="venue">
-                        <div className="prose max-w-none">
-                          <h3>Venue Information</h3>
-                          <p>
-                            {event.location} is one of the premier entertainment venues in the country, 
-                            hosting major concerts, sporting events, and special occasions throughout the year.
-                          </p>
-                          
-                          <h3>Parking Information</h3>
-                          <p>
-                            The venue offers several parking lots with varying proximity to the main entrance.
-                            All parking spots reserved through SlotSpot are guaranteed and will be held until the event starts.
-                          </p>
-                          
-                          <h3>Accessibility</h3>
-                          <p>
-                            The venue is fully accessible for guests with disabilities. Accessible parking spots are available in all lots.
-                            Please contact the venue directly for any specific accessibility requirements.
-                          </p>
-                          
-                          <div className="mt-6">
-                            <img 
-                              src="https://images.unsplash.com/photo-1522158637959-30ab8018e198?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=1170&q=80" 
-                              alt="Venue map" 
-                              className="rounded-lg w-full max-w-xl h-auto"
-                            />
+                    {!user ? (
+                      renderAuthPrompt()
+                    ) : (
+                      <Tabs defaultValue="parking" className="w-full">
+                        <TabsList className="mb-6">
+                          <TabsTrigger value="parking">Parking</TabsTrigger>
+                          <TabsTrigger value="details">Event Details</TabsTrigger>
+                          <TabsTrigger value="venue">Venue Info</TabsTrigger>
+                        </TabsList>
+                        
+                        <TabsContent value="parking">
+                          <ParkingLayout 
+                            eventId={eventId || ""} 
+                            totalSlots={event.parkingTotal}
+                            availableSlots={event.parkingAvailable}
+                            onSlotSelect={handleSlotSelect} 
+                          />
+                        </TabsContent>
+                        
+                        <TabsContent value="details">
+                          <div className="prose max-w-none">
+                            <h3>About This Event</h3>
+                            <p>
+                              {event.title} is coming to {event.location.split(',')[0]} on {event.date}! 
+                              Don't miss this incredible live performance featuring all their hit songs and amazing stage production.
+                            </p>
+                            
+                            <h3>Event Schedule</h3>
+                            <ul>
+                              <li><strong>Doors Open:</strong> 5:30 PM</li>
+                              <li><strong>Opening Act:</strong> 7:00 PM</li>
+                              <li><strong>Main Performance:</strong> 8:15 PM</li>
+                              <li><strong>Event End (Estimated):</strong> 11:00 PM</li>
+                            </ul>
+                            
+                            <h3>Important Information</h3>
+                            <p>
+                              Please arrive early to ensure smooth entry. All attendees must have valid tickets for the event.
+                              Photography is permitted but professional cameras and recording equipment are prohibited.
+                            </p>
                           </div>
-                        </div>
-                      </TabsContent>
-                    </Tabs>
+                        </TabsContent>
+                        
+                        <TabsContent value="venue">
+                          <div className="prose max-w-none">
+                            <h3>Venue Information</h3>
+                            <p>
+                              {event.location} is one of the premier entertainment venues in the country, 
+                              hosting major concerts, sporting events, and special occasions throughout the year.
+                            </p>
+                            
+                            <h3>Parking Information</h3>
+                            <p>
+                              The venue offers several parking lots with varying proximity to the main entrance.
+                              All parking spots reserved through SlotSpot are guaranteed and will be held until the event starts.
+                            </p>
+                            
+                            <h3>Accessibility</h3>
+                            <p>
+                              The venue is fully accessible for guests with disabilities. Accessible parking spots are available in all lots.
+                              Please contact the venue directly for any specific accessibility requirements.
+                            </p>
+                            
+                            <div className="mt-6">
+                              <img 
+                                src="https://images.unsplash.com/photo-1522158637959-30ab8018e198?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=1170&q=80" 
+                                alt="Venue map" 
+                                className="rounded-lg w-full max-w-xl h-auto"
+                              />
+                            </div>
+                          </div>
+                        </TabsContent>
+                      </Tabs>
+                    )}
                   </div>
                   
                   <div>
@@ -335,7 +394,7 @@ const EventDetail = () => {
                       <Button 
                         className="w-full" 
                         onClick={handleBooking} 
-                        disabled={selectedSlots.length === 0 || isBooking}
+                        disabled={!user || selectedSlots.length === 0 || isBooking}
                       >
                         {isBooking ? "Processing..." : "Complete Booking"}
                       </Button>

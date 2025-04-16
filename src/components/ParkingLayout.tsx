@@ -1,5 +1,5 @@
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/components/ui/use-toast";
 import { ArrowLeft, ArrowRight, Car, Info } from "lucide-react";
@@ -9,6 +9,7 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
+import { supabase } from "@/integrations/supabase/client";
 
 // Define the state type for a parking slot
 type SlotState = "available" | "reserved" | "selected";
@@ -23,40 +24,66 @@ interface ParkingSlot {
 }
 
 interface ParkingLayoutProps {
-  eventId: number;
+  eventId: string;
+  totalSlots: number;
+  availableSlots: number;
   onSlotSelect: (selectedSlots: ParkingSlot[]) => void;
 }
 
-const ParkingLayout = ({ eventId, onSlotSelect }: ParkingLayoutProps) => {
+const ParkingLayout = ({ eventId, totalSlots, availableSlots, onSlotSelect }: ParkingLayoutProps) => {
   const { toast } = useToast();
-  
-  // Generate mock parking data
-  const generateParkingData = (): ParkingSlot[] => {
-    const rows = 5;
-    const columns = 8;
-    const result: ParkingSlot[] = [];
-    
-    for (let row = 0; row < rows; row++) {
-      for (let col = 0; col < columns; col++) {
-        // Randomly mark some slots as reserved (about 20%)
-        const isReserved = Math.random() < 0.2;
-        const price = 15 + Math.floor(Math.random() * 10); // Random price between $15-$24
-        
-        result.push({
-          id: `R${row + 1}C${col + 1}`,
-          state: isReserved ? "reserved" : "available",
-          row: row + 1,
-          column: col + 1,
-          price,
-        });
-      }
-    }
-    
-    return result;
-  };
-  
-  const [parkingSlots, setParkingSlots] = useState<ParkingSlot[]>(generateParkingData());
+  const [parkingSlots, setParkingSlots] = useState<ParkingSlot[]>([]);
   const [selectedSlots, setSelectedSlots] = useState<ParkingSlot[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  
+  // Generate parking data based on total slots from the event
+  useEffect(() => {
+    const generateParkingData = () => {
+      if (totalSlots <= 0) return [];
+      
+      // Calculate reasonable grid dimensions based on total slots
+      const columns = Math.min(8, Math.ceil(Math.sqrt(totalSlots)));
+      const rows = Math.ceil(totalSlots / columns);
+      const result: ParkingSlot[] = [];
+      
+      // Number of slots that should be marked as reserved
+      const reservedSlotsCount = totalSlots - availableSlots;
+      const reservedPositions = new Set();
+      
+      // Pre-select positions to be marked as reserved
+      while (reservedPositions.size < reservedSlotsCount) {
+        const randomPosition = Math.floor(Math.random() * totalSlots);
+        reservedPositions.add(randomPosition);
+      }
+      
+      let slotCount = 0;
+      for (let row = 0; row < rows; row++) {
+        for (let col = 0; col < columns; col++) {
+          if (slotCount >= totalSlots) break;
+          
+          const isReserved = reservedPositions.has(slotCount);
+          const price = 15 + Math.floor(Math.random() * 10); // Random price between $15-$24
+          
+          result.push({
+            id: `R${row + 1}C${col + 1}`,
+            state: isReserved ? "reserved" : "available",
+            row: row + 1,
+            column: col + 1,
+            price,
+          });
+          
+          slotCount++;
+        }
+      }
+      
+      return result;
+    };
+    
+    setIsLoading(true);
+    const slots = generateParkingData();
+    setParkingSlots(slots);
+    setIsLoading(false);
+  }, [totalSlots, availableSlots]);
   
   const handleSlotClick = (slot: ParkingSlot) => {
     if (slot.state === "reserved") return;
@@ -98,6 +125,10 @@ const ParkingLayout = ({ eventId, onSlotSelect }: ParkingLayoutProps) => {
     acc[slot.row].push(slot);
     return acc;
   }, {} as Record<number, ParkingSlot[]>);
+  
+  if (isLoading) {
+    return <div className="py-8 text-center">Loading parking layout...</div>;
+  }
   
   return (
     <div className="border rounded-lg p-6 bg-white shadow-sm">
