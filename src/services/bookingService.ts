@@ -1,4 +1,3 @@
-
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 
@@ -80,8 +79,6 @@ export async function createBooking(bookingData: BookingData): Promise<string | 
       throw error;
     }
 
-    // The update_available_slots trigger will handle decrementing the available slots
-    
     toast.success("Booking confirmed successfully!");
     return data?.id || null;
   } catch (error) {
@@ -157,8 +154,6 @@ export async function cancelBooking(bookingId: string): Promise<boolean> {
       toast.error("Failed to cancel booking. Please try again.");
       throw updateError;
     }
-    
-    // The trigger will handle incrementing the available slots count
     
     // Optional: You can also update the parking layout to free up the spot
     if (booking && booking.parking_layout_id) {

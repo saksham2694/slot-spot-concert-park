@@ -14,14 +14,7 @@ import BookingSummary from "@/components/event/BookingSummary";
 import AuthPrompt from "@/components/event/AuthPrompt";
 import EventTabs from "@/components/event/EventTabs";
 import BookingConfirmation from "@/components/event/BookingConfirmation";
-
-interface ParkingSlot {
-  id: string;
-  state: string;
-  row: number;
-  column: number;
-  price: number;
-}
+import { ParkingSlot } from "@/types/parking";
 
 const EventDetail = () => {
   const { eventId } = useParams<{ eventId: string }>();
@@ -53,7 +46,6 @@ const EventDetail = () => {
       
       if (fetchedEvent) {
         setEvent(fetchedEvent);
-        console.log("Fetched event:", fetchedEvent);
       } else {
         toast({
           title: "Event not found",
@@ -78,9 +70,9 @@ const EventDetail = () => {
     fetchEvent();
   }, [fetchEvent, refreshTrigger]);
 
-  const handleSlotSelect = (slots: ParkingSlot[]) => {
+  const handleSlotSelect = useCallback((slots: ParkingSlot[]) => {
     setSelectedSlots(slots);
-  };
+  }, []);
 
   const handleBooking = async () => {
     if (!user) {
