@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import Navbar from "@/components/Navbar";
@@ -28,7 +29,7 @@ interface Booking {
   location: string;
   parkingSpot: string;
   price: number;
-  status: "upcoming" | "completed" | "cancelled";
+  status: "upcoming" | "completed";
 }
 
 const BookingsPage = () => {
@@ -70,11 +71,11 @@ const BookingsPage = () => {
     const eventDate = new Date(booking.events.date);
     const now = new Date();
     
-    let status: "upcoming" | "completed" | "cancelled" = "upcoming";
+    let status: "upcoming" | "completed" = "upcoming";
     
-    // If booking status is cancelled, mark it as cancelled
+    // Skip cancelled bookings entirely
     if (booking.status === "cancelled") {
-      status = "cancelled";
+      return acc;
     } 
     // If the event date is in the past, mark it as completed
     else if (eventDate < now) {
@@ -117,7 +118,7 @@ const BookingsPage = () => {
     acc[status].push(transformedBooking);
     
     return acc;
-  }, { upcoming: [], completed: [], cancelled: [] });
+  }, { upcoming: [], completed: [] });
 
   const handleShowQR = (bookingId: string) => {
     // In a real app, this would fetch the QR from the server
@@ -142,9 +143,7 @@ const BookingsPage = () => {
           <p className="text-muted-foreground mb-4">
             {type === "upcoming" 
               ? "You don't have any upcoming bookings." 
-              : type === "completed"
-              ? "You don't have any completed bookings."
-              : "You don't have any cancelled bookings."}
+              : "You don't have any completed bookings."}
           </p>
           {type === "upcoming" && (
             <Link to="/events">
@@ -269,9 +268,6 @@ const BookingsPage = () => {
                 <TabsTrigger value="completed">
                   Completed ({bookings.completed.length})
                 </TabsTrigger>
-                <TabsTrigger value="cancelled">
-                  Cancelled ({bookings.cancelled.length})
-                </TabsTrigger>
               </TabsList>
               
               <TabsContent value="upcoming" className="border rounded-lg p-4">
@@ -280,10 +276,6 @@ const BookingsPage = () => {
               
               <TabsContent value="completed" className="border rounded-lg p-4">
                 <BookingsList items={bookings.completed} type="completed" />
-              </TabsContent>
-              
-              <TabsContent value="cancelled" className="border rounded-lg p-4">
-                <BookingsList items={bookings.cancelled} type="cancelled" />
               </TabsContent>
             </Tabs>
           )}
