@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -76,7 +75,7 @@ const HeroSection = () => {
             
             <Button 
               type="submit" 
-              className="bg-accent text-white rounded-lg py-6"
+              className="bg-parking-primary text-white rounded-lg py-6"
             >
               Search
             </Button>

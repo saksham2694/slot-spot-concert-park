@@ -1,4 +1,3 @@
-
 import Navbar from "@/components/Navbar";
 import HeroSection from "@/components/HeroSection";
 import FeaturedEvents from "@/components/FeaturedEvents";
@@ -69,7 +68,6 @@ const Index = () => {
           </div>
         </section>
         
-        {/* Benefits Section */}
         <section className="py-16">
           <div className="container">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-12 items-center">
@@ -114,7 +112,7 @@ const Index = () => {
                   </div>
                 </div>
                 
-                <Button variant="outline" className="mt-8" onClick={() => navigate("/about")}>
+                <Button variant="outline" className="mt-8 border-parking-primary text-parking-primary hover:bg-parking-primary/10" onClick={() => navigate("/about")}>
                   Learn More About Us
                 </Button>
               </div>
@@ -122,7 +120,7 @@ const Index = () => {
               <div className="relative">
                 <div className="relative rounded-lg overflow-hidden shadow-xl">
                   <img 
-                    src="https://images.unsplash.com/photo-1548353546-f6f6d5b98d7a?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=1174&q=80" 
+                    src="https://images.unsplash.com/photo-1548353546-f6f6d5b98d7a" 
                     alt="Concert parking" 
                     className="w-full h-auto object-cover"
                   />
@@ -141,7 +139,6 @@ const Index = () => {
           </div>
         </section>
         
-        {/* CTA Section */}
         <section className="py-16 bg-gradient-to-r from-parking-primary to-parking-secondary text-white">
           <div className="container text-center">
             <h2 className="text-3xl font-bold mb-4">Ready to Secure Your Spot?</h2>
@@ -149,10 +146,10 @@ const Index = () => {
               Join thousands of event-goers who park stress-free with SlotSpot
             </p>
             <div className="flex flex-col sm:flex-row gap-4 justify-center">
-              <Button variant="default" className="bg-white hover:bg-gray-100 text-parking-primary" onClick={() => navigate("/events")}>
+              <Button variant="default" className="bg-white text-parking-primary hover:bg-gray-100" onClick={() => navigate("/events")}>
                 Browse Events
               </Button>
-              <Button variant="outline" className="text-white border-white hover:bg-white/10" onClick={() => navigate("/about")}>
+              <Button variant="outline" className="border-white text-white hover:bg-white/10" onClick={() => navigate("/about")}>
                 Learn More
               </Button>
             </div>
