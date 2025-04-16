@@ -1,3 +1,4 @@
+
 import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/components/ui/use-toast";
@@ -65,6 +66,8 @@ const ParkingLayout = ({ eventId, totalSlots, availableSlots, onSlotSelect }: Pa
           return;
         }
         
+        console.log("Reserved spots:", reservedSpots);
+        
         // Create a map of reserved spots for quick lookup
         const reservedSpotsMap = new Map();
         reservedSpots?.forEach(spot => {
@@ -99,6 +102,10 @@ const ParkingLayout = ({ eventId, totalSlots, availableSlots, onSlotSelect }: Pa
         }
         
         setParkingSlots(result);
+        
+        // Reset selected slots
+        setSelectedSlots([]);
+        onSlotSelect([]);
       } catch (err) {
         console.error("Error in fetchReservedSpotsAndGenerateLayout:", err);
       } finally {
@@ -107,7 +114,7 @@ const ParkingLayout = ({ eventId, totalSlots, availableSlots, onSlotSelect }: Pa
     };
     
     fetchReservedSpotsAndGenerateLayout();
-  }, [eventId, totalSlots, availableSlots, toast]);
+  }, [eventId, totalSlots, availableSlots, toast, onSlotSelect]);
   
   const handleSlotClick = (slot: ParkingSlot) => {
     if (slot.state === "reserved") return;

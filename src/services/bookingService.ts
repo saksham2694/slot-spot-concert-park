@@ -1,3 +1,4 @@
+
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 
@@ -21,10 +22,30 @@ export async function createBooking(bookingData: BookingData): Promise<string | 
     const rowNumber = parseInt(bookingData.slotLabel.charAt(1));
     const columnNumber = parseInt(bookingData.slotLabel.charAt(3));
     
-    // First, we need to create a parking layout record for this slot 
+    // First, check if the slot is already reserved
+    const { data: existingLayouts, error: checkError } = await supabase
+      .from("parking_layouts")
+      .select("id")
+      .eq("event_id", bookingData.eventId)
+      .eq("row_number", rowNumber)
+      .eq("column_number", columnNumber)
+      .eq("is_reserved", true);
+      
+    if (checkError) {
+      console.error("Error checking slot availability:", checkError);
+      toast.error("Failed to check slot availability. Please try again.");
+      throw checkError;
+    }
+    
+    if (existingLayouts && existingLayouts.length > 0) {
+      toast.error("This parking slot has already been reserved. Please select another one.");
+      return null;
+    }
+    
+    // Create or update the parking layout for this slot
     const { data: layoutData, error: layoutError } = await supabase
       .from("parking_layouts")
-      .insert({
+      .upsert({
         event_id: bookingData.eventId,
         row_number: rowNumber,
         column_number: columnNumber,
@@ -59,19 +80,8 @@ export async function createBooking(bookingData: BookingData): Promise<string | 
       throw error;
     }
 
-    // Update the available parking slots for the event
-    const { error: updateError } = await supabase
-      .from("events")
-      .update({ 
-        available_parking_slots: supabase.rpc('decrement', { x: 1, row_id: bookingData.eventId })
-      })
-      .eq("id", bookingData.eventId);
+    // The update_available_slots trigger will handle decrementing the available slots
     
-    if (updateError) {
-      console.error("Error updating available slots:", updateError);
-      // We won't throw here since the booking was already created
-    }
-
     toast.success("Booking confirmed successfully!");
     return data?.id || null;
   } catch (error) {
@@ -122,17 +132,51 @@ export async function fetchUserBookings() {
 }
 
 export async function cancelBooking(bookingId: string): Promise<boolean> {
-  const { error } = await supabase
-    .from("bookings")
-    .update({ status: "cancelled" })
-    .eq("id", bookingId);
+  try {
+    // First get the booking to find the event ID
+    const { data: booking, error: fetchError } = await supabase
+      .from("bookings")
+      .select("event_id, parking_layout_id")
+      .eq("id", bookingId)
+      .single();
+      
+    if (fetchError) {
+      console.error("Error fetching booking:", fetchError);
+      toast.error("Failed to find booking details. Please try again.");
+      throw fetchError;
+    }
+    
+    // Update the booking status to cancelled
+    const { error: updateError } = await supabase
+      .from("bookings")
+      .update({ status: "cancelled" })
+      .eq("id", bookingId);
 
-  if (error) {
-    console.error("Error cancelling booking:", error);
-    toast.error("Failed to cancel booking. Please try again.");
+    if (updateError) {
+      console.error("Error cancelling booking:", updateError);
+      toast.error("Failed to cancel booking. Please try again.");
+      throw updateError;
+    }
+    
+    // The trigger will handle incrementing the available slots count
+    
+    // Optional: You can also update the parking layout to free up the spot
+    if (booking && booking.parking_layout_id) {
+      const { error: layoutError } = await supabase
+        .from("parking_layouts")
+        .update({ is_reserved: false })
+        .eq("id", booking.parking_layout_id);
+        
+      if (layoutError) {
+        console.error("Error updating parking layout:", layoutError);
+        // Don't throw here, booking is already cancelled
+      }
+    }
+
+    toast.success("Booking cancelled successfully!");
+    return true;
+  } catch (error) {
+    console.error("Error in cancelBooking:", error);
     throw error;
   }
-
-  toast.success("Booking cancelled successfully!");
-  return true;
 }

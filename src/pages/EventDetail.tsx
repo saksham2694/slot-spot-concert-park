@@ -32,7 +32,7 @@ const EventDetail = () => {
   const [isBooking, setIsBooking] = useState(false);
   const [bookingComplete, setBookingComplete] = useState(false);
   const [bookingId, setBookingId] = useState<string | null>(null);
-  const [refreshTrigger, setRefreshTrigger] = useState(0); // Add a refresh trigger
+  const [refreshTrigger, setRefreshTrigger] = useState(0);
   const { toast } = useToast();
   const navigate = useNavigate();
   const { user } = useAuth();
@@ -55,6 +55,7 @@ const EventDetail = () => {
         
         if (fetchedEvent) {
           setEvent(fetchedEvent);
+          console.log("Fetched event:", fetchedEvent);
         } else {
           toast({
             title: "Event not found",
@@ -76,7 +77,7 @@ const EventDetail = () => {
     };
 
     fetchEvent();
-  }, [eventId, navigate, toast, refreshTrigger]); // Add refreshTrigger as a dependency
+  }, [eventId, navigate, toast, refreshTrigger]);
 
   const handleSlotSelect = (slots: ParkingSlot[]) => {
     setSelectedSlots(slots);
@@ -104,11 +105,12 @@ const EventDetail = () => {
     setIsBooking(true);
 
     try {
+      const slot = selectedSlots[0];
       const bookingData = {
         eventId: eventId!,
-        parkingSlotId: selectedSlots[0].id,
-        price: selectedSlots[0].price,
-        slotLabel: selectedSlots[0].id,
+        parkingSlotId: slot.id,
+        price: slot.price,
+        slotLabel: slot.id,
       };
       
       const newBookingId = await createBooking(bookingData);
@@ -117,8 +119,10 @@ const EventDetail = () => {
         setBookingId(newBookingId);
         setIsBooking(false);
         setBookingComplete(true);
+        
         // Refresh the event data to get updated availability
         setRefreshTrigger(prev => prev + 1);
+        
         toast({
           title: "Booking successful!",
           description: "Your parking spot has been reserved.",
