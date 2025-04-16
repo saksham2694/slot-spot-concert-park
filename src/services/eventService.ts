@@ -47,6 +47,7 @@ export async function createEvent(eventData: {
   image_url?: string;
   total_parking_slots: number;
   available_parking_slots: number;
+  parking_price: number;
 }): Promise<string | null> {
   try {
     const { data, error } = await supabase
@@ -85,6 +86,7 @@ function mapDbEventToEvent(dbEvent: any): Event {
     location: dbEvent.location,
     image: dbEvent.image_url || "https://images.unsplash.com/photo-1501281668745-f7f57925c3b4",
     parkingAvailable: dbEvent.available_parking_slots,
-    parkingTotal: dbEvent.total_parking_slots
+    parkingTotal: dbEvent.total_parking_slots,
+    parkingPrice: dbEvent.parking_price
   };
 }

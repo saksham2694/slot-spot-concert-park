@@ -88,7 +88,7 @@ export async function createBooking(bookingData: BookingData): Promise<string | 
         event_id: bookingData.eventId,
         parking_layout_id: layoutData.id,
         status: "confirmed",
-        qr_code_url: `SLOTSPOT-${bookingData.eventId}-${bookingData.slotLabel}-${Date.now()}`
+        qr_code_url: `TIME2PARK-${bookingData.eventId}-${bookingData.slotLabel}-${Date.now()}`
       })
       .select("id")
       .single();

@@ -14,6 +14,7 @@ interface EventTabsProps {
   eventId: string;
   parkingTotal: number;
   parkingAvailable: number;
+  parkingPrice: number;
   onSlotSelect: (slots: ParkingSlot[]) => void;
 }
 
@@ -21,6 +22,7 @@ const EventTabs = ({
   eventId, 
   parkingTotal, 
   parkingAvailable, 
+  parkingPrice,
   onSlotSelect 
 }: EventTabsProps) => {
   return (
@@ -36,6 +38,7 @@ const EventTabs = ({
           eventId={eventId} 
           totalSlots={parkingTotal}
           availableSlots={parkingAvailable}
+          eventPrice={parkingPrice}
           onSlotSelect={onSlotSelect} 
         />
       </TabsContent>
@@ -74,7 +77,7 @@ const EventTabs = ({
           <h3>Parking Information</h3>
           <p>
             The venue offers several parking lots with varying proximity to the main entrance.
-            All parking spots reserved through SlotSpot are guaranteed and will be held until the event starts.
+            All parking spots reserved through Time2Park are guaranteed and will be held until the event starts.
           </p>
           
           <h3>Accessibility</h3>

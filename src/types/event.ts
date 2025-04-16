@@ -8,4 +8,5 @@ export interface Event {
   image: string;
   parkingAvailable: number;
   parkingTotal: number;
+  parkingPrice: number;
 }

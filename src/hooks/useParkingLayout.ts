@@ -4,7 +4,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { ParkingSlot, ReservedSpot } from "@/types/parking";
 import { useToast } from "@/hooks/use-toast";
 
-export function useParkingLayout(eventId: string, totalSlots: number) {
+export function useParkingLayout(eventId: string, totalSlots: number, eventPrice: number) {
   const { toast } = useToast();
   const [parkingSlots, setParkingSlots] = useState<ParkingSlot[]>([]);
   const [selectedSlots, setSelectedSlots] = useState<ParkingSlot[]>([]);
@@ -60,10 +60,11 @@ export function useParkingLayout(eventId: string, totalSlots: number) {
           
           const slotId = `R${row + 1}C${col + 1}`;
           const isReserved = reservedSpotsMap.has(slotId);
-          // Use the price from reserved spot if available, otherwise generate a random price
+          
+          // Use the price from reserved spot if available, otherwise use the event price
           const price = isReserved 
             ? reservedSpotsMap.get(slotId)! 
-            : 15 + Math.floor(Math.random() * 10); // Random price between $15-$24
+            : eventPrice;
           
           result.push({
             id: slotId,
@@ -86,7 +87,7 @@ export function useParkingLayout(eventId: string, totalSlots: number) {
     } finally {
       setIsLoading(false);
     }
-  }, [eventId, totalSlots, toast]);
+  }, [eventId, totalSlots, eventPrice, toast]);
   
   // Use effect with appropriate dependencies
   useEffect(() => {

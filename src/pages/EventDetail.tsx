@@ -1,3 +1,4 @@
+
 import { useState, useEffect, useCallback } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import Navbar from "@/components/Navbar";
@@ -131,7 +132,7 @@ const EventDetail = () => {
     }
   };
 
-  const qrCodeData = `SLOTSPOT-${eventId}-${selectedSlots.map(s => s.id).join('-')}-${bookingId || Date.now()}`;
+  const qrCodeData = `TIME2PARK-${eventId}-${selectedSlots.map(s => s.id).join('-')}-${bookingId || Date.now()}`;
 
   return (
     <div className="min-h-screen flex flex-col">
@@ -174,6 +175,7 @@ const EventDetail = () => {
                         eventId={eventId || ""}
                         parkingTotal={event.parkingTotal}
                         parkingAvailable={event.parkingAvailable}
+                        parkingPrice={event.parkingPrice}
                         onSlotSelect={handleSlotSelect}
                       />
                     )}

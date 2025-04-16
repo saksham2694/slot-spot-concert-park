@@ -8,7 +8,6 @@ import { toast } from "sonner";
 import { createEvent } from "@/services/eventService";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Textarea } from "@/components/ui/textarea";
 import {
   Form,
   FormControl,
@@ -33,6 +32,7 @@ const eventFormSchema = z.object({
   time: z.string().min(1, { message: "Event time is required" }),
   imageUrl: z.string().url({ message: "Please enter a valid URL" }).optional(),
   totalParkingSlots: z.coerce.number().positive({ message: "Must be a positive number" }),
+  parkingPrice: z.coerce.number().positive({ message: "Price must be a positive number" }),
 });
 
 type EventFormValues = z.infer<typeof eventFormSchema>;
@@ -43,6 +43,7 @@ const AdminCreateEvent = () => {
   
   const defaultValues: Partial<EventFormValues> = {
     imageUrl: "https://images.unsplash.com/photo-1501281668745-f7f57925c3b4",
+    parkingPrice: 20,
   };
 
   const form = useForm<EventFormValues>({
@@ -66,6 +67,7 @@ const AdminCreateEvent = () => {
         image_url: data.imageUrl || defaultValues.imageUrl,
         total_parking_slots: data.totalParkingSlots,
         available_parking_slots: data.totalParkingSlots, // Initially all slots are available
+        parking_price: data.parkingPrice, // Add the parking price
       };
       
       await createEvent(eventData);
@@ -192,19 +194,35 @@ const AdminCreateEvent = () => {
             )}
           />
           
-          <FormField
-            control={form.control}
-            name="totalParkingSlots"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>Total Parking Slots</FormLabel>
-                <FormControl>
-                  <Input type="number" min="1" {...field} />
-                </FormControl>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <FormField
+              control={form.control}
+              name="totalParkingSlots"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Total Parking Slots</FormLabel>
+                  <FormControl>
+                    <Input type="number" min="1" {...field} />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+            
+            <FormField
+              control={form.control}
+              name="parkingPrice"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Parking Price ($)</FormLabel>
+                  <FormControl>
+                    <Input type="number" min="0" step="0.01" {...field} />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+          </div>
           
           <div className="flex justify-end gap-4">
             <Button 

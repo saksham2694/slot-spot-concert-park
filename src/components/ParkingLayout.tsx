@@ -10,6 +10,7 @@ interface ParkingLayoutProps {
   eventId: string;
   totalSlots: number;
   availableSlots: number;
+  eventPrice: number;
   onSlotSelect: (selectedSlots: ParkingSlot[]) => void;
 }
 
@@ -17,6 +18,7 @@ const ParkingLayout = ({
   eventId, 
   totalSlots, 
   availableSlots, 
+  eventPrice,
   onSlotSelect 
 }: ParkingLayoutProps) => {
   const {
@@ -24,7 +26,7 @@ const ParkingLayout = ({
     slotsByRow,
     isLoading,
     handleSlotClick
-  } = useParkingLayout(eventId, totalSlots);
+  } = useParkingLayout(eventId, totalSlots, eventPrice);
   
   // Update parent component whenever selected slots change
   React.useEffect(() => {
