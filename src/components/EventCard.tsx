@@ -4,17 +4,7 @@ import { Card, CardContent, CardFooter } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Calendar, Clock, MapPin } from "lucide-react";
-
-export interface Event {
-  id: number;
-  title: string;
-  date: string;
-  time: string;
-  location: string;
-  image: string;
-  parkingAvailable: number;
-  parkingTotal: number;
-}
+import { Event } from "@/types/event";
 
 interface EventCardProps {
   event: Event;

@@ -9,7 +9,119 @@ export type Json =
 export type Database = {
   public: {
     Tables: {
-      [_ in never]: never
+      bookings: {
+        Row: {
+          booking_date: string | null
+          event_id: string | null
+          id: string
+          parking_layout_id: string | null
+          qr_code_url: string | null
+          status: string | null
+          user_id: string | null
+        }
+        Insert: {
+          booking_date?: string | null
+          event_id?: string | null
+          id?: string
+          parking_layout_id?: string | null
+          qr_code_url?: string | null
+          status?: string | null
+          user_id?: string | null
+        }
+        Update: {
+          booking_date?: string | null
+          event_id?: string | null
+          id?: string
+          parking_layout_id?: string | null
+          qr_code_url?: string | null
+          status?: string | null
+          user_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "bookings_event_id_fkey"
+            columns: ["event_id"]
+            isOneToOne: false
+            referencedRelation: "events"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "bookings_parking_layout_id_fkey"
+            columns: ["parking_layout_id"]
+            isOneToOne: false
+            referencedRelation: "parking_layouts"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      events: {
+        Row: {
+          available_parking_slots: number
+          created_at: string | null
+          date: string
+          id: string
+          image_url: string | null
+          location: string
+          title: string
+          total_parking_slots: number
+        }
+        Insert: {
+          available_parking_slots: number
+          created_at?: string | null
+          date: string
+          id?: string
+          image_url?: string | null
+          location: string
+          title: string
+          total_parking_slots: number
+        }
+        Update: {
+          available_parking_slots?: number
+          created_at?: string | null
+          date?: string
+          id?: string
+          image_url?: string | null
+          location?: string
+          title?: string
+          total_parking_slots?: number
+        }
+        Relationships: []
+      }
+      parking_layouts: {
+        Row: {
+          column_number: number
+          event_id: string | null
+          id: string
+          is_reserved: boolean | null
+          price: number
+          row_number: number
+        }
+        Insert: {
+          column_number: number
+          event_id?: string | null
+          id?: string
+          is_reserved?: boolean | null
+          price: number
+          row_number: number
+        }
+        Update: {
+          column_number?: number
+          event_id?: string | null
+          id?: string
+          is_reserved?: boolean | null
+          price?: number
+          row_number?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "parking_layouts_event_id_fkey"
+            columns: ["event_id"]
+            isOneToOne: false
+            referencedRelation: "events"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Views: {
       [_ in never]: never
