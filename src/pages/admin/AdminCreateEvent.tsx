@@ -57,7 +57,7 @@ const AdminCreateEvent = () => {
       // Combine date and time
       const eventDateTime = new Date(data.date);
       const [hours, minutes] = data.time.split(':').map(Number);
-      eventDateTime.setHours(hours, minutes);
+      eventDateTime.setHours(hours || 0, minutes || 0);
       
       const eventData = {
         title: data.title,

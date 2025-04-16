@@ -43,18 +43,23 @@ export async function createEvent(eventData: {
   total_parking_slots: number;
   available_parking_slots: number;
 }): Promise<string | null> {
-  const { data, error } = await supabase
-    .from("events")
-    .insert(eventData)
-    .select("id")
-    .single();
+  try {
+    const { data, error } = await supabase
+      .from("events")
+      .insert(eventData)
+      .select("id")
+      .single();
 
-  if (error) {
+    if (error) {
+      console.error("Error creating event:", error);
+      throw error;
+    }
+
+    return data?.id || null;
+  } catch (error) {
     console.error("Error creating event:", error);
     throw error;
   }
-
-  return data?.id || null;
 }
 
 // Helper function to map database event to frontend Event type
