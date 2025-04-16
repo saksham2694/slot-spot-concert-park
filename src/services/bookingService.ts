@@ -1,4 +1,3 @@
-
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 
@@ -18,32 +17,17 @@ export async function createBooking(bookingData: BookingData): Promise<string | 
   }
   
   try {
-    // First check if the event has available slots
-    const { data: eventData, error: eventError } = await supabase
-      .from("events")
-      .select("available_parking_slots")
-      .eq("id", bookingData.eventId)
-      .single();
-    
-    if (eventError || !eventData) {
-      console.error("Error checking event availability:", eventError);
-      toast.error("Unable to verify parking availability");
-      throw new Error("Failed to check event availability");
-    }
-    
-    if (eventData.available_parking_slots <= 0) {
-      toast.error("No parking slots available for this event");
-      return null;
-    }
+    // Parse the row and column from the slot label (format: R1C1)
+    const rowNumber = parseInt(bookingData.slotLabel.charAt(1));
+    const columnNumber = parseInt(bookingData.slotLabel.charAt(3));
     
     // First, we need to create a parking layout record for this slot 
-    // since we're using client-side generated IDs like "R1C1", not UUIDs
     const { data: layoutData, error: layoutError } = await supabase
       .from("parking_layouts")
       .insert({
         event_id: bookingData.eventId,
-        row_number: parseInt(bookingData.parkingSlotId.charAt(1)),
-        column_number: parseInt(bookingData.parkingSlotId.charAt(3)),
+        row_number: rowNumber,
+        column_number: columnNumber,
         is_reserved: true,
         price: bookingData.price
       })
@@ -79,7 +63,7 @@ export async function createBooking(bookingData: BookingData): Promise<string | 
     const { error: updateError } = await supabase
       .from("events")
       .update({ 
-        available_parking_slots: eventData.available_parking_slots - 1 
+        available_parking_slots: supabase.rpc('decrement', { x: 1, row_id: bookingData.eventId })
       })
       .eq("id", bookingData.eventId);
     

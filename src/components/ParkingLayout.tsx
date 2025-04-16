@@ -1,4 +1,3 @@
-
 import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/components/ui/use-toast";
@@ -36,54 +35,79 @@ const ParkingLayout = ({ eventId, totalSlots, availableSlots, onSlotSelect }: Pa
   const [selectedSlots, setSelectedSlots] = useState<ParkingSlot[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   
-  // Generate parking data based on total slots from the event
+  // Fetch actual reserved parking spots and generate parking layout
   useEffect(() => {
-    const generateParkingData = () => {
-      if (totalSlots <= 0) return [];
-      
-      // Calculate reasonable grid dimensions based on total slots
-      const columns = Math.min(8, Math.ceil(Math.sqrt(totalSlots)));
-      const rows = Math.ceil(totalSlots / columns);
-      const result: ParkingSlot[] = [];
-      
-      // Number of slots that should be marked as reserved
-      const reservedSlotsCount = totalSlots - availableSlots;
-      const reservedPositions = new Set();
-      
-      // Pre-select positions to be marked as reserved
-      while (reservedPositions.size < reservedSlotsCount) {
-        const randomPosition = Math.floor(Math.random() * totalSlots);
-        reservedPositions.add(randomPosition);
+    const fetchReservedSpotsAndGenerateLayout = async () => {
+      if (totalSlots <= 0) {
+        setParkingSlots([]);
+        setIsLoading(false);
+        return;
       }
       
-      let slotCount = 0;
-      for (let row = 0; row < rows; row++) {
-        for (let col = 0; col < columns; col++) {
-          if (slotCount >= totalSlots) break;
+      setIsLoading(true);
+      
+      try {
+        // First fetch all reserved parking spots for this event
+        const { data: reservedSpots, error } = await supabase
+          .from("parking_layouts")
+          .select("row_number, column_number, price")
+          .eq("event_id", eventId)
+          .eq("is_reserved", true);
           
-          const isReserved = reservedPositions.has(slotCount);
-          const price = 15 + Math.floor(Math.random() * 10); // Random price between $15-$24
-          
-          result.push({
-            id: `R${row + 1}C${col + 1}`,
-            state: isReserved ? "reserved" : "available",
-            row: row + 1,
-            column: col + 1,
-            price,
+        if (error) {
+          console.error("Error fetching reserved spots:", error);
+          toast({
+            title: "Error",
+            description: "Failed to load parking layout. Please try again.",
+            variant: "destructive",
           });
-          
-          slotCount++;
+          setIsLoading(false);
+          return;
         }
+        
+        // Create a map of reserved spots for quick lookup
+        const reservedSpotsMap = new Map();
+        reservedSpots?.forEach(spot => {
+          const key = `R${spot.row_number}C${spot.column_number}`;
+          reservedSpotsMap.set(key, true);
+        });
+        
+        // Calculate reasonable grid dimensions based on total slots
+        const columns = Math.min(8, Math.ceil(Math.sqrt(totalSlots)));
+        const rows = Math.ceil(totalSlots / columns);
+        const result: ParkingSlot[] = [];
+        
+        let slotCount = 0;
+        for (let row = 0; row < rows; row++) {
+          for (let col = 0; col < columns; col++) {
+            if (slotCount >= totalSlots) break;
+            
+            const slotId = `R${row + 1}C${col + 1}`;
+            const isReserved = reservedSpotsMap.has(slotId);
+            const price = 15 + Math.floor(Math.random() * 10); // Random price between $15-$24
+            
+            result.push({
+              id: slotId,
+              state: isReserved ? "reserved" : "available",
+              row: row + 1,
+              column: col + 1,
+              price,
+            });
+            
+            slotCount++;
+          }
+        }
+        
+        setParkingSlots(result);
+      } catch (err) {
+        console.error("Error in fetchReservedSpotsAndGenerateLayout:", err);
+      } finally {
+        setIsLoading(false);
       }
-      
-      return result;
     };
     
-    setIsLoading(true);
-    const slots = generateParkingData();
-    setParkingSlots(slots);
-    setIsLoading(false);
-  }, [totalSlots, availableSlots]);
+    fetchReservedSpotsAndGenerateLayout();
+  }, [eventId, totalSlots, availableSlots, toast]);
   
   const handleSlotClick = (slot: ParkingSlot) => {
     if (slot.state === "reserved") return;
