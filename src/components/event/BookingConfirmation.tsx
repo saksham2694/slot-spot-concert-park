@@ -73,9 +73,8 @@ const BookingConfirmation = ({
       <div className="flex flex-col sm:flex-row gap-4 justify-center">
         <Button 
           onClick={() => {
-            toast({
-              title: "PDF Generated",
-              description: "Your booking confirmation has been downloaded.",
+            toast("Your booking confirmation has been downloaded.", {
+              description: "PDF Generated",
             });
           }}
           variant="outline"
