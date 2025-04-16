@@ -13,6 +13,7 @@ import { Label } from "../ui/label";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "../ui/tabs";
 import { Eye, EyeOff, LogIn, Mail, UserPlus } from "lucide-react";
 import { useToast } from "../ui/use-toast";
+import { supabase } from "@/integrations/supabase/client";
 
 interface AuthButtonProps {
   className?: string;
@@ -21,53 +22,111 @@ interface AuthButtonProps {
 const AuthButton = ({ className }: AuthButtonProps) => {
   const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [firstName, setFirstName] = useState("");
+  const [lastName, setLastName] = useState("");
+  const [isOpen, setIsOpen] = useState(false);
   const { toast } = useToast();
 
-  const handleLogin = (event: React.FormEvent<HTMLFormElement>) => {
+  const handleLogin = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     setIsLoading(true);
     
-    // Simulate login
-    setTimeout(() => {
-      setIsLoading(false);
+    try {
+      const { data, error } = await supabase.auth.signInWithPassword({
+        email,
+        password,
+      });
+
+      if (error) {
+        throw error;
+      }
+
       toast({
         title: "Login successful",
         description: "Welcome back to SlotSpot!",
       });
-    }, 1000);
+      
+      setIsOpen(false);
+    } catch (error: any) {
+      toast({
+        title: "Login failed",
+        description: error.message || "An error occurred during login",
+        variant: "destructive",
+      });
+    } finally {
+      setIsLoading(false);
+    }
   };
 
-  const handleSignUp = (event: React.FormEvent<HTMLFormElement>) => {
+  const handleSignUp = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     setIsLoading(true);
     
-    // Simulate signup
-    setTimeout(() => {
-      setIsLoading(false);
+    try {
+      const { data, error } = await supabase.auth.signUp({
+        email,
+        password,
+        options: {
+          data: {
+            first_name: firstName,
+            last_name: lastName,
+          },
+        },
+      });
+
+      if (error) {
+        throw error;
+      }
+
       toast({
         title: "Sign up successful",
-        description: "Welcome to SlotSpot!",
+        description: "Welcome to SlotSpot! Please check your email for verification.",
       });
-    }, 1000);
+      
+      setIsOpen(false);
+    } catch (error: any) {
+      toast({
+        title: "Sign up failed",
+        description: error.message || "An error occurred during sign up",
+        variant: "destructive",
+      });
+    } finally {
+      setIsLoading(false);
+    }
   };
 
-  const handleGoogleAuth = () => {
+  const handleGoogleAuth = async () => {
     setIsLoading(true);
     
-    // Simulate Google auth
-    setTimeout(() => {
-      setIsLoading(false);
-      toast({
-        title: "Google authentication",
-        description: "Successfully logged in with Google!",
+    try {
+      const { data, error } = await supabase.auth.signInWithOAuth({
+        provider: 'google',
+        options: {
+          redirectTo: window.location.origin,
+        },
       });
-    }, 1000);
+
+      if (error) {
+        throw error;
+      }
+      
+      // No toast here as the user will be redirected to Google
+    } catch (error: any) {
+      toast({
+        title: "Google authentication failed",
+        description: error.message || "An error occurred during Google authentication",
+        variant: "destructive",
+      });
+      setIsLoading(false);
+    }
   };
 
   return (
-    <Dialog>
+    <Dialog open={isOpen} onOpenChange={setIsOpen}>
       <DialogTrigger asChild>
-        <Button variant="default" className={className}>
+        <Button variant="default" className={className} onClick={() => setIsOpen(true)}>
           <LogIn className="mr-2 h-4 w-4" />
           Sign In
         </Button>
@@ -94,6 +153,8 @@ const AuthButton = ({ className }: AuthButtonProps) => {
                     placeholder="you@example.com" 
                     type="email" 
                     className="pl-10"
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
                     required
                   />
                 </div>
@@ -106,6 +167,8 @@ const AuthButton = ({ className }: AuthButtonProps) => {
                     id="password-login" 
                     type={showPassword ? "text" : "password"} 
                     className="pr-10"
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
                     required
                   />
                   <button 
@@ -156,11 +219,21 @@ const AuthButton = ({ className }: AuthButtonProps) => {
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-2">
                   <Label htmlFor="first-name">First name</Label>
-                  <Input id="first-name" required />
+                  <Input 
+                    id="first-name" 
+                    value={firstName}
+                    onChange={(e) => setFirstName(e.target.value)}
+                    required 
+                  />
                 </div>
                 <div className="space-y-2">
                   <Label htmlFor="last-name">Last name</Label>
-                  <Input id="last-name" required />
+                  <Input 
+                    id="last-name" 
+                    value={lastName}
+                    onChange={(e) => setLastName(e.target.value)}
+                    required 
+                  />
                 </div>
               </div>
               
@@ -173,6 +246,8 @@ const AuthButton = ({ className }: AuthButtonProps) => {
                     placeholder="you@example.com" 
                     type="email" 
                     className="pl-10"
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
                     required
                   />
                 </div>
@@ -185,6 +260,8 @@ const AuthButton = ({ className }: AuthButtonProps) => {
                     id="password-signup" 
                     type={showPassword ? "text" : "password"}
                     className="pr-10" 
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
                     required
                   />
                   <button 

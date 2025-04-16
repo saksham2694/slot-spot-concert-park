@@ -8,12 +8,23 @@ import {
   SheetTrigger 
 } from "@/components/ui/sheet";
 import AuthButton from "@/components/ui/auth-button";
-import { Menu, X } from "lucide-react";
+import { Menu, X, User, LogOut } from "lucide-react";
 import { useIsMobile } from "@/hooks/use-mobile";
+import { useAuth } from "@/context/AuthContext";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 
 const Navbar = () => {
   const isMobile = useIsMobile();
   const [isOpen, setIsOpen] = useState(false);
+  const { user, signOut } = useAuth();
 
   const navLinks = [
     { name: "Home", path: "/" },
@@ -36,6 +47,36 @@ const Navbar = () => {
       ))}
     </div>
   );
+
+  const UserMenu = () => {
+    if (!user) return null;
+
+    const userInitials = user.email ? user.email.substring(0, 2).toUpperCase() : "U";
+    
+    return (
+      <DropdownMenu>
+        <DropdownMenuTrigger asChild>
+          <Button variant="ghost" className="relative h-8 w-8 rounded-full">
+            <Avatar className="h-8 w-8">
+              <AvatarFallback>{userInitials}</AvatarFallback>
+            </Avatar>
+          </Button>
+        </DropdownMenuTrigger>
+        <DropdownMenuContent align="end">
+          <DropdownMenuLabel>My Account</DropdownMenuLabel>
+          <DropdownMenuSeparator />
+          <DropdownMenuItem>
+            <User className="mr-2 h-4 w-4" />
+            <span>Profile</span>
+          </DropdownMenuItem>
+          <DropdownMenuItem onClick={signOut}>
+            <LogOut className="mr-2 h-4 w-4" />
+            <span>Log out</span>
+          </DropdownMenuItem>
+        </DropdownMenuContent>
+      </DropdownMenu>
+    );
+  };
 
   return (
     <header className="border-b sticky top-0 z-30 bg-background/95 backdrop-blur">
@@ -76,14 +117,21 @@ const Navbar = () => {
             <SheetContent side="right" className="flex flex-col pt-16">
               <NavLinks />
               <div className="mt-6">
-                <AuthButton className="w-full" />
+                {user ? (
+                  <Button onClick={signOut} className="w-full">
+                    <LogOut className="mr-2 h-4 w-4" />
+                    Log Out
+                  </Button>
+                ) : (
+                  <AuthButton className="w-full" />
+                )}
               </div>
             </SheetContent>
           </Sheet>
         ) : (
           <div className="flex items-center space-x-6">
             <NavLinks />
-            <AuthButton />
+            {user ? <UserMenu /> : <AuthButton />}
           </div>
         )}
       </div>

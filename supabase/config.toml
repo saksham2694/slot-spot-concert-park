@@ -3,3 +3,6 @@ project_id = "ebviljrakjsjymsqejqu"
 
 [functions.seed-events]
 verify_jwt = false
+
+[auth.external.google]
+enabled = true
