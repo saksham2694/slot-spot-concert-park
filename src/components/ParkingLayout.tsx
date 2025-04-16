@@ -1,5 +1,5 @@
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/components/ui/use-toast";
 import { ArrowLeft, ArrowRight, Car, Info } from "lucide-react";
@@ -36,85 +36,89 @@ const ParkingLayout = ({ eventId, totalSlots, availableSlots, onSlotSelect }: Pa
   const [selectedSlots, setSelectedSlots] = useState<ParkingSlot[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   
-  // Fetch actual reserved parking spots and generate parking layout
-  useEffect(() => {
-    const fetchReservedSpotsAndGenerateLayout = async () => {
-      if (totalSlots <= 0) {
-        setParkingSlots([]);
+  // Memoize the fetch function to prevent unnecessary re-renders
+  const fetchReservedSpotsAndGenerateLayout = useCallback(async () => {
+    if (!eventId || totalSlots <= 0) {
+      setParkingSlots([]);
+      setIsLoading(false);
+      return;
+    }
+    
+    setIsLoading(true);
+    
+    try {
+      // First fetch all reserved parking spots for this event
+      const { data: reservedSpots, error } = await supabase
+        .from("parking_layouts")
+        .select("row_number, column_number, price")
+        .eq("event_id", eventId)
+        .eq("is_reserved", true);
+        
+      if (error) {
+        console.error("Error fetching reserved spots:", error);
+        toast({
+          title: "Error",
+          description: "Failed to load parking layout. Please try again.",
+          variant: "destructive",
+        });
         setIsLoading(false);
         return;
       }
       
-      setIsLoading(true);
+      console.log("Reserved spots:", reservedSpots);
       
-      try {
-        // First fetch all reserved parking spots for this event
-        const { data: reservedSpots, error } = await supabase
-          .from("parking_layouts")
-          .select("row_number, column_number, price")
-          .eq("event_id", eventId)
-          .eq("is_reserved", true);
+      // Create a map of reserved spots for quick lookup
+      const reservedSpotsMap = new Map();
+      reservedSpots?.forEach(spot => {
+        const key = `R${spot.row_number}C${spot.column_number}`;
+        reservedSpotsMap.set(key, spot.price);
+      });
+      
+      // Calculate reasonable grid dimensions based on total slots
+      const columns = Math.min(8, Math.ceil(Math.sqrt(totalSlots)));
+      const rows = Math.ceil(totalSlots / columns);
+      const result: ParkingSlot[] = [];
+      
+      let slotCount = 0;
+      for (let row = 0; row < rows; row++) {
+        for (let col = 0; col < columns; col++) {
+          if (slotCount >= totalSlots) break;
           
-        if (error) {
-          console.error("Error fetching reserved spots:", error);
-          toast({
-            title: "Error",
-            description: "Failed to load parking layout. Please try again.",
-            variant: "destructive",
+          const slotId = `R${row + 1}C${col + 1}`;
+          const isReserved = reservedSpotsMap.has(slotId);
+          // Use the price from reserved spot if available, otherwise generate a random price
+          const price = isReserved 
+            ? reservedSpotsMap.get(slotId) 
+            : 15 + Math.floor(Math.random() * 10); // Random price between $15-$24
+          
+          result.push({
+            id: slotId,
+            state: isReserved ? "reserved" : "available",
+            row: row + 1,
+            column: col + 1,
+            price,
           });
-          setIsLoading(false);
-          return;
+          
+          slotCount++;
         }
-        
-        console.log("Reserved spots:", reservedSpots);
-        
-        // Create a map of reserved spots for quick lookup
-        const reservedSpotsMap = new Map();
-        reservedSpots?.forEach(spot => {
-          const key = `R${spot.row_number}C${spot.column_number}`;
-          reservedSpotsMap.set(key, true);
-        });
-        
-        // Calculate reasonable grid dimensions based on total slots
-        const columns = Math.min(8, Math.ceil(Math.sqrt(totalSlots)));
-        const rows = Math.ceil(totalSlots / columns);
-        const result: ParkingSlot[] = [];
-        
-        let slotCount = 0;
-        for (let row = 0; row < rows; row++) {
-          for (let col = 0; col < columns; col++) {
-            if (slotCount >= totalSlots) break;
-            
-            const slotId = `R${row + 1}C${col + 1}`;
-            const isReserved = reservedSpotsMap.has(slotId);
-            const price = 15 + Math.floor(Math.random() * 10); // Random price between $15-$24
-            
-            result.push({
-              id: slotId,
-              state: isReserved ? "reserved" : "available",
-              row: row + 1,
-              column: col + 1,
-              price,
-            });
-            
-            slotCount++;
-          }
-        }
-        
-        setParkingSlots(result);
-        
-        // Reset selected slots
-        setSelectedSlots([]);
-        onSlotSelect([]);
-      } catch (err) {
-        console.error("Error in fetchReservedSpotsAndGenerateLayout:", err);
-      } finally {
-        setIsLoading(false);
       }
-    };
-    
-    fetchReservedSpotsAndGenerateLayout();
+      
+      setParkingSlots(result);
+      
+      // Reset selected slots
+      setSelectedSlots([]);
+      onSlotSelect([]);
+    } catch (err) {
+      console.error("Error in fetchReservedSpotsAndGenerateLayout:", err);
+    } finally {
+      setIsLoading(false);
+    }
   }, [eventId, totalSlots, availableSlots, toast, onSlotSelect]);
+  
+  // Use the memoized fetch function in useEffect with proper dependencies
+  useEffect(() => {
+    fetchReservedSpotsAndGenerateLayout();
+  }, [fetchReservedSpotsAndGenerateLayout]);
   
   const handleSlotClick = (slot: ParkingSlot) => {
     if (slot.state === "reserved") return;

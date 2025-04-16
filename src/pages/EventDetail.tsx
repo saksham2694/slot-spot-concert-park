@@ -1,5 +1,4 @@
-
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
@@ -37,47 +36,47 @@ const EventDetail = () => {
   const navigate = useNavigate();
   const { user } = useAuth();
 
-  useEffect(() => {
-    const fetchEvent = async () => {
-      try {
-        setLoading(true);
-        if (!eventId) {
-          toast({
-            title: "Invalid event ID",
-            description: "The event ID is missing.",
-            variant: "destructive",
-          });
-          navigate("/events");
-          return;
-        }
-
-        const fetchedEvent = await fetchEventById(eventId);
-        
-        if (fetchedEvent) {
-          setEvent(fetchedEvent);
-          console.log("Fetched event:", fetchedEvent);
-        } else {
-          toast({
-            title: "Event not found",
-            description: "The event you're looking for doesn't exist.",
-            variant: "destructive",
-          });
-          navigate("/events");
-        }
-      } catch (error) {
-        console.error("Error fetching event:", error);
+  const fetchEvent = useCallback(async () => {
+    try {
+      setLoading(true);
+      if (!eventId) {
         toast({
-          title: "Error",
-          description: "Failed to load event details. Please try again.",
+          title: "Invalid event ID",
+          description: "The event ID is missing.",
           variant: "destructive",
         });
-      } finally {
-        setLoading(false);
+        navigate("/events");
+        return;
       }
-    };
 
+      const fetchedEvent = await fetchEventById(eventId);
+      
+      if (fetchedEvent) {
+        setEvent(fetchedEvent);
+        console.log("Fetched event:", fetchedEvent);
+      } else {
+        toast({
+          title: "Event not found",
+          description: "The event you're looking for doesn't exist.",
+          variant: "destructive",
+        });
+        navigate("/events");
+      }
+    } catch (error) {
+      console.error("Error fetching event:", error);
+      toast({
+        title: "Error",
+        description: "Failed to load event details. Please try again.",
+        variant: "destructive",
+      });
+    } finally {
+      setLoading(false);
+    }
+  }, [eventId, navigate, toast]);
+
+  useEffect(() => {
     fetchEvent();
-  }, [eventId, navigate, toast, refreshTrigger]);
+  }, [fetchEvent, refreshTrigger]);
 
   const handleSlotSelect = (slots: ParkingSlot[]) => {
     setSelectedSlots(slots);
@@ -120,7 +119,6 @@ const EventDetail = () => {
         setIsBooking(false);
         setBookingComplete(true);
         
-        // Refresh the event data to get updated availability
         setRefreshTrigger(prev => prev + 1);
         
         toast({
