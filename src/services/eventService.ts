@@ -1,3 +1,4 @@
+
 import { supabase } from "@/integrations/supabase/client";
 import { Event } from "@/types/event";
 
@@ -69,6 +70,29 @@ export async function createEvent(eventData: {
 
 export async function deleteEvent(eventId: string): Promise<boolean> {
   try {
+    // First, delete all associated parking layouts
+    const { error: layoutError } = await supabase
+      .from("parking_layouts")
+      .delete()
+      .eq("event_id", eventId);
+
+    if (layoutError) {
+      console.error("Error deleting parking layouts:", layoutError);
+      throw layoutError;
+    }
+
+    // Next, delete all associated bookings
+    const { error: bookingError } = await supabase
+      .from("bookings")
+      .delete()
+      .eq("event_id", eventId);
+
+    if (bookingError) {
+      console.error("Error deleting bookings:", bookingError);
+      throw bookingError;
+    }
+
+    // Finally, delete the event itself
     const { error } = await supabase
       .from("events")
       .delete()

@@ -132,6 +132,7 @@ const AdminDashboard = () => {
                         <AlertDialogTitle>Delete Event</AlertDialogTitle>
                         <AlertDialogDescription>
                           Are you sure you want to delete "{event.title}"? This action cannot be undone.
+                          All associated parking bookings will also be deleted.
                         </AlertDialogDescription>
                       </AlertDialogHeader>
                       <AlertDialogFooter>
