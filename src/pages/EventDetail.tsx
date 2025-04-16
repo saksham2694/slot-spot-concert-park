@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import Navbar from "@/components/Navbar";
@@ -9,7 +8,7 @@ import { Separator } from "@/components/ui/separator";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Calendar, Clock, Info, MapPin, QrCode, Ticket } from "lucide-react";
-import { useToast } from "@/components/ui/use-toast";
+import { useToast } from "@/hooks/use-toast";
 import { Event } from "@/types/event";
 import { fetchEventById } from "@/services/eventService";
 import { useAuth } from "@/context/AuthContext";
@@ -103,10 +102,11 @@ const EventDetail = () => {
     setIsBooking(true);
 
     try {
-      // Create the booking in the database
       const bookingData = {
         eventId: eventId!,
-        parkingLayoutId: selectedSlots[0].id,
+        parkingSlotId: selectedSlots[0].id,
+        price: selectedSlots[0].price,
+        slotLabel: selectedSlots[0].id,
       };
       
       const newBookingId = await createBooking(bookingData);
@@ -133,13 +133,10 @@ const EventDetail = () => {
     }
   };
 
-  // Calculate total price
   const totalPrice = selectedSlots.reduce((sum, slot) => sum + slot.price, 0);
 
-  // Generate QR code data (in a real app, this would be a unique identifier)
   const qrCodeData = `SLOTSPOT-${eventId}-${selectedSlots.map(s => s.id).join('-')}-${bookingId || Date.now()}`;
 
-  // Check if user is authenticated
   const renderAuthPrompt = () => {
     return (
       <div className="bg-white rounded-lg shadow-lg p-8 text-center">
@@ -176,7 +173,6 @@ const EventDetail = () => {
           </div>
         ) : event ? (
           <>
-            {/* Event Hero */}
             <div className="relative h-80 overflow-hidden">
               <img
                 src={event.image}
@@ -203,7 +199,6 @@ const EventDetail = () => {
               </div>
             </div>
 
-            {/* Main Content */}
             <div className="container py-8">
               {bookingComplete ? (
                 <div className="max-w-2xl mx-auto bg-white rounded-lg shadow-lg p-8 text-center">
@@ -251,7 +246,6 @@ const EventDetail = () => {
                   <div className="flex flex-col sm:flex-row gap-4 justify-center">
                     <Button 
                       onClick={() => {
-                        // Download as PDF - in a real app, this would generate a PDF
                         toast({
                           title: "PDF Generated",
                           description: "Your booking confirmation has been downloaded.",

@@ -4,7 +4,9 @@ import { toast } from "sonner";
 
 interface BookingData {
   eventId: string;
-  parkingLayoutId: string;
+  parkingSlotId: string;
+  price: number;
+  slotLabel: string;
 }
 
 export async function createBooking(bookingData: BookingData): Promise<string | null> {
@@ -34,14 +36,35 @@ export async function createBooking(bookingData: BookingData): Promise<string | 
       return null;
     }
     
-    // Create the booking
+    // First, we need to create a parking layout record for this slot 
+    // since we're using client-side generated IDs like "R1C1", not UUIDs
+    const { data: layoutData, error: layoutError } = await supabase
+      .from("parking_layouts")
+      .insert({
+        event_id: bookingData.eventId,
+        row_number: parseInt(bookingData.parkingSlotId.charAt(1)),
+        column_number: parseInt(bookingData.parkingSlotId.charAt(3)),
+        is_reserved: true,
+        price: bookingData.price
+      })
+      .select("id")
+      .single();
+      
+    if (layoutError) {
+      console.error("Error creating parking layout:", layoutError);
+      toast.error("Failed to reserve parking slot. Please try again.");
+      throw layoutError;
+    }
+    
+    // Now create the booking with the new layout ID
     const { data, error } = await supabase
       .from("bookings")
       .insert({
         user_id: session.session.user.id,
         event_id: bookingData.eventId,
-        parking_layout_id: bookingData.parkingLayoutId,
-        status: "confirmed"
+        parking_layout_id: layoutData.id,
+        status: "confirmed",
+        qr_code_url: `SLOTSPOT-${bookingData.eventId}-${bookingData.slotLabel}-${Date.now()}`
       })
       .select("id")
       .single();
@@ -88,6 +111,7 @@ export async function fetchUserBookings() {
       status,
       event_id,
       parking_layout_id,
+      qr_code_url,
       events (
         id,
         title,
