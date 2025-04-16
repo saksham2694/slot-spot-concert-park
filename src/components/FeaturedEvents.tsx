@@ -22,11 +22,12 @@ const FeaturedEvents = () => {
       .on(
         'postgres_changes',
         {
-          event: '*',
+          event: 'UPDATE',
           schema: 'public',
           table: 'events'
         },
         () => {
+          console.log("Event updated, refetching events...");
           refetch();
         }
       )

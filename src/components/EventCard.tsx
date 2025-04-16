@@ -22,7 +22,7 @@ const EventCard = ({ event }: EventCardProps) => {
     
     // Subscribe to real-time changes for this event
     const channel = supabase
-      .channel('event-updates')
+      .channel(`event-updates-${event.id}`)
       .on(
         'postgres_changes',
         {
@@ -32,6 +32,7 @@ const EventCard = ({ event }: EventCardProps) => {
           filter: `id=eq.${event.id}`
         },
         (payload) => {
+          console.log("Event updated:", payload);
           if (payload.new && typeof payload.new.available_parking_slots === 'number') {
             setParkingAvailable(payload.new.available_parking_slots);
           }

@@ -99,6 +99,22 @@ export async function createBooking(bookingData: BookingData): Promise<string | 
       throw error;
     }
 
+    // Update the available parking slots in the events table
+    const { error: updateError } = await supabase
+      .from("events")
+      .update({ 
+        available_parking_slots: supabase.rpc('decrement', { 
+          x: 1, 
+          row_id: bookingData.eventId 
+        }) 
+      })
+      .eq("id", bookingData.eventId);
+
+    if (updateError) {
+      console.error("Error updating event slots:", updateError);
+      // Don't throw here, booking is already created
+    }
+
     toast.success("Booking confirmed successfully!");
     return data?.id || null;
   } catch (error) {
@@ -177,31 +193,44 @@ export async function cancelBooking(bookingId: string): Promise<boolean> {
     
     // Free up the parking spot by updating the parking layout
     if (booking && booking.parking_layout_id) {
-      const { error: layoutError } = await supabase
+      const { data: layoutData, error: layoutFetchError } = await supabase
         .from("parking_layouts")
-        .update({ is_reserved: false })
-        .eq("id", booking.parking_layout_id);
+        .select("*")
+        .eq("id", booking.parking_layout_id)
+        .single();
         
-      if (layoutError) {
-        console.error("Error updating parking layout:", layoutError);
-        toast.error("Failed to free up the parking spot. Please contact support.");
-        // Don't throw here, booking is already cancelled
+      if (layoutFetchError) {
+        console.error("Error fetching parking layout:", layoutFetchError);
+        // Continue with the process
+      } else {
+        const { error: layoutError } = await supabase
+          .from("parking_layouts")
+          .update({ is_reserved: false })
+          .eq("id", booking.parking_layout_id);
+          
+        if (layoutError) {
+          console.error("Error updating parking layout:", layoutError);
+          toast.error("Failed to free up the parking spot. Please contact support.");
+          // Don't throw here, booking is already cancelled
+        }
       }
       
       // Update the available slots count in the events table
-      const { error: eventError } = await supabase
-        .from("events")
-        .update({ 
-          available_parking_slots: supabase.rpc('increment', { 
-            x: 1, 
-            row_id: booking.event_id 
-          }) 
-        })
-        .eq("id", booking.event_id);
-        
-      if (eventError) {
-        console.error("Error updating event slots:", eventError);
-        // Don't throw here, booking is already cancelled and spot freed
+      if (booking.event_id) {
+        const { error: eventError } = await supabase
+          .from("events")
+          .update({ 
+            available_parking_slots: supabase.rpc('increment', { 
+              x: 1, 
+              row_id: booking.event_id 
+            }) 
+          })
+          .eq("id", booking.event_id);
+          
+        if (eventError) {
+          console.error("Error updating event slots:", eventError);
+          // Don't throw here, booking is already cancelled and spot freed
+        }
       }
     }
 
