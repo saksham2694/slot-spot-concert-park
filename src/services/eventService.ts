@@ -1,4 +1,3 @@
-
 import { supabase } from "@/integrations/supabase/client";
 import { Event } from "@/types/event";
 
@@ -68,7 +67,25 @@ export async function createEvent(eventData: {
   }
 }
 
-// Helper function to map database event to frontend Event type
+export async function deleteEvent(eventId: string): Promise<boolean> {
+  try {
+    const { error } = await supabase
+      .from("events")
+      .delete()
+      .eq("id", eventId);
+
+    if (error) {
+      console.error("Error deleting event:", error);
+      throw error;
+    }
+
+    return true;
+  } catch (error) {
+    console.error("Error in deleteEvent:", error);
+    throw error;
+  }
+}
+
 function mapDbEventToEvent(dbEvent: any): Event {
   return {
     id: dbEvent.id,
