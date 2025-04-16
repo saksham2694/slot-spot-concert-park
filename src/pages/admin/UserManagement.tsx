@@ -32,33 +32,51 @@ const UserManagement = () => {
   // Fetch users and their admin status
   const fetchUsers = async () => {
     setIsLoading(true);
+    console.log("Starting to fetch users...");
     try {
       // Get all users from profiles table
+      console.log("Fetching profiles...");
       const { data: profiles, error: profilesError } = await supabase
         .from('profiles')
         .select('*');
       
       if (profilesError) {
+        console.error('Error fetching profiles:', profilesError);
         throw profilesError;
       }
+      console.log("Profiles fetched:", profiles?.length || 0, "profiles");
+      console.log("Raw profiles data:", profiles);
 
       // Get all admin roles
+      console.log("Fetching admin roles...");
       const { data: adminRoles, error: rolesError } = await supabase
         .from('user_roles')
         .select('*')
         .eq('role', 'admin');
       
       if (rolesError) {
+        console.error('Error fetching admin roles:', rolesError);
         throw rolesError;
       }
+      console.log("Admin roles fetched:", adminRoles?.length || 0, "roles");
+      console.log("Raw admin roles data:", adminRoles);
 
       // Create a set of admin user IDs for faster lookup
       const adminUserIds = new Set((adminRoles || []).map(role => role.user_id));
+      console.log("Admin user IDs:", [...adminUserIds]);
       
       // Get user emails from auth.users via admin API
+      console.log("Fetching user details from auth API...");
       const usersWithAuth = await Promise.all(
         (profiles || []).map(async (profile) => {
-          const { data: userData } = await supabase.auth.admin.getUserById(profile.id);
+          console.log("Fetching auth details for user ID:", profile.id);
+          const { data: userData, error: userError } = await supabase.auth.admin.getUserById(profile.id);
+          
+          if (userError) {
+            console.warn(`Error fetching auth details for user ${profile.id}:`, userError);
+          }
+          
+          console.log("Auth data for user:", profile.id, userData?.user ? "found" : "not found");
           
           return {
             id: profile.id,
@@ -70,7 +88,7 @@ const UserManagement = () => {
         })
       );
       
-      console.log("Fetched users:", usersWithAuth);
+      console.log("Final processed users:", usersWithAuth);
       setUsers(usersWithAuth);
     } catch (error) {
       console.error('Error fetching users:', error);
@@ -85,6 +103,7 @@ const UserManagement = () => {
   };
 
   useEffect(() => {
+    console.log("UserManagement component mounted, fetching users...");
     fetchUsers();
   }, []);
 
@@ -164,51 +183,57 @@ const UserManagement = () => {
           <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
         </div>
       ) : (
-        <Table>
-          <TableHeader>
-            <TableRow>
-              <TableHead>User</TableHead>
-              <TableHead>Email</TableHead>
-              <TableHead className="text-right">Admin Role</TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {filteredUsers.length === 0 ? (
+        <>
+          <p className="mb-4 text-sm text-muted-foreground">
+            Found {users.length} user{users.length !== 1 ? 's' : ''}
+            {searchQuery && ` matching "${searchQuery}"`}
+          </p>
+          <Table>
+            <TableHeader>
               <TableRow>
-                <TableCell colSpan={3} className="text-center py-8">
-                  {searchQuery ? "No users match your search" : "No users found"}
-                </TableCell>
+                <TableHead>User</TableHead>
+                <TableHead>Email</TableHead>
+                <TableHead className="text-right">Admin Role</TableHead>
               </TableRow>
-            ) : (
-              filteredUsers.map(user => (
-                <TableRow key={user.id}>
-                  <TableCell>
-                    <div className="flex items-center gap-2">
-                      <div className="bg-muted rounded-full p-1">
-                        <User className="h-4 w-4" />
-                      </div>
-                      <span>
-                        {user.first_name || user.last_name 
-                          ? `${user.first_name || ''} ${user.last_name || ''}`
-                          : 'Unnamed User'}
-                      </span>
-                    </div>
-                  </TableCell>
-                  <TableCell>{user.email}</TableCell>
-                  <TableCell className="text-right">
-                    <div className="flex items-center justify-end gap-2">
-                      {user.is_admin && <UserCheck className="h-4 w-4 text-green-500" />}
-                      <Switch 
-                        checked={user.is_admin}
-                        onCheckedChange={(checked) => toggleAdminRole(user.id, user.is_admin)}
-                      />
-                    </div>
+            </TableHeader>
+            <TableBody>
+              {filteredUsers.length === 0 ? (
+                <TableRow>
+                  <TableCell colSpan={3} className="text-center py-8">
+                    {searchQuery ? "No users match your search" : "No users found"}
                   </TableCell>
                 </TableRow>
-              ))
-            )}
-          </TableBody>
-        </Table>
+              ) : (
+                filteredUsers.map(user => (
+                  <TableRow key={user.id}>
+                    <TableCell>
+                      <div className="flex items-center gap-2">
+                        <div className="bg-muted rounded-full p-1">
+                          <User className="h-4 w-4" />
+                        </div>
+                        <span>
+                          {user.first_name || user.last_name 
+                            ? `${user.first_name || ''} ${user.last_name || ''}`
+                            : 'Unnamed User'}
+                        </span>
+                      </div>
+                    </TableCell>
+                    <TableCell>{user.email}</TableCell>
+                    <TableCell className="text-right">
+                      <div className="flex items-center justify-end gap-2">
+                        {user.is_admin && <UserCheck className="h-4 w-4 text-green-500" />}
+                        <Switch 
+                          checked={user.is_admin}
+                          onCheckedChange={(checked) => toggleAdminRole(user.id, user.is_admin)}
+                        />
+                      </div>
+                    </TableCell>
+                  </TableRow>
+                ))
+              )}
+            </TableBody>
+          </Table>
+        </>
       )}
     </div>
   );
