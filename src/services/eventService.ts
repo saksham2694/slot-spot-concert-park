@@ -17,22 +17,27 @@ export async function fetchEvents(): Promise<Event[]> {
 }
 
 export async function fetchEventById(eventId: string): Promise<Event | null> {
-  const { data, error } = await supabase
-    .from("events")
-    .select("*")
-    .eq("id", eventId)
-    .single();
+  try {
+    const { data, error } = await supabase
+      .from("events")
+      .select("*")
+      .eq("id", eventId)
+      .single();
 
-  if (error) {
-    if (error.code === "PGRST116") {
-      // PGRST116 means no rows returned
-      return null;
+    if (error) {
+      if (error.code === "PGRST116") {
+        // PGRST116 means no rows returned
+        return null;
+      }
+      console.error("Error fetching event:", error);
+      throw error;
     }
-    console.error("Error fetching event:", error);
+
+    return data ? mapDbEventToEvent(data) : null;
+  } catch (error) {
+    console.error("Error in fetchEventById:", error);
     throw error;
   }
-
-  return data ? mapDbEventToEvent(data) : null;
 }
 
 export async function createEvent(eventData: {

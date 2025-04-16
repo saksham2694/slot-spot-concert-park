@@ -10,50 +10,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Calendar, Clock, Info, MapPin, QrCode, Ticket } from "lucide-react";
 import { useToast } from "@/components/ui/use-toast";
 import { Event } from "@/types/event";
-
-// Mock data - in a real app, this would come from an API
-const mockEvents: Event[] = [
-  {
-    id: 1,
-    title: "Taylor Swift: The Eras Tour",
-    date: "May 20, 2025",
-    time: "7:00 PM - 11:00 PM",
-    location: "SoFi Stadium, Los Angeles",
-    image: "https://images.unsplash.com/photo-1501281668745-f7f57925c3b4?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=1170&q=80",
-    parkingAvailable: 123,
-    parkingTotal: 500
-  },
-  {
-    id: 2,
-    title: "Coldplay: Music of the Spheres World Tour",
-    date: "June 15, 2025",
-    time: "6:30 PM - 10:30 PM",
-    location: "MetLife Stadium, New Jersey",
-    image: "https://images.unsplash.com/photo-1470229722913-7c0e2dbbafd3?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=1170&q=80",
-    parkingAvailable: 42,
-    parkingTotal: 400
-  },
-  {
-    id: 3,
-    title: "Beyoncé: Renaissance World Tour",
-    date: "July 8, 2025",
-    time: "8:00 PM - 11:30 PM",
-    location: "Mercedes-Benz Stadium, Atlanta",
-    image: "https://images.unsplash.com/photo-1459749411175-04bf5292ceea?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=1170&q=80",
-    parkingAvailable: 350,
-    parkingTotal: 600
-  },
-  {
-    id: 4,
-    title: "Ed Sheeran: Mathematics Tour",
-    date: "August 12, 2025",
-    time: "7:30 PM - 10:30 PM",
-    location: "Wembley Stadium, London",
-    image: "https://images.unsplash.com/photo-1429962714451-bb934ecdc4ec?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=1170&q=80",
-    parkingAvailable: 75,
-    parkingTotal: 450
-  }
-];
+import { fetchEventById } from "@/services/eventService";
 
 interface ParkingSlot {
   id: string;
@@ -74,15 +31,23 @@ const EventDetail = () => {
   const navigate = useNavigate();
 
   useEffect(() => {
-    // Simulate API call to fetch event details
     const fetchEvent = async () => {
       try {
-        // In a real app, this would be an API call
-        await new Promise(resolve => setTimeout(resolve, 800));
-        const foundEvent = mockEvents.find(e => e.id === Number(eventId));
+        setLoading(true);
+        if (!eventId) {
+          toast({
+            title: "Invalid event ID",
+            description: "The event ID is missing.",
+            variant: "destructive",
+          });
+          navigate("/events");
+          return;
+        }
+
+        const fetchedEvent = await fetchEventById(eventId);
         
-        if (foundEvent) {
-          setEvent(foundEvent);
+        if (fetchedEvent) {
+          setEvent(fetchedEvent);
         } else {
           toast({
             title: "Event not found",
