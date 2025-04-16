@@ -10,6 +10,7 @@ export interface UserProfile {
   first_name?: string | null;
   last_name?: string | null;
   avatar_url?: string | null;
+  is_admin?: boolean;
 }
 
 interface AuthContextType {
@@ -19,6 +20,7 @@ interface AuthContextType {
   isLoading: boolean;
   signOut: () => Promise<void>;
   updateProfile: (profile: Partial<UserProfile>) => Promise<void>;
+  checkIfAdmin: () => Promise<boolean>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -73,6 +75,25 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     
     console.log('Profile fetched successfully:', data);
     return data;
+  };
+
+  // Check if user has admin role
+  const checkIfAdmin = async (): Promise<boolean> => {
+    if (!user) return false;
+
+    try {
+      const { data, error } = await supabase.rpc('is_admin');
+      
+      if (error) {
+        console.error('Error checking admin role:', error);
+        return false;
+      }
+      
+      return !!data;
+    } catch (error) {
+      console.error('Error checking admin status:', error);
+      return false;
+    }
   };
 
   // Update user profile
@@ -197,6 +218,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     isLoading,
     signOut,
     updateProfile,
+    checkIfAdmin,
   };
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

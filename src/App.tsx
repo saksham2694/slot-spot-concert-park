@@ -15,6 +15,7 @@ import NotFound from "./pages/NotFound";
 import AdminLayout from "./pages/admin/AdminLayout";
 import AdminDashboard from "./pages/admin/AdminDashboard";
 import AdminCreateEvent from "./pages/admin/AdminCreateEvent";
+import UserManagement from "./pages/admin/UserManagement";
 
 const queryClient = new QueryClient();
 
@@ -37,6 +38,7 @@ const App = () => (
             <Route path="/admin" element={<AdminLayout />}>
               <Route index element={<AdminDashboard />} />
               <Route path="create-event" element={<AdminCreateEvent />} />
+              <Route path="users" element={<UserManagement />} />
             </Route>
             
             <Route path="*" element={<NotFound />} />
