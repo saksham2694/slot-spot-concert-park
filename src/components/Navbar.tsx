@@ -1,3 +1,4 @@
+
 import { useState } from "react";
 import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
@@ -110,7 +111,7 @@ const Navbar = () => {
                 <path d="M17 16h.01" />
               </svg>
             </div>
-            <span className="font-bold text-lg text-foreground">SlotSpot</span>
+            <span className="font-bold text-lg text-foreground">Time2Park</span>
           </Link>
         </div>
 

@@ -29,7 +29,7 @@ const Footer = () => {
                   <path d="M17 16h.01" />
                 </svg>
               </div>
-              <span className="font-bold text-lg text-white">SlotSpot</span>
+              <span className="font-bold text-lg text-white">Time2Park</span>
             </Link>
             <p className="text-sm mb-4">
               The easiest way to find and book parking for your next event.
@@ -105,7 +105,7 @@ const Footer = () => {
         </div>
         
         <div className="border-t border-gray-800 mt-12 pt-6 text-sm text-center">
-          <p>&copy; {new Date().getFullYear()} SlotSpot. All rights reserved.</p>
+          <p>&copy; {new Date().getFullYear()} Time2Park. All rights reserved.</p>
         </div>
       </div>
     </footer>

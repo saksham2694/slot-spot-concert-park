@@ -1,3 +1,4 @@
+
 import Navbar from "@/components/Navbar";
 import HeroSection from "@/components/HeroSection";
 import FeaturedEvents from "@/components/FeaturedEvents";
@@ -68,12 +69,12 @@ const Index = () => {
           </div>
         </section>
         
-        {/* Why Choose SlotSpot Section */}
+        {/* Why Choose Time2Park Section */}
         <section className="py-16">
           <div className="container">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-12 items-center">
               <div>
-                <h2 className="text-3xl font-bold mb-6">Why Choose SlotSpot?</h2>
+                <h2 className="text-3xl font-bold mb-6">Why Choose Time2Park?</h2>
                 
                 <div className="space-y-6">
                   <div className="flex gap-4">
@@ -143,7 +144,7 @@ const Index = () => {
           <div className="container text-center">
             <h2 className="text-3xl font-bold mb-4">Ready to Secure Your Spot?</h2>
             <p className="text-xl mb-8 max-w-2xl mx-auto opacity-90">
-              Join thousands of event-goers who park stress-free with SlotSpot
+              Join thousands of event-goers who park stress-free with Time2Park
             </p>
             <div className="flex flex-col sm:flex-row gap-4 justify-center">
               <Button variant="default" className="bg-white text-parking-primary hover:bg-gray-100" onClick={() => navigate("/events")}>
