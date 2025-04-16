@@ -75,3 +75,19 @@ export async function fetchUserBookings() {
 
   return data || [];
 }
+
+export async function cancelBooking(bookingId: string): Promise<boolean> {
+  const { error } = await supabase
+    .from("bookings")
+    .update({ status: "cancelled" })
+    .eq("id", bookingId);
+
+  if (error) {
+    console.error("Error cancelling booking:", error);
+    toast.error("Failed to cancel booking. Please try again.");
+    throw error;
+  }
+
+  toast.success("Booking cancelled successfully!");
+  return true;
+}

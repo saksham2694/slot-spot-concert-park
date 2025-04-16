@@ -1,6 +1,6 @@
 
 import { useState, useEffect } from "react";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
 import { Button } from "@/components/ui/button";
@@ -16,10 +16,13 @@ import {
 } from "@/components/ui/table";
 import { useToast } from "@/components/ui/use-toast";
 import { Calendar, Clock, Download, ExternalLink, MapPin, QrCode, X } from "lucide-react";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { fetchUserBookings } from "@/services/bookingService";
+import { useAuth } from "@/context/AuthContext";
 
 interface Booking {
   id: string;
-  eventId: number;
+  eventId: string;
   eventName: string;
   eventDate: string;
   eventTime: string;
@@ -29,113 +32,116 @@ interface Booking {
   status: "upcoming" | "completed" | "cancelled";
 }
 
-// Mock data for bookings
-const mockBookings: Booking[] = [
-  {
-    id: "B12345",
-    eventId: 1,
-    eventName: "Taylor Swift: The Eras Tour",
-    eventDate: "May 20, 2025",
-    eventTime: "7:00 PM - 11:00 PM",
-    location: "SoFi Stadium, Los Angeles",
-    parkingSpot: "R2C3",
-    price: 25,
-    status: "upcoming"
-  },
-  {
-    id: "B12346",
-    eventId: 3,
-    eventName: "Beyoncé: Renaissance World Tour",
-    eventDate: "July 8, 2025",
-    eventTime: "8:00 PM - 11:30 PM",
-    location: "Mercedes-Benz Stadium, Atlanta",
-    parkingSpot: "R1C5",
-    price: 30,
-    status: "upcoming"
-  },
-  {
-    id: "B12347",
-    eventId: 5,
-    eventName: "NBA Finals Game 7",
-    eventDate: "June 18, 2025",
-    eventTime: "8:00 PM - 11:00 PM",
-    location: "Madison Square Garden, New York",
-    parkingSpot: "R4C2",
-    price: 40,
-    status: "upcoming"
-  },
-  {
-    id: "B12230",
-    eventId: 6,
-    eventName: "The Weeknd: After Hours Tour",
-    eventDate: "April 5, 2025",
-    eventTime: "7:30 PM - 10:30 PM",
-    location: "Barclays Center, Brooklyn",
-    parkingSpot: "R3C4",
-    price: 28,
-    status: "completed"
-  },
-  {
-    id: "B12115",
-    eventId: 7,
-    eventName: "UFC 300",
-    eventDate: "March 12, 2025",
-    eventTime: "7:00 PM - 1:00 AM",
-    location: "T-Mobile Arena, Las Vegas",
-    parkingSpot: "R2C1",
-    price: 35,
-    status: "completed"
-  },
-  {
-    id: "B11999",
-    eventId: 8,
-    eventName: "Broadway: Hamilton",
-    eventDate: "February 28, 2025",
-    eventTime: "8:00 PM - 10:30 PM",
-    location: "Richard Rodgers Theatre, New York",
-    parkingSpot: "R1C6",
-    price: 22,
-    status: "cancelled"
-  }
-];
-
 const BookingsPage = () => {
-  const [bookings, setBookings] = useState<Record<string, Booking[]>>({
-    upcoming: [],
-    completed: [],
-    cancelled: []
-  });
-  const [loading, setLoading] = useState(true);
+  const [activeTab, setActiveTab] = useState<string>("upcoming");
   const { toast } = useToast();
+  const navigate = useNavigate();
+  const { user } = useAuth();
+  const queryClient = useQueryClient();
 
+  // Redirect to login if user is not authenticated
   useEffect(() => {
-    // Simulate API call to fetch bookings
-    const fetchBookings = async () => {
-      try {
-        // In a real app, this would be an API call
-        await new Promise(resolve => setTimeout(resolve, 800));
-        
-        const categorizedBookings: Record<string, Booking[]> = {
-          upcoming: mockBookings.filter(b => b.status === "upcoming"),
-          completed: mockBookings.filter(b => b.status === "completed"),
-          cancelled: mockBookings.filter(b => b.status === "cancelled")
-        };
-        
-        setBookings(categorizedBookings);
-      } catch (error) {
-        console.error("Error fetching bookings:", error);
-        toast({
-          title: "Error",
-          description: "Failed to load your bookings. Please try again.",
-          variant: "destructive",
-        });
-      } finally {
-        setLoading(false);
-      }
+    if (!user) {
+      navigate("/login", { replace: true });
+    }
+  }, [user, navigate]);
+
+  // Fetch bookings from the backend
+  const { data: allBookings = [], isLoading, error } = useQuery({
+    queryKey: ["bookings"],
+    queryFn: fetchUserBookings,
+    enabled: !!user,
+  });
+
+  // If there's an error fetching bookings, show a toast
+  useEffect(() => {
+    if (error) {
+      console.error("Error fetching bookings:", error);
+      toast({
+        title: "Error",
+        description: "Failed to load your bookings. Please try again.",
+        variant: "destructive",
+      });
+    }
+  }, [error, toast]);
+
+  // Transform and categorize the fetched bookings
+  const bookings = allBookings.reduce<Record<string, Booking[]>>((acc, booking) => {
+    if (!booking.events) return acc;
+    
+    const eventDate = new Date(booking.events.date);
+    const now = new Date();
+    
+    let status: "upcoming" | "completed" | "cancelled" = "upcoming";
+    
+    // If booking status is cancelled, mark it as cancelled
+    if (booking.status === "cancelled") {
+      status = "cancelled";
+    } 
+    // If the event date is in the past, mark it as completed
+    else if (eventDate < now) {
+      status = "completed";
+    }
+
+    // Format the event date and time
+    const formattedDate = eventDate.toLocaleDateString("en-US", {
+      year: "numeric",
+      month: "long",
+      day: "numeric",
+    });
+    
+    const formattedTime = eventDate.toLocaleTimeString("en-US", {
+      hour: "numeric",
+      minute: "2-digit",
+      hour12: true,
+    });
+
+    const transformedBooking: Booking = {
+      id: booking.id,
+      eventId: booking.event_id || "",
+      eventName: booking.events.title,
+      eventDate: formattedDate,
+      eventTime: `${formattedTime} - ${new Date(eventDate.getTime() + 3 * 60 * 60 * 1000).toLocaleTimeString("en-US", {
+        hour: "numeric",
+        minute: "2-digit",
+        hour12: true,
+      })}`,
+      location: booking.events.location,
+      parkingSpot: `R${booking.parking_layouts?.row_number || 0}C${booking.parking_layouts?.column_number || 0}`,
+      price: booking.parking_layouts?.price || 0,
+      status
     };
 
-    fetchBookings();
-  }, [toast]);
+    // Add the booking to the appropriate category
+    if (!acc[status]) {
+      acc[status] = [];
+    }
+    acc[status].push(transformedBooking);
+    
+    return acc;
+  }, { upcoming: [], completed: [], cancelled: [] });
+
+  // Function to handle cancellation of a booking
+  const handleCancelBooking = async (bookingId: string) => {
+    try {
+      // Here you would typically call a function to cancel the booking in the backend
+      // For now, we'll just show a toast
+      toast({
+        title: "Booking Cancelled",
+        description: `Booking ${bookingId} has been cancelled.`,
+      });
+      
+      // Invalidate the bookings query to refetch the data
+      queryClient.invalidateQueries({ queryKey: ["bookings"] });
+    } catch (error) {
+      console.error("Error cancelling booking:", error);
+      toast({
+        title: "Error",
+        description: "Failed to cancel booking. Please try again.",
+        variant: "destructive",
+      });
+    }
+  };
 
   const handleShowQR = (bookingId: string) => {
     // In a real app, this would fetch the QR from the server
@@ -151,25 +157,6 @@ const BookingsPage = () => {
       title: "Ticket Downloaded",
       description: `Ticket for booking ${bookingId} has been downloaded.`,
     });
-  };
-
-  const handleCancelBooking = (bookingId: string) => {
-    // In a real app, this would cancel the booking via API
-    toast({
-      title: "Booking Cancelled",
-      description: `Booking ${bookingId} has been cancelled.`,
-    });
-    
-    // Update the local state to move the booking to cancelled
-    const updatedBookings = { ...bookings };
-    const bookingToCancel = updatedBookings.upcoming.find(b => b.id === bookingId);
-    
-    if (bookingToCancel) {
-      bookingToCancel.status = "cancelled";
-      updatedBookings.upcoming = updatedBookings.upcoming.filter(b => b.id !== bookingId);
-      updatedBookings.cancelled = [...updatedBookings.cancelled, bookingToCancel];
-      setBookings(updatedBookings);
-    }
   };
 
   const BookingsList = ({ items, type }: { items: Booking[], type: string }) => {
@@ -208,7 +195,7 @@ const BookingsPage = () => {
         <TableBody>
           {items.map((booking) => (
             <TableRow key={booking.id}>
-              <TableCell className="font-medium">{booking.id}</TableCell>
+              <TableCell className="font-medium">{booking.id.substring(0, 8)}</TableCell>
               <TableCell>
                 <div>
                   <p className="font-medium line-clamp-1">{booking.eventName}</p>
@@ -300,13 +287,13 @@ const BookingsPage = () => {
         <div className="container py-12">
           <h1 className="text-3xl font-bold mb-8">My Bookings</h1>
           
-          {loading ? (
+          {isLoading ? (
             <div className="space-y-4">
               <Skeleton className="h-10 w-full" />
               <Skeleton className="h-64 w-full" />
             </div>
           ) : (
-            <Tabs defaultValue="upcoming">
+            <Tabs defaultValue="upcoming" value={activeTab} onValueChange={setActiveTab}>
               <TabsList className="w-full md:w-auto mb-6">
                 <TabsTrigger value="upcoming">
                   Upcoming ({bookings.upcoming.length})
