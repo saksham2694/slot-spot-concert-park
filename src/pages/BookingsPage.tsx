@@ -1,5 +1,4 @@
-
-import { useState, useEffect } from "react";
+import React, { useState, useEffect } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
@@ -15,11 +14,10 @@ import {
   TableRow 
 } from "@/components/ui/table";
 import { useToast } from "@/hooks/use-toast";
-import { Calendar, Clock, Download, ExternalLink, LogIn, MapPin, QrCode } from "lucide-react";
+import { Calendar, Clock, Download, ExternalLink, MapPin, QrCode } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
 import { fetchUserBookings } from "@/services/bookingService";
 import { useAuth } from "@/context/AuthContext";
-import AuthPrompt from "@/components/event/AuthPrompt";
 
 interface Booking {
   id: string;
@@ -38,6 +36,13 @@ const BookingsPage = () => {
   const { toast } = useToast();
   const navigate = useNavigate();
   const { user } = useAuth();
+
+  // Redirect to home page if user is not authenticated
+  useEffect(() => {
+    if (!user) {
+      navigate("/", { replace: true });
+    }
+  }, [user, navigate]);
 
   // Fetch bookings from the backend
   const { data: allBookings = [], isLoading, error } = useQuery({
@@ -249,9 +254,7 @@ const BookingsPage = () => {
           <h1 className="text-3xl font-bold mb-8">My Bookings</h1>
           
           {!user ? (
-            <div className="max-w-md mx-auto">
-              <AuthPrompt />
-            </div>
+            null
           ) : isLoading ? (
             <div className="space-y-4">
               <Skeleton className="h-10 w-full" />
