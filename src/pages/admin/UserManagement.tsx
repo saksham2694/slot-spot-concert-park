@@ -14,10 +14,11 @@ import { Switch } from "@/components/ui/switch";
 import { Input } from "@/components/ui/input";
 import { Search, User, UserCheck } from "lucide-react";
 import { useToast } from "@/components/ui/use-toast";
+import { useAuth } from "@/context/AuthContext";
 
 interface UserProfile {
   id: string;
-  email: string;
+  email: string | null;
   first_name: string | null;
   last_name: string | null;
   is_admin: boolean;
@@ -28,13 +29,62 @@ const UserManagement = () => {
   const [isLoading, setIsLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState("");
   const { toast } = useToast();
+  const { user: currentUser } = useAuth();
 
   // Fetch users and their admin status
   const fetchUsers = async () => {
     setIsLoading(true);
     console.log("Starting to fetch users...");
     try {
-      // Get all users from profiles table
+      // Get user data from auth
+      console.log("Fetching auth user data...");
+      const { data: { users: authUsers }, error: authError } = await supabase.auth.admin.listUsers();
+      
+      if (authError) {
+        console.error('Error fetching auth users:', authError);
+        // Fallback: just fetch profiles
+        console.log("Falling back to profiles-only approach");
+        const { data: profiles, error: profilesError } = await supabase
+          .from('profiles')
+          .select('*');
+        
+        if (profilesError) {
+          console.error('Error fetching profiles:', profilesError);
+          throw profilesError;
+        }
+        
+        // Get all admin roles
+        const { data: adminRoles, error: rolesError } = await supabase
+          .from('user_roles')
+          .select('*')
+          .eq('role', 'admin');
+        
+        if (rolesError) {
+          console.error('Error fetching admin roles:', rolesError);
+          throw rolesError;
+        }
+        
+        // Create a set of admin user IDs for faster lookup
+        const adminUserIds = new Set((adminRoles || []).map(role => role.user_id));
+        
+        // Map profiles to user objects
+        const mappedUsers = (profiles || []).map(profile => ({
+          id: profile.id,
+          email: null, // We don't have this data with profiles-only approach
+          first_name: profile.first_name,
+          last_name: profile.last_name,
+          is_admin: adminUserIds.has(profile.id)
+        }));
+        
+        console.log("Final users from profiles-only approach:", mappedUsers);
+        setUsers(mappedUsers);
+        setIsLoading(false);
+        return;
+      }
+      
+      console.log("Auth users fetched:", authUsers?.length || 0, "users");
+      
+      // Get all profiles
       console.log("Fetching profiles...");
       const { data: profiles, error: profilesError } = await supabase
         .from('profiles')
@@ -44,9 +94,13 @@ const UserManagement = () => {
         console.error('Error fetching profiles:', profilesError);
         throw profilesError;
       }
-      console.log("Profiles fetched:", profiles?.length || 0, "profiles");
-      console.log("Raw profiles data:", profiles);
-
+      
+      // Create a map of profiles for faster lookup
+      const profileMap = new Map();
+      (profiles || []).forEach(profile => {
+        profileMap.set(profile.id, profile);
+      });
+      
       // Get all admin roles
       console.log("Fetching admin roles...");
       const { data: adminRoles, error: rolesError } = await supabase
@@ -58,38 +112,25 @@ const UserManagement = () => {
         console.error('Error fetching admin roles:', rolesError);
         throw rolesError;
       }
-      console.log("Admin roles fetched:", adminRoles?.length || 0, "roles");
-      console.log("Raw admin roles data:", adminRoles);
-
+      
       // Create a set of admin user IDs for faster lookup
       const adminUserIds = new Set((adminRoles || []).map(role => role.user_id));
-      console.log("Admin user IDs:", [...adminUserIds]);
       
-      // Get user emails from auth.users via admin API
-      console.log("Fetching user details from auth API...");
-      const usersWithAuth = await Promise.all(
-        (profiles || []).map(async (profile) => {
-          console.log("Fetching auth details for user ID:", profile.id);
-          const { data: userData, error: userError } = await supabase.auth.admin.getUserById(profile.id);
-          
-          if (userError) {
-            console.warn(`Error fetching auth details for user ${profile.id}:`, userError);
-          }
-          
-          console.log("Auth data for user:", profile.id, userData?.user ? "found" : "not found");
-          
-          return {
-            id: profile.id,
-            email: userData?.user?.email || 'Unknown email',
-            first_name: profile.first_name,
-            last_name: profile.last_name,
-            is_admin: adminUserIds.has(profile.id)
-          };
-        })
-      );
+      // Map users with profiles and admin status
+      const processedUsers = authUsers.map(authUser => {
+        const profile = profileMap.get(authUser.id);
+        
+        return {
+          id: authUser.id,
+          email: authUser.email,
+          first_name: profile?.first_name || authUser.user_metadata?.first_name || null,
+          last_name: profile?.last_name || authUser.user_metadata?.last_name || null,
+          is_admin: adminUserIds.has(authUser.id)
+        };
+      });
       
-      console.log("Final processed users:", usersWithAuth);
-      setUsers(usersWithAuth);
+      console.log("Final processed users:", processedUsers);
+      setUsers(processedUsers);
     } catch (error) {
       console.error('Error fetching users:', error);
       toast({
@@ -109,6 +150,16 @@ const UserManagement = () => {
 
   // Toggle admin role for a user
   const toggleAdminRole = async (userId: string, isCurrentlyAdmin: boolean) => {
+    // Prevent toggling your own admin status
+    if (userId === currentUser?.id) {
+      toast({
+        title: "Action not allowed",
+        description: "You cannot change your own admin status",
+        variant: "destructive"
+      });
+      return;
+    }
+    
     try {
       if (isCurrentlyAdmin) {
         // Remove admin role
@@ -155,10 +206,35 @@ const UserManagement = () => {
     }
   };
 
+  // Create or update profile for users without one
+  const createProfileIfNeeded = async (userId: string, userData: any) => {
+    try {
+      // Check if profile exists
+      const { data: existingProfile } = await supabase
+        .from('profiles')
+        .select('id')
+        .eq('id', userId)
+        .single();
+      
+      if (!existingProfile) {
+        // Create new profile if doesn't exist
+        await supabase
+          .from('profiles')
+          .insert({
+            id: userId,
+            first_name: userData.first_name || userData.user_metadata?.first_name,
+            last_name: userData.last_name || userData.user_metadata?.last_name
+          });
+      }
+    } catch (error) {
+      console.error('Error creating/updating profile:', error);
+    }
+  };
+
   // Filter users based on search query
   const filteredUsers = users.filter(user => {
     const fullName = `${user.first_name || ''} ${user.last_name || ''}`.toLowerCase();
-    const email = user.email.toLowerCase();
+    const email = (user.email || '').toLowerCase();
     const query = searchQuery.toLowerCase();
     
     return fullName.includes(query) || email.includes(query);
@@ -185,7 +261,7 @@ const UserManagement = () => {
       ) : (
         <>
           <p className="mb-4 text-sm text-muted-foreground">
-            Found {users.length} user{users.length !== 1 ? 's' : ''}
+            Found {filteredUsers.length} user{filteredUsers.length !== 1 ? 's' : ''}
             {searchQuery && ` matching "${searchQuery}"`}
           </p>
           <Table>
@@ -218,13 +294,14 @@ const UserManagement = () => {
                         </span>
                       </div>
                     </TableCell>
-                    <TableCell>{user.email}</TableCell>
+                    <TableCell>{user.email || 'No email available'}</TableCell>
                     <TableCell className="text-right">
                       <div className="flex items-center justify-end gap-2">
                         {user.is_admin && <UserCheck className="h-4 w-4 text-green-500" />}
                         <Switch 
                           checked={user.is_admin}
                           onCheckedChange={(checked) => toggleAdminRole(user.id, user.is_admin)}
+                          disabled={user.id === currentUser?.id}
                         />
                       </div>
                     </TableCell>
