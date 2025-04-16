@@ -43,7 +43,7 @@ const AdminCreateEvent = () => {
   
   const defaultValues: Partial<EventFormValues> = {
     imageUrl: "https://images.unsplash.com/photo-1501281668745-f7f57925c3b4",
-    parkingPrice: 20,
+    parkingPrice: 500,
   };
 
   const form = useForm<EventFormValues>({
@@ -214,7 +214,7 @@ const AdminCreateEvent = () => {
               name="parkingPrice"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Parking Price ($)</FormLabel>
+                  <FormLabel>Parking Price (₹)</FormLabel>
                   <FormControl>
                     <Input type="number" min="0" step="0.01" {...field} />
                   </FormControl>

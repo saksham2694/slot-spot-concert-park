@@ -2,7 +2,7 @@
 import { Link } from "react-router-dom";
 import { Card, CardContent, CardFooter } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Calendar, Clock, MapPin } from "lucide-react";
+import { Calendar, Clock, MapPin, IndianRupee } from "lucide-react";
 import { Event } from "@/types/event";
 
 interface EventCardProps {
@@ -37,6 +37,11 @@ const EventCard = ({ event }: EventCardProps) => {
           <div className="flex items-center">
             <MapPin className="h-4 w-4 mr-2 text-parking-primary" />
             <span className="line-clamp-1">{event.location}</span>
+          </div>
+          
+          <div className="flex items-center">
+            <IndianRupee className="h-4 w-4 mr-2 text-parking-primary" />
+            <span><span className="font-medium">₹{event.parkingPrice}</span> per spot</span>
           </div>
         </div>
       </CardContent>

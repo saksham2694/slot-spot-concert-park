@@ -2,7 +2,7 @@
 import { Button } from "@/components/ui/button";
 import { useNavigate } from "react-router-dom";
 import { Event } from "@/types/event";
-import { Ticket } from "lucide-react";
+import { Ticket, IndianRupee } from "lucide-react";
 import { toast } from "sonner";
 
 interface ParkingSlot {
@@ -66,7 +66,9 @@ const BookingConfirmation = ({
           </div>
           
           <div>Total Paid:</div>
-          <div className="font-medium">${totalPrice.toFixed(2)}</div>
+          <div className="font-medium flex items-center">
+            <IndianRupee className="h-3 w-3 mr-1" />{totalPrice.toFixed(2)}
+          </div>
         </div>
       </div>
       

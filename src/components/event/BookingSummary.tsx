@@ -1,7 +1,7 @@
 
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
-import { Info } from "lucide-react";
+import { Info, IndianRupee } from "lucide-react";
 import { Event } from "@/types/event";
 
 interface ParkingSlot {
@@ -58,7 +58,9 @@ const BookingSummary = ({
               {selectedSlots.map((slot) => (
                 <div key={slot.id} className="flex justify-between items-center">
                   <span>Spot {slot.id}</span>
-                  <span className="font-medium">${slot.price.toFixed(2)}</span>
+                  <span className="font-medium flex items-center">
+                    <IndianRupee className="h-3 w-3 mr-1" />{slot.price.toFixed(2)}
+                  </span>
                 </div>
               ))}
             </div>
@@ -71,7 +73,9 @@ const BookingSummary = ({
         
         <div className="flex justify-between items-center font-semibold">
           <span>Total</span>
-          <span>${totalPrice.toFixed(2)}</span>
+          <span className="flex items-center">
+            <IndianRupee className="h-4 w-4 mr-1" />{totalPrice.toFixed(2)}
+          </span>
         </div>
       </div>
       
