@@ -1,3 +1,4 @@
+
 import Navbar from "@/components/Navbar";
 import HeroSection from "@/components/HeroSection";
 import FeaturedEvents from "@/components/FeaturedEvents";
@@ -149,7 +150,7 @@ const Index = () => {
               <Button variant="default" className="bg-white text-parking-primary hover:bg-gray-100" onClick={() => navigate("/events")}>
                 Browse Events
               </Button>
-              <Button variant="outline" className="border-white text-white hover:bg-white/10" onClick={() => navigate("/about")}>
+              <Button variant="outline" className="border-white text-parking-primary hover:bg-white/10" onClick={() => navigate("/about")}>
                 Learn More
               </Button>
             </div>
