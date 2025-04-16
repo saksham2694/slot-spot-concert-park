@@ -1,5 +1,5 @@
 
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
 import EventCard from "@/components/EventCard";
@@ -22,161 +22,67 @@ import { Calendar } from "@/components/ui/calendar";
 import { format } from "date-fns";
 import { Filter, CalendarIcon, Search, X } from "lucide-react";
 import { Event } from "@/types/event";
-
-// Extended mock data for the events page
-const mockEvents: Event[] = [
-  {
-    id: 1,
-    title: "Taylor Swift: The Eras Tour",
-    date: "May 20, 2025",
-    time: "7:00 PM - 11:00 PM",
-    location: "SoFi Stadium, Los Angeles",
-    image: "https://images.unsplash.com/photo-1501281668745-f7f57925c3b4?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=1170&q=80",
-    parkingAvailable: 123,
-    parkingTotal: 500
-  },
-  {
-    id: 2,
-    title: "Coldplay: Music of the Spheres World Tour",
-    date: "June 15, 2025",
-    time: "6:30 PM - 10:30 PM",
-    location: "MetLife Stadium, New Jersey",
-    image: "https://images.unsplash.com/photo-1470229722913-7c0e2dbbafd3?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=1170&q=80",
-    parkingAvailable: 42,
-    parkingTotal: 400
-  },
-  {
-    id: 3,
-    title: "Beyoncé: Renaissance World Tour",
-    date: "July 8, 2025",
-    time: "8:00 PM - 11:30 PM",
-    location: "Mercedes-Benz Stadium, Atlanta",
-    image: "https://images.unsplash.com/photo-1459749411175-04bf5292ceea?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=1170&q=80",
-    parkingAvailable: 350,
-    parkingTotal: 600
-  },
-  {
-    id: 4,
-    title: "Ed Sheeran: Mathematics Tour",
-    date: "August 12, 2025",
-    time: "7:30 PM - 10:30 PM",
-    location: "Wembley Stadium, London",
-    image: "https://images.unsplash.com/photo-1429962714451-bb934ecdc4ec?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=1170&q=80",
-    parkingAvailable: 75,
-    parkingTotal: 450
-  },
-  {
-    id: 5,
-    title: "NBA Finals Game 7",
-    date: "June 18, 2025",
-    time: "8:00 PM - 11:00 PM",
-    location: "Madison Square Garden, New York",
-    image: "https://images.unsplash.com/photo-1504450758481-7338eba7524a?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=1169&q=80",
-    parkingAvailable: 210,
-    parkingTotal: 350
-  },
-  {
-    id: 6,
-    title: "Bruno Mars World Tour",
-    date: "July 22, 2025",
-    time: "7:00 PM - 10:30 PM",
-    location: "T-Mobile Arena, Las Vegas",
-    image: "https://images.unsplash.com/photo-1499364615650-ec38552f4f34?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=1172&q=80",
-    parkingAvailable: 180,
-    parkingTotal: 300
-  },
-  {
-    id: 7,
-    title: "Comic-Con International",
-    date: "July 25-28, 2025",
-    time: "9:00 AM - 7:00 PM",
-    location: "San Diego Convention Center",
-    image: "https://images.unsplash.com/photo-1608889175250-c3b0c1667d3a?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=880&q=80",
-    parkingAvailable: 420,
-    parkingTotal: 800
-  },
-  {
-    id: 8,
-    title: "U2: UV Achtung Baby Live",
-    date: "September 5, 2025",
-    time: "8:30 PM - 11:30 PM",
-    location: "Sphere, Las Vegas",
-    image: "https://images.unsplash.com/photo-1540039155733-5bb30b53aa14?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=1074&q=80",
-    parkingAvailable: 95,
-    parkingTotal: 450
-  }
-];
+import { fetchEvents } from "@/services/eventService";
+import { useQuery } from "@tanstack/react-query";
 
 const EventsPage = () => {
-  const [events, setEvents] = useState<Event[]>([]);
-  const [filteredEvents, setFilteredEvents] = useState<Event[]>([]);
-  const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedDate, setSelectedDate] = useState<Date | undefined>(undefined);
   const [selectedLocation, setSelectedLocation] = useState<string>("");
   const [activeFilters, setActiveFilters] = useState(0);
 
-  useEffect(() => {
-    // Simulate API call
-    const fetchEvents = async () => {
-      try {
-        // In a real app, this would be an API call
-        await new Promise(resolve => setTimeout(resolve, 1000));
-        setEvents(mockEvents);
-        setFilteredEvents(mockEvents);
-      } catch (error) {
-        console.error("Error fetching events:", error);
-      } finally {
-        setLoading(false);
+  // Fetch events using React Query
+  const { data: events = [], isLoading } = useQuery({
+    queryKey: ["events"],
+    queryFn: fetchEvents,
+  });
+
+  // Apply filters
+  const filteredEvents = events.filter(event => {
+    // Apply search filter
+    if (searchQuery) {
+      const query = searchQuery.toLowerCase();
+      if (!event.title.toLowerCase().includes(query) && 
+          !event.location.toLowerCase().includes(query)) {
+        return false;
       }
-    };
+    }
+    
+    // Apply date filter
+    if (selectedDate) {
+      const formattedSelectedDate = format(selectedDate, "MMMM d, yyyy");
+      // Handle date ranges like "July 25-28, 2025"
+      if (event.date.includes("-")) {
+        const [startDateStr] = event.date.split("-");
+        const year = event.date.split(",")[1]?.trim();
+        const fullStartDate = `${startDateStr}, ${year}`;
+        if (!fullStartDate.includes(format(selectedDate, "MMMM d")) && 
+            !event.date.includes(format(selectedDate, "MMMM d"))) {
+          return false;
+        }
+      } else if (!event.date.includes(format(selectedDate, "MMMM d"))) {
+        return false;
+      }
+    }
+    
+    // Apply location filter
+    if (selectedLocation && selectedLocation !== "all-locations") {
+      if (!event.location.includes(selectedLocation)) {
+        return false;
+      }
+    }
+    
+    return true;
+  });
 
-    fetchEvents();
-  }, []);
-
-  useEffect(() => {
+  // Calculate active filters
+  useState(() => {
     let count = 0;
     if (searchQuery) count++;
     if (selectedDate) count++;
-    if (selectedLocation) count++;
+    if (selectedLocation && selectedLocation !== "all-locations") count++;
     setActiveFilters(count);
-
-    // Apply filters
-    let results = [...events];
-    
-    if (searchQuery) {
-      const query = searchQuery.toLowerCase();
-      results = results.filter(
-        event => 
-          event.title.toLowerCase().includes(query) || 
-          event.location.toLowerCase().includes(query)
-      );
-    }
-    
-    if (selectedDate) {
-      const formattedSelectedDate = format(selectedDate, "MMMM d, yyyy");
-      results = results.filter(event => {
-        // Handle date ranges like "July 25-28, 2025"
-        if (event.date.includes("-")) {
-          const [startDateStr] = event.date.split("-");
-          const year = event.date.split(",")[1].trim();
-          const fullStartDate = `${startDateStr}, ${year}`;
-          // This is a simplified check - in real app would need more robust date parsing
-          return fullStartDate.includes(format(selectedDate, "MMMM d")) || 
-                 event.date.includes(format(selectedDate, "MMMM d"));
-        }
-        return event.date.includes(format(selectedDate, "MMMM d"));
-      });
-    }
-    
-    if (selectedLocation) {
-      results = results.filter(event => 
-        event.location.includes(selectedLocation)
-      );
-    }
-    
-    setFilteredEvents(results);
-  }, [searchQuery, selectedDate, selectedLocation, events]);
+  });
 
   const clearFilters = () => {
     setSearchQuery("");
@@ -254,7 +160,7 @@ const EventsPage = () => {
         
         {/* Events List */}
         <div className="container py-12">
-          {loading ? (
+          {isLoading ? (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
               {[...Array(8)].map((_, index) => (
                 <div key={index} className="space-y-3">
