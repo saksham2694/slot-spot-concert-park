@@ -133,7 +133,6 @@ const Index = () => {
                 </div>
                 
                 {/* Decorative elements */}
-                <div className="absolute -top-6 -right-6 w-48 h-48 bg-primary/20 rounded-full -z-10"></div>
                 <div className="absolute -bottom-6 -left-6 w-32 h-32 bg-accent/20 rounded-full -z-10"></div>
               </div>
             </div>
