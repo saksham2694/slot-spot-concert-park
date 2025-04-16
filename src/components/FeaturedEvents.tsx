@@ -17,6 +17,8 @@ const FeaturedEvents = () => {
 
   // Subscribe to changes on the events table to update available slots
   useEffect(() => {
+    console.log("Setting up real-time subscription for events updates");
+    
     const channel = supabase
       .channel('events-updates')
       .on(
@@ -26,14 +28,15 @@ const FeaturedEvents = () => {
           schema: 'public',
           table: 'events'
         },
-        () => {
-          console.log("Event updated, refetching events...");
+        (payload) => {
+          console.log("Event updated in database:", payload);
           refetch();
         }
       )
       .subscribe();
       
     return () => {
+      console.log("Cleaning up events subscription");
       supabase.removeChannel(channel);
     };
   }, [refetch]);

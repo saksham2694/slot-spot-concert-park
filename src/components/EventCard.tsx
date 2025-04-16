@@ -15,12 +15,11 @@ interface EventCardProps {
 const EventCard = ({ event }: EventCardProps) => {
   const [parkingAvailable, setParkingAvailable] = useState(event.parkingAvailable);
   
-  // Subscribe to changes in event data to update available spots
   useEffect(() => {
-    // Set initial value
+    // Set initial value from props
     setParkingAvailable(event.parkingAvailable);
     
-    // Subscribe to real-time changes for this event
+    // Subscribe to real-time changes for this specific event
     const channel = supabase
       .channel(`event-updates-${event.id}`)
       .on(
