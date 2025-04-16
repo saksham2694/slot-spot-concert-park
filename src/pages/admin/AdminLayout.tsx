@@ -8,16 +8,26 @@ import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Link } from "react-router-dom";
 
 const AdminLayout = () => {
-  const { user, isLoading } = useAuth();
+  const { user, profile, isLoading } = useAuth();
   const navigate = useNavigate();
 
   // Protected route - redirect if not logged in
   useEffect(() => {
-    if (!isLoading && !user) {
-      navigate("/");
+    if (!isLoading) {
+      if (!user) {
+        // Redirect to home if not logged in
+        navigate("/");
+      }
+      
+      // In a real production application, you would check if the user has admin privileges
+      // For now, we're allowing any authenticated user to access the admin panel for demo purposes
+      
+      // Example of how you would implement admin check with a profile table:
+      // if (!profile?.isAdmin) {
+      //   navigate("/");
+      // }
     }
-    // In a real application, you would also check if the user has admin privileges
-  }, [user, isLoading, navigate]);
+  }, [user, profile, isLoading, navigate]);
 
   if (isLoading) {
     return (

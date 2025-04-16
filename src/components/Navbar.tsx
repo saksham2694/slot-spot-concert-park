@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
@@ -8,7 +7,7 @@ import {
   SheetTrigger 
 } from "@/components/ui/sheet";
 import AuthButton from "@/components/ui/auth-button";
-import { Menu, X, User, LogOut } from "lucide-react";
+import { Menu, X, User, LogOut, LayoutDashboard } from "lucide-react";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { useAuth } from "@/context/AuthContext";
 import {
@@ -71,6 +70,12 @@ const Navbar = () => {
               <span>Profile</span>
             </Link>
           </DropdownMenuItem>
+          <DropdownMenuItem asChild>
+            <Link to="/admin" className="flex items-center">
+              <LayoutDashboard className="mr-2 h-4 w-4" />
+              <span>Admin Dashboard</span>
+            </Link>
+          </DropdownMenuItem>
           <DropdownMenuItem onClick={signOut}>
             <LogOut className="mr-2 h-4 w-4" />
             <span>Log out</span>
@@ -120,10 +125,18 @@ const Navbar = () => {
               <NavLinks />
               <div className="mt-6">
                 {user ? (
-                  <Button onClick={signOut} className="w-full">
-                    <LogOut className="mr-2 h-4 w-4" />
-                    Log Out
-                  </Button>
+                  <>
+                    <Button asChild variant="outline" className="w-full mb-2">
+                      <Link to="/admin" onClick={() => setIsOpen(false)}>
+                        <LayoutDashboard className="mr-2 h-4 w-4" />
+                        Admin Dashboard
+                      </Link>
+                    </Button>
+                    <Button onClick={signOut} className="w-full">
+                      <LogOut className="mr-2 h-4 w-4" />
+                      Log Out
+                    </Button>
+                  </>
                 ) : (
                   <AuthButton className="w-full" />
                 )}
