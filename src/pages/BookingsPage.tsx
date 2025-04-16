@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import Navbar from "@/components/Navbar";
@@ -15,9 +14,9 @@ import {
   TableRow 
 } from "@/components/ui/table";
 import { useToast } from "@/hooks/use-toast";
-import { Calendar, Clock, Download, ExternalLink, MapPin, QrCode, X } from "lucide-react";
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { fetchUserBookings, cancelBooking } from "@/services/bookingService";
+import { Calendar, Clock, Download, ExternalLink, MapPin, QrCode } from "lucide-react";
+import { useQuery } from "@tanstack/react-query";
+import { fetchUserBookings } from "@/services/bookingService";
 import { useAuth } from "@/context/AuthContext";
 
 interface Booking {
@@ -37,7 +36,6 @@ const BookingsPage = () => {
   const { toast } = useToast();
   const navigate = useNavigate();
   const { user } = useAuth();
-  const queryClient = useQueryClient();
 
   // Redirect to login if user is not authenticated
   useEffect(() => {
@@ -51,22 +49,6 @@ const BookingsPage = () => {
     queryKey: ["bookings"],
     queryFn: fetchUserBookings,
     enabled: !!user,
-  });
-
-  // Create mutation for cancelling bookings
-  const cancelMutation = useMutation({
-    mutationFn: cancelBooking,
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["bookings"] });
-    },
-    onError: (error) => {
-      console.error("Error cancelling booking:", error);
-      toast({
-        title: "Error",
-        description: "Failed to cancel booking. Please try again.",
-        variant: "destructive",
-      });
-    }
   });
 
   // If there's an error fetching bookings, show a toast
@@ -136,20 +118,6 @@ const BookingsPage = () => {
     
     return acc;
   }, { upcoming: [], completed: [], cancelled: [] });
-
-  // Function to handle cancellation of a booking
-  const handleCancelBooking = async (bookingId: string) => {
-    try {
-      cancelMutation.mutate(bookingId);
-    } catch (error) {
-      console.error("Error cancelling booking:", error);
-      toast({
-        title: "Error",
-        description: "Failed to cancel booking. Please try again.",
-        variant: "destructive",
-      });
-    }
-  };
 
   const handleShowQR = (bookingId: string) => {
     // In a real app, this would fetch the QR from the server
@@ -250,14 +218,6 @@ const BookingsPage = () => {
                         title="Show QR Code"
                       >
                         <QrCode className="h-4 w-4" />
-                      </Button>
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        onClick={() => handleCancelBooking(booking.id)}
-                        title="Cancel Booking"
-                      >
-                        <X className="h-4 w-4" />
                       </Button>
                     </>
                   )}

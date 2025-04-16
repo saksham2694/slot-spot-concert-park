@@ -1,59 +1,15 @@
 
 import { Link } from "react-router-dom";
 import { Card, CardContent, CardFooter } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Calendar, Clock, MapPin } from "lucide-react";
 import { Event } from "@/types/event";
-import { useState, useEffect } from "react";
-import { supabase } from "@/integrations/supabase/client";
 
 interface EventCardProps {
   event: Event;
 }
 
 const EventCard = ({ event }: EventCardProps) => {
-  const [parkingAvailable, setParkingAvailable] = useState(event.parkingAvailable);
-  
-  useEffect(() => {
-    // Set initial value from props
-    setParkingAvailable(event.parkingAvailable);
-    
-    // Subscribe to real-time changes for this specific event
-    console.log(`Setting up subscription for event ${event.id}`);
-    const channel = supabase
-      .channel(`event-updates-${event.id}`)
-      .on(
-        'postgres_changes',
-        {
-          event: 'UPDATE',
-          schema: 'public',
-          table: 'events',
-          filter: `id=eq.${event.id}`
-        },
-        (payload) => {
-          console.log(`Event ${event.id} updated:`, payload);
-          if (payload.new && typeof payload.new.available_parking_slots === 'number') {
-            console.log(`Updating available slots from ${parkingAvailable} to ${payload.new.available_parking_slots}`);
-            setParkingAvailable(payload.new.available_parking_slots);
-          }
-        }
-      )
-      .subscribe();
-      
-    return () => {
-      console.log(`Cleaning up subscription for event ${event.id}`);
-      supabase.removeChannel(channel);
-    };
-  }, [event.id, event.parkingAvailable]);
-  
-  let availabilityColor = "bg-parking-available";
-  if (parkingAvailable <= Math.floor(event.parkingTotal * 0.3)) {
-    availabilityColor = "bg-parking-error";
-  } else if (parkingAvailable <= Math.floor(event.parkingTotal * 0.6)) {
-    availabilityColor = "bg-parking-accent";
-  }
-
   return (
     <Card className="overflow-hidden transition-all hover:shadow-md">
       <div className="relative h-48 w-full overflow-hidden">
@@ -62,14 +18,6 @@ const EventCard = ({ event }: EventCardProps) => {
           alt={event.title}
           className="h-full w-full object-cover transition-transform hover:scale-105 duration-500"
         />
-        <div className="absolute top-2 right-2">
-          <Badge 
-            variant="outline" 
-            className={`${availabilityColor} text-white font-medium`}
-          >
-            {parkingAvailable} spots left
-          </Badge>
-        </div>
       </div>
 
       <CardContent className="p-4">
