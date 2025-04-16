@@ -1,4 +1,3 @@
-
 import Navbar from "@/components/Navbar";
 import HeroSection from "@/components/HeroSection";
 import FeaturedEvents from "@/components/FeaturedEvents";
@@ -69,6 +68,7 @@ const Index = () => {
           </div>
         </section>
         
+        {/* Why Choose SlotSpot Section */}
         <section className="py-16">
           <div className="container">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-12 items-center">
@@ -135,23 +135,6 @@ const Index = () => {
                 {/* Decorative elements */}
                 <div className="absolute -top-6 -right-6 w-48 h-48 bg-primary/20 rounded-full -z-10"></div>
                 <div className="absolute -bottom-6 -left-6 w-32 h-32 bg-accent/20 rounded-full -z-10"></div>
-                
-                {/* Circular image with content */}
-                <div className="absolute -top-4 -right-4 w-24 h-24 rounded-full overflow-hidden border-4 border-white shadow-lg z-10">
-                  <div className="relative w-full h-full">
-                    <img 
-                      src="https://images.unsplash.com/photo-1581344947731-3a8503c716fe" 
-                      alt="Parking close-up" 
-                      className="w-full h-full object-cover"
-                    />
-                    <div className="absolute inset-0 bg-parking-primary/30 flex items-center justify-center">
-                      <div className="text-center text-white">
-                        <Star className="h-6 w-6 mx-auto mb-1" />
-                        <p className="text-xs font-bold">VIP Spots</p>
-                      </div>
-                    </div>
-                  </div>
-                </div>
               </div>
             </div>
           </div>
@@ -167,7 +150,7 @@ const Index = () => {
               <Button variant="default" className="bg-white text-parking-primary hover:bg-gray-100" onClick={() => navigate("/events")}>
                 Browse Events
               </Button>
-              <Button variant="outline" className="border-white text-white hover:bg-white/10" onClick={() => navigate("/about")}>
+              <Button variant="outline" className="border-white text-parking-primary hover:bg-white/10" onClick={() => navigate("/about")}>
                 Learn More
               </Button>
             </div>
