@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import Navbar from "@/components/Navbar";
@@ -10,7 +9,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Calendar, Clock, Info, MapPin, QrCode, Ticket } from "lucide-react";
 import { useToast } from "@/components/ui/use-toast";
-import { Event } from "@/components/EventCard";
+import { Event } from "@/types/event";
 
 // Mock data - in a real app, this would come from an API
 const mockEvents: Event[] = [

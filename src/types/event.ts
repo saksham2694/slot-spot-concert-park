@@ -1,6 +1,6 @@
 
 export interface Event {
-  id: string;
+  id: string | number;  // Adjust to allow both string and number for flexibility
   title: string;
   date: string;
   time: string;

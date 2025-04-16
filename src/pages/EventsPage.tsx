@@ -1,8 +1,7 @@
-
 import { useState, useEffect } from "react";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
-import EventCard, { Event } from "@/components/EventCard";
+import EventCard from "@/components/EventCard";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { 
@@ -21,6 +20,7 @@ import {
 import { Calendar } from "@/components/ui/calendar";
 import { format } from "date-fns";
 import { Filter, CalendarIcon, Search, X } from "lucide-react";
+import { Event } from "@/types/event";
 
 // Extended mock data for the events page
 const mockEvents: Event[] = [
