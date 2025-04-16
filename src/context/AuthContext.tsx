@@ -32,6 +32,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
 
   // Fetch user profile
   const fetchProfile = async (userId: string) => {
+    console.log("Fetching profile for user:", userId);
     const { data, error } = await supabase
       .from('profiles')
       .select('*')
@@ -40,14 +41,45 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
 
     if (error) {
       console.error('Error fetching profile:', error);
+      
+      // If profile not found, let's create one
+      if (error.code === 'PGRST116') {
+        console.log('Profile not found, creating default profile');
+        const { data: userData } = await supabase.auth.getUser();
+        
+        if (userData?.user) {
+          const defaultProfile = {
+            id: userData.user.id,
+            first_name: userData.user.user_metadata?.first_name,
+            last_name: userData.user.user_metadata?.last_name,
+          };
+          
+          const { error: insertError, data: newProfile } = await supabase
+            .from('profiles')
+            .insert([defaultProfile])
+            .select()
+            .single();
+            
+          if (insertError) {
+            console.error('Failed to create default profile:', insertError);
+            return null;
+          }
+          return newProfile;
+        }
+      }
+      
       return null;
     }
+    
+    console.log('Profile fetched successfully:', data);
     return data;
   };
 
   // Update user profile
   const updateProfile = async (profileData: Partial<UserProfile>) => {
     if (!user) return;
+    
+    console.log('Updating profile:', profileData);
 
     const { error } = await supabase
       .from('profiles')
@@ -55,6 +87,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       .eq('id', user.id);
 
     if (error) {
+      console.error('Profile update error:', error);
       toast({
         title: 'Profile Update Failed',
         description: error.message,
@@ -70,18 +103,24 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       title: 'Profile Updated',
       description: 'Your profile has been successfully updated.'
     });
+    
+    console.log('Profile updated successfully');
   };
 
   useEffect(() => {
+    console.log('Setting up auth state listener');
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       async (event, currentSession) => {
+        console.log('Auth state changed:', event);
         setSession(currentSession);
         setUser(currentSession?.user ?? null);
         
         if (currentSession?.user) {
+          console.log('User authenticated:', currentSession.user.email);
           const userProfile = await fetchProfile(currentSession.user.id);
           setProfile(userProfile);
         } else {
+          console.log('No authenticated user');
           setProfile(null);
         }
 
@@ -102,25 +141,34 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     );
 
     // Initial session check
+    console.log('Checking for existing session');
     supabase.auth.getSession().then(async ({ data: { session: currentSession } }) => {
+      console.log('Initial session check:', currentSession ? 'Session found' : 'No session');
       setSession(currentSession);
       setUser(currentSession?.user ?? null);
       
       if (currentSession?.user) {
+        console.log('User authenticated from session check:', currentSession.user.email);
         const userProfile = await fetchProfile(currentSession.user.id);
         setProfile(userProfile);
       }
       
       setIsLoading(false);
+    }).catch(error => {
+      console.error('Error checking session:', error);
+      setIsLoading(false);
     });
 
     return () => {
+      console.log('Cleaning up auth state listener');
       subscription.unsubscribe();
     };
   }, [toast]);
 
   const signOut = async () => {
+    console.log('Signing out...');
     await supabase.auth.signOut();
+    console.log('Sign out complete');
   };
 
   const value = {
