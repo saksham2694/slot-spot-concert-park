@@ -33,7 +33,7 @@ const UserManagement = () => {
   const fetchUsers = async () => {
     setIsLoading(true);
     try {
-      // Get users from auth.users via profiles table
+      // Get all users from profiles table
       const { data: profiles, error: profilesError } = await supabase
         .from('profiles')
         .select('*');
@@ -45,32 +45,32 @@ const UserManagement = () => {
       // Get all admin roles
       const { data: adminRoles, error: rolesError } = await supabase
         .from('user_roles')
-        .select('user_id')
+        .select('*')
         .eq('role', 'admin');
       
       if (rolesError) {
         throw rolesError;
       }
 
-      // Get user emails
-      const adminUserIds = adminRoles?.map(role => role.user_id) || [];
+      // Create a set of admin user IDs for faster lookup
+      const adminUserIds = new Set((adminRoles || []).map(role => role.user_id));
       
-      // For each profile, get the user's email from auth.users
+      // Get user emails from auth.users via admin API
       const usersWithAuth = await Promise.all(
         (profiles || []).map(async (profile) => {
-          // Get user details from Supabase Auth (we can't query auth.users directly)
-          const { data: userData, error: userError } = await supabase.auth.admin.getUserById(profile.id);
+          const { data: userData } = await supabase.auth.admin.getUserById(profile.id);
           
           return {
             id: profile.id,
             email: userData?.user?.email || 'Unknown email',
             first_name: profile.first_name,
             last_name: profile.last_name,
-            is_admin: adminUserIds.includes(profile.id)
+            is_admin: adminUserIds.has(profile.id)
           };
         })
       );
       
+      console.log("Fetched users:", usersWithAuth);
       setUsers(usersWithAuth);
     } catch (error) {
       console.error('Error fetching users:', error);
