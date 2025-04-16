@@ -1,3 +1,4 @@
+
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 
@@ -17,6 +18,25 @@ export async function createBooking(bookingData: BookingData): Promise<string | 
   }
   
   try {
+    // Check if the user already has a booking for this event
+    const { data: existingBookings, error: existingError } = await supabase
+      .from("bookings")
+      .select("id")
+      .eq("user_id", session.session.user.id)
+      .eq("event_id", bookingData.eventId)
+      .eq("status", "confirmed");
+      
+    if (existingError) {
+      console.error("Error checking existing bookings:", existingError);
+      toast.error("Failed to check existing bookings. Please try again.");
+      throw existingError;
+    }
+    
+    if (existingBookings && existingBookings.length > 0) {
+      toast.error("You already have a booking for this event. You can only book one spot per event.");
+      return null;
+    }
+  
     // Parse the row and column from the slot label (format: R1C1)
     const rowNumber = parseInt(bookingData.slotLabel.charAt(1));
     const columnNumber = parseInt(bookingData.slotLabel.charAt(3));

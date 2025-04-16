@@ -14,10 +14,10 @@ import {
   TableHeader, 
   TableRow 
 } from "@/components/ui/table";
-import { useToast } from "@/components/ui/use-toast";
+import { useToast } from "@/hooks/use-toast";
 import { Calendar, Clock, Download, ExternalLink, MapPin, QrCode, X } from "lucide-react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { fetchUserBookings } from "@/services/bookingService";
+import { fetchUserBookings, cancelBooking } from "@/services/bookingService";
 import { useAuth } from "@/context/AuthContext";
 
 interface Booking {
@@ -51,6 +51,22 @@ const BookingsPage = () => {
     queryKey: ["bookings"],
     queryFn: fetchUserBookings,
     enabled: !!user,
+  });
+
+  // Create mutation for cancelling bookings
+  const cancelMutation = useMutation({
+    mutationFn: cancelBooking,
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["bookings"] });
+    },
+    onError: (error) => {
+      console.error("Error cancelling booking:", error);
+      toast({
+        title: "Error",
+        description: "Failed to cancel booking. Please try again.",
+        variant: "destructive",
+      });
+    }
   });
 
   // If there's an error fetching bookings, show a toast
@@ -124,15 +140,7 @@ const BookingsPage = () => {
   // Function to handle cancellation of a booking
   const handleCancelBooking = async (bookingId: string) => {
     try {
-      // Here you would typically call a function to cancel the booking in the backend
-      // For now, we'll just show a toast
-      toast({
-        title: "Booking Cancelled",
-        description: `Booking ${bookingId} has been cancelled.`,
-      });
-      
-      // Invalidate the bookings query to refetch the data
-      queryClient.invalidateQueries({ queryKey: ["bookings"] });
+      cancelMutation.mutate(bookingId);
     } catch (error) {
       console.error("Error cancelling booking:", error);
       toast({
