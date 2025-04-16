@@ -1,21 +1,53 @@
+
 import { Link } from "react-router-dom";
 import { Card, CardContent, CardFooter } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Calendar, Clock, MapPin } from "lucide-react";
 import { Event } from "@/types/event";
+import { useState, useEffect } from "react";
+import { supabase } from "@/integrations/supabase/client";
 
 interface EventCardProps {
   event: Event;
 }
 
 const EventCard = ({ event }: EventCardProps) => {
-  const availability = (event.parkingAvailable / event.parkingTotal) * 100;
+  const [parkingAvailable, setParkingAvailable] = useState(event.parkingAvailable);
+  
+  // Subscribe to changes in event data to update available spots
+  useEffect(() => {
+    // Set initial value
+    setParkingAvailable(event.parkingAvailable);
+    
+    // Subscribe to real-time changes for this event
+    const channel = supabase
+      .channel('event-updates')
+      .on(
+        'postgres_changes',
+        {
+          event: 'UPDATE',
+          schema: 'public',
+          table: 'events',
+          filter: `id=eq.${event.id}`
+        },
+        (payload) => {
+          if (payload.new && typeof payload.new.available_parking_slots === 'number') {
+            setParkingAvailable(payload.new.available_parking_slots);
+          }
+        }
+      )
+      .subscribe();
+      
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [event.id, event.parkingAvailable]);
   
   let availabilityColor = "bg-parking-available";
-  if (availability <= 30) {
+  if (parkingAvailable <= Math.floor(event.parkingTotal * 0.3)) {
     availabilityColor = "bg-parking-error";
-  } else if (availability <= 60) {
+  } else if (parkingAvailable <= Math.floor(event.parkingTotal * 0.6)) {
     availabilityColor = "bg-parking-accent";
   }
 
@@ -32,7 +64,7 @@ const EventCard = ({ event }: EventCardProps) => {
             variant="outline" 
             className={`${availabilityColor} text-white font-medium`}
           >
-            {event.parkingAvailable} spots left
+            {parkingAvailable} spots left
           </Badge>
         </div>
       </div>

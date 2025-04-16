@@ -150,7 +150,7 @@ export async function fetchUserBookings() {
 
 export async function cancelBooking(bookingId: string): Promise<boolean> {
   try {
-    // First get the booking to find the event ID
+    // First get the booking to find the event ID and parking layout
     const { data: booking, error: fetchError } = await supabase
       .from("bookings")
       .select("event_id, parking_layout_id")
@@ -175,7 +175,7 @@ export async function cancelBooking(bookingId: string): Promise<boolean> {
       throw updateError;
     }
     
-    // Optional: You can also update the parking layout to free up the spot
+    // Free up the parking spot by updating the parking layout
     if (booking && booking.parking_layout_id) {
       const { error: layoutError } = await supabase
         .from("parking_layouts")
@@ -184,7 +184,24 @@ export async function cancelBooking(bookingId: string): Promise<boolean> {
         
       if (layoutError) {
         console.error("Error updating parking layout:", layoutError);
+        toast.error("Failed to free up the parking spot. Please contact support.");
         // Don't throw here, booking is already cancelled
+      }
+      
+      // Update the available slots count in the events table
+      const { error: eventError } = await supabase
+        .from("events")
+        .update({ 
+          available_parking_slots: supabase.rpc('increment', { 
+            x: 1, 
+            row_id: booking.event_id 
+          }) 
+        })
+        .eq("id", booking.event_id);
+        
+      if (eventError) {
+        console.error("Error updating event slots:", eventError);
+        // Don't throw here, booking is already cancelled and spot freed
       }
     }
 
