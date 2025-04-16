@@ -1,3 +1,4 @@
+
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 
@@ -213,10 +214,12 @@ export async function cancelBooking(bookingId: string): Promise<boolean> {
       console.error("Error updating parking layout:", layoutError);
       toast.error("Failed to free up the parking spot. Please contact support.");
       // Don't throw here, booking is already cancelled
+    } else {
+      console.log("Successfully freed up the parking spot");
     }
       
     // Update the available slots count in the events table
-    const { error: eventError } = await supabase.rpc('increment', { 
+    const { data: incrementResult, error: eventError } = await supabase.rpc('increment', { 
       x: 1, 
       row_id: booking.event_id 
     });
@@ -224,6 +227,8 @@ export async function cancelBooking(bookingId: string): Promise<boolean> {
     if (eventError) {
       console.error("Error updating event slots:", eventError);
       // Don't throw here, booking is already cancelled and spot freed
+    } else {
+      console.log("Successfully incremented available slots to:", incrementResult);
     }
 
     toast.success("Booking cancelled successfully!");

@@ -20,6 +20,7 @@ const EventCard = ({ event }: EventCardProps) => {
     setParkingAvailable(event.parkingAvailable);
     
     // Subscribe to real-time changes for this specific event
+    console.log(`Setting up subscription for event ${event.id}`);
     const channel = supabase
       .channel(`event-updates-${event.id}`)
       .on(
@@ -31,8 +32,9 @@ const EventCard = ({ event }: EventCardProps) => {
           filter: `id=eq.${event.id}`
         },
         (payload) => {
-          console.log("Event updated:", payload);
+          console.log(`Event ${event.id} updated:`, payload);
           if (payload.new && typeof payload.new.available_parking_slots === 'number') {
+            console.log(`Updating available slots from ${parkingAvailable} to ${payload.new.available_parking_slots}`);
             setParkingAvailable(payload.new.available_parking_slots);
           }
         }
@@ -40,6 +42,7 @@ const EventCard = ({ event }: EventCardProps) => {
       .subscribe();
       
     return () => {
+      console.log(`Cleaning up subscription for event ${event.id}`);
       supabase.removeChannel(channel);
     };
   }, [event.id, event.parkingAvailable]);
