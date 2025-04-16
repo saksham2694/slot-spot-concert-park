@@ -1,6 +1,6 @@
 
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { fetchEvents, deleteEvent } from "@/services/eventService";
+import { useQuery } from "@tanstack/react-query";
+import { fetchEvents } from "@/services/eventService";
 import { Button } from "@/components/ui/button";
 import { Link } from "react-router-dom";
 import { 
@@ -11,55 +11,13 @@ import {
   TableHeader, 
   TableRow 
 } from "@/components/ui/table";
-import { Calendar, Edit, Plus, Trash2 } from "lucide-react";
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-  AlertDialogTrigger,
-} from "@/components/ui/alert-dialog";
-import { useState } from "react";
-import { useToast } from "@/hooks/use-toast";
+import { Calendar, Edit, Plus } from "lucide-react";
 
 const AdminDashboard = () => {
-  const [eventToDelete, setEventToDelete] = useState<string | null>(null);
-  const { toast } = useToast();
-  const queryClient = useQueryClient();
-
   const { data: events, isLoading, error } = useQuery({
     queryKey: ["events"],
     queryFn: fetchEvents,
   });
-
-  const deleteEventMutation = useMutation({
-    mutationFn: deleteEvent,
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["events"] });
-      toast({
-        title: "Event deleted",
-        description: "The event was successfully deleted.",
-      });
-      setEventToDelete(null);
-    },
-    onError: (error) => {
-      console.error("Error deleting event:", error);
-      toast({
-        title: "Error",
-        description: "Failed to delete the event. Please try again.",
-        variant: "destructive",
-      });
-    },
-  });
-
-  const handleDeleteEvent = (eventId: string) => {
-    console.log("Deleting event with ID:", eventId);
-    deleteEventMutation.mutate(eventId);
-  };
 
   if (isLoading) {
     return <div className="flex justify-center p-8">Loading events...</div>;
@@ -112,41 +70,12 @@ const AdminDashboard = () => {
                 <TableCell className="text-right">
                   {event.parkingAvailable}/{event.parkingTotal}
                 </TableCell>
-                <TableCell className="text-right flex justify-end gap-2">
+                <TableCell className="text-right">
                   <Button variant="ghost" size="sm" asChild>
                     <Link to={`/events/${event.id}`}>
                       <Edit size={16} />
                     </Link>
                   </Button>
-                  <AlertDialog open={eventToDelete === event.id} onOpenChange={(open) => !open && setEventToDelete(null)}>
-                    <AlertDialogTrigger asChild>
-                      <Button 
-                        variant="ghost" 
-                        size="sm"
-                        onClick={() => setEventToDelete(event.id.toString())}
-                      >
-                        <Trash2 size={16} className="text-destructive" />
-                      </Button>
-                    </AlertDialogTrigger>
-                    <AlertDialogContent>
-                      <AlertDialogHeader>
-                        <AlertDialogTitle>Delete Event</AlertDialogTitle>
-                        <AlertDialogDescription>
-                          Are you sure you want to delete "{event.title}"? This action cannot be undone.
-                          All associated parking bookings will also be deleted.
-                        </AlertDialogDescription>
-                      </AlertDialogHeader>
-                      <AlertDialogFooter>
-                        <AlertDialogCancel>Cancel</AlertDialogCancel>
-                        <AlertDialogAction 
-                          onClick={() => handleDeleteEvent(event.id.toString())}
-                          className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
-                        >
-                          Delete
-                        </AlertDialogAction>
-                      </AlertDialogFooter>
-                    </AlertDialogContent>
-                  </AlertDialog>
                 </TableCell>
               </TableRow>
             ))
