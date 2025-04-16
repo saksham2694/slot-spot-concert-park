@@ -62,6 +62,7 @@ export type Database = {
           id: string
           image_url: string | null
           location: string
+          parking_price: number
           title: string
           total_parking_slots: number
         }
@@ -72,6 +73,7 @@ export type Database = {
           id?: string
           image_url?: string | null
           location: string
+          parking_price?: number
           title: string
           total_parking_slots: number
         }
@@ -82,6 +84,7 @@ export type Database = {
           id?: string
           image_url?: string | null
           location?: string
+          parking_price?: number
           title?: string
           total_parking_slots?: number
         }
