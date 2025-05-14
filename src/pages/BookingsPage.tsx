@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import Navbar from "@/components/Navbar";
@@ -261,7 +262,7 @@ const BookingsPage = () => {
                     booking.parkingSpots[0] 
                   : "No spots"}
               </TableCell>
-              <TableCell>${booking.totalPrice.toFixed(2)}</TableCell>
+              <TableCell>₹{booking.totalPrice.toFixed(2)}</TableCell>
               <TableCell className="text-right">
                 <div className="flex justify-end items-center gap-2">
                   {type === "upcoming" && (
