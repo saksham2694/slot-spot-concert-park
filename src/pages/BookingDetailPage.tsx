@@ -212,7 +212,7 @@ const BookingDetailPage = () => {
                 <div className="pt-4 border-t mt-6">
                   <div className="flex justify-between items-center">
                     <span className="font-medium">Total Price:</span>
-                    <span className="text-lg font-bold">${booking.totalPrice.toFixed(2)}</span>
+                    <span className="text-lg font-bold">₹{booking.totalPrice.toFixed(2)}</span>
                   </div>
                   <div className="flex justify-between items-center mt-2">
                     <span className="font-medium">Status:</span>
