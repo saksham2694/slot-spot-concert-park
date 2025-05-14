@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import Navbar from "@/components/Navbar";
@@ -285,11 +284,11 @@ const BookingsPage = () => {
                   >
                     <Download className="h-4 w-4" />
                   </Button>
-                  <Link to={`/events/${booking.eventId}`}>
+                  <Link to={`/bookings/${booking.id}`}>
                     <Button
                       variant="ghost"
                       size="icon"
-                      title="View Event"
+                      title="View Booking Details"
                     >
                       <ExternalLink className="h-4 w-4" />
                     </Button>

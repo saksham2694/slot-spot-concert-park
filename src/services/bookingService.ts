@@ -1,8 +1,16 @@
-
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/components/ui/use-toast";
 
 interface BookingData {
+  eventId: string;
+  parkingSlots: Array<{
+    slotId: string;
+    price: number;
+    slotLabel: string;
+  }>;
+}
+
+interface BookingInput {
   eventId: string;
   parkingSlots: Array<{
     slotId: string;
@@ -297,6 +305,99 @@ export async function cancelBooking(bookingId: string): Promise<boolean> {
     return true;
   } catch (error) {
     console.error("Error in cancelBooking:", error);
+    throw error;
+  }
+}
+
+export async function fetchBookingById(bookingId: string) {
+  const { data: session } = await supabase.auth.getSession();
+  
+  if (!session.session) {
+    return null;
+  }
+  
+  try {
+    const { data, error } = await supabase
+      .from("bookings")
+      .select(`
+        id,
+        booking_date,
+        status,
+        event_id,
+        qr_code_url,
+        events (
+          id,
+          title,
+          date,
+          location,
+          image_url
+        ),
+        booking_slots (
+          parking_layouts (
+            id,
+            row_number,
+            column_number,
+            price
+          )
+        )
+      `)
+      .eq("id", bookingId)
+      .eq("user_id", session.session.user.id)
+      .single();
+
+    if (error) {
+      console.error("Error fetching booking:", error);
+      throw error;
+    }
+
+    if (!data) {
+      return null;
+    }
+
+    // Format the booking data
+    const eventDate = new Date(data.events.date);
+    const status = eventDate < new Date() ? "completed" : "upcoming";
+    
+    // Format the event date and time
+    const formattedDate = eventDate.toLocaleDateString("en-US", {
+      year: "numeric",
+      month: "long",
+      day: "numeric",
+    });
+    
+    const formattedTime = eventDate.toLocaleTimeString("en-US", {
+      hour: "numeric",
+      minute: "2-digit",
+      hour12: true,
+    });
+
+    // Extract parking spots from booking_slots
+    const parkingSpots = data.booking_slots?.map(slot => 
+      `R${slot.parking_layouts.row_number}C${slot.parking_layouts.column_number}`
+    ) || [];
+
+    // Calculate total price
+    const totalPrice = data.booking_slots?.reduce((total, slot) => 
+      total + (slot.parking_layouts.price || 0), 0
+    ) || 0;
+
+    return {
+      id: data.id,
+      eventId: data.event_id || "",
+      eventName: data.events.title,
+      eventDate: formattedDate,
+      eventTime: `${formattedTime} - ${new Date(eventDate.getTime() + 3 * 60 * 60 * 1000).toLocaleTimeString("en-US", {
+        hour: "numeric",
+        minute: "2-digit",
+        hour12: true,
+      })}`,
+      location: data.events.location,
+      parkingSpots,
+      totalPrice,
+      status
+    };
+  } catch (error) {
+    console.error("Error fetching booking by ID:", error);
     throw error;
   }
 }
