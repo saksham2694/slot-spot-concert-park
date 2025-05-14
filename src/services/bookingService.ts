@@ -11,7 +11,7 @@ interface BookingData {
   }>;
 }
 
-export async function createBooking(bookingData: BookingData): Promise<string | null> {
+export async function createBooking(bookingInput: BookingData): Promise<string | null> {
   const { data: session } = await supabase.auth.getSession();
   
   if (!session.session) {
@@ -29,7 +29,7 @@ export async function createBooking(bookingData: BookingData): Promise<string | 
       .from("bookings")
       .select("id")
       .eq("user_id", session.session.user.id)
-      .eq("event_id", bookingData.eventId)
+      .eq("event_id", bookingInput.eventId)
       .eq("status", "confirmed");
       
     if (existingError) {
@@ -43,7 +43,7 @@ export async function createBooking(bookingData: BookingData): Promise<string | 
     }
     
     // First, check if any of the selected slots are already reserved
-    for (const slot of bookingData.parkingSlots) {
+    for (const slot of bookingInput.parkingSlots) {
       // Parse the row and column from the slot label (format: R1C1)
       const rowNumber = parseInt(slot.slotLabel.charAt(1));
       const columnNumber = parseInt(slot.slotLabel.charAt(3));
@@ -51,7 +51,7 @@ export async function createBooking(bookingData: BookingData): Promise<string | 
       const { data: existingLayouts, error: checkError } = await supabase
         .from("parking_layouts")
         .select("id")
-        .eq("event_id", bookingData.eventId)
+        .eq("event_id", bookingInput.eventId)
         .eq("row_number", rowNumber)
         .eq("column_number", columnNumber)
         .eq("is_reserved", true);
@@ -77,13 +77,13 @@ export async function createBooking(bookingData: BookingData): Promise<string | 
     }
     
     // Create a booking record
-    const { data: bookingData, error: bookingError } = await supabase
+    const { data: booking, error: bookingError } = await supabase
       .from("bookings")
       .insert({
         user_id: session.session.user.id,
-        event_id: bookingData.eventId,
+        event_id: bookingInput.eventId,
         status: "confirmed",
-        qr_code_url: `TIME2PARK-${bookingData.eventId}-${Date.now()}`
+        qr_code_url: `TIME2PARK-${bookingInput.eventId}-${Date.now()}`
       })
       .select("id")
       .single();
@@ -98,10 +98,10 @@ export async function createBooking(bookingData: BookingData): Promise<string | 
       throw bookingError;
     }
 
-    const bookingId = bookingData.id;
+    const bookingId = booking.id;
     
     // Reserve each parking slot for this booking
-    for (const slot of bookingData.parkingSlots) {
+    for (const slot of bookingInput.parkingSlots) {
       // Parse the row and column from the slot label (format: R1C1)
       const rowNumber = parseInt(slot.slotLabel.charAt(1));
       const columnNumber = parseInt(slot.slotLabel.charAt(3));
@@ -110,7 +110,7 @@ export async function createBooking(bookingData: BookingData): Promise<string | 
       const { data: layoutData, error: layoutError } = await supabase
         .from("parking_layouts")
         .upsert({
-          event_id: bookingData.eventId,
+          event_id: bookingInput.eventId,
           row_number: rowNumber,
           column_number: columnNumber,
           is_reserved: true,
@@ -150,8 +150,8 @@ export async function createBooking(bookingData: BookingData): Promise<string | 
 
     // Update the available parking slots in the events table
     const { error: updateError } = await supabase.rpc('decrement', { 
-      x: bookingData.parkingSlots.length, 
-      row_id: bookingData.eventId 
+      x: bookingInput.parkingSlots.length, 
+      row_id: bookingInput.eventId 
     });
 
     if (updateError) {
