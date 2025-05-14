@@ -101,16 +101,7 @@ export function useParkingLayout(eventId: string, totalSlots: number, eventPrice
     const slotIndex = updatedSlots.findIndex((s) => s.id === slot.id);
     
     if (slot.state === "available") {
-      // If we're trying to select more than one slot, show a message
-      if (selectedSlots.length >= 1) {
-        toast({
-          title: "Maximum selection reached",
-          description: "You can only select one parking slot per booking.",
-          variant: "destructive",
-        });
-        return;
-      }
-      
+      // Select the slot
       updatedSlots[slotIndex].state = "selected";
       setParkingSlots(updatedSlots);
       setSelectedSlots([...selectedSlots, updatedSlots[slotIndex]]);

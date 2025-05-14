@@ -38,8 +38,8 @@ interface Booking {
   eventDate: string;
   eventTime: string;
   location: string;
-  parkingSpot: string;
-  price: number;
+  parkingSpots: string[];
+  totalPrice: number;
   status: "upcoming" | "completed";
 }
 
@@ -113,6 +113,16 @@ const BookingsPage = () => {
       hour12: true,
     });
 
+    // Extract parking spots from booking_slots
+    const parkingSpots = booking.booking_slots?.map(slot => 
+      `R${slot.parking_layouts.row_number}C${slot.parking_layouts.column_number}`
+    ) || [];
+
+    // Calculate total price
+    const totalPrice = booking.booking_slots?.reduce((total, slot) => 
+      total + (slot.parking_layouts.price || 0), 0
+    ) || 0;
+
     const transformedBooking: Booking = {
       id: booking.id,
       eventId: booking.event_id || "",
@@ -124,8 +134,8 @@ const BookingsPage = () => {
         hour12: true,
       })}`,
       location: booking.events.location,
-      parkingSpot: `R${booking.parking_layouts?.row_number || 0}C${booking.parking_layouts?.column_number || 0}`,
-      price: booking.parking_layouts?.price || 0,
+      parkingSpots,
+      totalPrice,
       status
     };
 
@@ -156,20 +166,21 @@ const BookingsPage = () => {
       image: "", // Adding required properties with default values
       parkingAvailable: 0,
       parkingTotal: 0,
-      parkingPrice: booking.price
+      parkingPrice: booking.totalPrice / booking.parkingSpots.length
     };
     
-    const mockSlot: ParkingSlot = {
-      id: booking.parkingSpot,
+    // Create mock slots
+    const mockSlots: ParkingSlot[] = booking.parkingSpots.map((spotId, index) => ({
+      id: spotId,
       state: "reserved",
-      row: parseInt(booking.parkingSpot.charAt(1)),
-      column: parseInt(booking.parkingSpot.charAt(3)),
-      price: booking.price
-    };
+      row: parseInt(spotId.charAt(1)),
+      column: parseInt(spotId.charAt(3)),
+      price: booking.totalPrice / booking.parkingSpots.length
+    }));
     
     const qrCodeData = `TIME2PARK-BOOKING-${booking.id}`;
     
-    downloadBookingPDF(mockEvent, [mockSlot], booking.id, qrCodeData)
+    downloadBookingPDF(mockEvent, mockSlots, booking.id, qrCodeData)
       .then(() => {
         toast({
           title: "Ticket Downloaded",
@@ -212,7 +223,7 @@ const BookingsPage = () => {
             <TableHead>Event</TableHead>
             <TableHead className="hidden md:table-cell">Date & Time</TableHead>
             <TableHead className="hidden md:table-cell">Location</TableHead>
-            <TableHead>Spot</TableHead>
+            <TableHead>Spots</TableHead>
             <TableHead>Price</TableHead>
             <TableHead className="text-right">Actions</TableHead>
           </TableRow>
@@ -254,8 +265,14 @@ const BookingsPage = () => {
                   <span className="line-clamp-1">{booking.location}</span>
                 </div>
               </TableCell>
-              <TableCell>{booking.parkingSpot}</TableCell>
-              <TableCell>${booking.price.toFixed(2)}</TableCell>
+              <TableCell>
+                {booking.parkingSpots.length > 0 ? 
+                  booking.parkingSpots.length > 1 ? 
+                    `${booking.parkingSpots.length} spots` : 
+                    booking.parkingSpots[0] 
+                  : "No spots"}
+              </TableCell>
+              <TableCell>${booking.totalPrice.toFixed(2)}</TableCell>
               <TableCell className="text-right">
                 <div className="flex justify-end items-center gap-2">
                   {type === "upcoming" && (

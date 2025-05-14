@@ -72,7 +72,7 @@ const ParkingLayout = ({
           <div className="text-sm">
             <p className="font-medium">Parking Information</p>
             <p className="text-muted-foreground mt-1">
-              You may select up to 1 parking spot per booking. Parking spots are
+              You may select multiple parking spots per booking. Parking spots are
               non-refundable after purchase. Please arrive at least 30 minutes before
               the event starts.
             </p>

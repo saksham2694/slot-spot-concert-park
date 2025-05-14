@@ -1,19 +1,25 @@
 
 import { supabase } from "@/integrations/supabase/client";
-import { toast } from "sonner";
+import { toast } from "@/components/ui/use-toast";
 
 interface BookingData {
   eventId: string;
-  parkingSlotId: string;
-  price: number;
-  slotLabel: string;
+  parkingSlots: Array<{
+    slotId: string;
+    price: number;
+    slotLabel: string;
+  }>;
 }
 
 export async function createBooking(bookingData: BookingData): Promise<string | null> {
   const { data: session } = await supabase.auth.getSession();
   
   if (!session.session) {
-    toast.error("You must be logged in to book a parking spot");
+    toast({
+      title: "Authentication Required",
+      description: "You must be logged in to book a parking spot",
+      variant: "destructive",
+    });
     return null;
   }
   
@@ -28,80 +34,123 @@ export async function createBooking(bookingData: BookingData): Promise<string | 
       
     if (existingError) {
       console.error("Error checking existing bookings:", existingError);
-      toast.error("Failed to check existing bookings. Please try again.");
+      toast({
+        title: "Error",
+        description: "Failed to check existing bookings. Please try again.",
+        variant: "destructive",
+      });
       throw existingError;
     }
     
-    if (existingBookings && existingBookings.length > 0) {
-      toast.error("You already have a booking for this event. You can only book one spot per event.");
-      return null;
-    }
-  
-    // Parse the row and column from the slot label (format: R1C1)
-    const rowNumber = parseInt(bookingData.slotLabel.charAt(1));
-    const columnNumber = parseInt(bookingData.slotLabel.charAt(3));
-    
-    // First, check if the slot is already reserved
-    const { data: existingLayouts, error: checkError } = await supabase
-      .from("parking_layouts")
-      .select("id")
-      .eq("event_id", bookingData.eventId)
-      .eq("row_number", rowNumber)
-      .eq("column_number", columnNumber)
-      .eq("is_reserved", true);
+    // First, check if any of the selected slots are already reserved
+    for (const slot of bookingData.parkingSlots) {
+      // Parse the row and column from the slot label (format: R1C1)
+      const rowNumber = parseInt(slot.slotLabel.charAt(1));
+      const columnNumber = parseInt(slot.slotLabel.charAt(3));
       
-    if (checkError) {
-      console.error("Error checking slot availability:", checkError);
-      toast.error("Failed to check slot availability. Please try again.");
-      throw checkError;
-    }
-    
-    if (existingLayouts && existingLayouts.length > 0) {
-      toast.error("This parking slot has already been reserved. Please select another one.");
-      return null;
-    }
-    
-    // Create or update the parking layout for this slot
-    const { data: layoutData, error: layoutError } = await supabase
-      .from("parking_layouts")
-      .upsert({
-        event_id: bookingData.eventId,
-        row_number: rowNumber,
-        column_number: columnNumber,
-        is_reserved: true,
-        price: bookingData.price
-      })
-      .select("id")
-      .single();
+      const { data: existingLayouts, error: checkError } = await supabase
+        .from("parking_layouts")
+        .select("id")
+        .eq("event_id", bookingData.eventId)
+        .eq("row_number", rowNumber)
+        .eq("column_number", columnNumber)
+        .eq("is_reserved", true);
+        
+      if (checkError) {
+        console.error("Error checking slot availability:", checkError);
+        toast({
+          title: "Error",
+          description: "Failed to check slot availability. Please try again.",
+          variant: "destructive",
+        });
+        throw checkError;
+      }
       
-    if (layoutError) {
-      console.error("Error creating parking layout:", layoutError);
-      toast.error("Failed to reserve parking slot. Please try again.");
-      throw layoutError;
+      if (existingLayouts && existingLayouts.length > 0) {
+        toast({
+          title: "Slot Already Reserved",
+          description: `Parking slot ${slot.slotLabel} has already been reserved. Please select another one.`,
+          variant: "destructive",
+        });
+        return null;
+      }
     }
     
-    // Now create the booking with the new layout ID
-    const { data, error } = await supabase
+    // Create a booking record
+    const { data: bookingData, error: bookingError } = await supabase
       .from("bookings")
       .insert({
         user_id: session.session.user.id,
         event_id: bookingData.eventId,
-        parking_layout_id: layoutData.id,
         status: "confirmed",
-        qr_code_url: `TIME2PARK-${bookingData.eventId}-${bookingData.slotLabel}-${Date.now()}`
+        qr_code_url: `TIME2PARK-${bookingData.eventId}-${Date.now()}`
       })
       .select("id")
       .single();
 
-    if (error) {
-      console.error("Error creating booking:", error);
-      toast.error("Failed to create booking. Please try again.");
-      throw error;
+    if (bookingError) {
+      console.error("Error creating booking:", bookingError);
+      toast({
+        title: "Error",
+        description: "Failed to create booking. Please try again.",
+        variant: "destructive",
+      });
+      throw bookingError;
+    }
+
+    const bookingId = bookingData.id;
+    
+    // Reserve each parking slot for this booking
+    for (const slot of bookingData.parkingSlots) {
+      // Parse the row and column from the slot label (format: R1C1)
+      const rowNumber = parseInt(slot.slotLabel.charAt(1));
+      const columnNumber = parseInt(slot.slotLabel.charAt(3));
+      
+      // Create or update the parking layout for this slot
+      const { data: layoutData, error: layoutError } = await supabase
+        .from("parking_layouts")
+        .upsert({
+          event_id: bookingData.eventId,
+          row_number: rowNumber,
+          column_number: columnNumber,
+          is_reserved: true,
+          price: slot.price
+        })
+        .select("id")
+        .single();
+        
+      if (layoutError) {
+        console.error("Error creating parking layout:", layoutError);
+        toast({
+          title: "Error",
+          description: "Failed to reserve parking slot. Please try again.",
+          variant: "destructive",
+        });
+        throw layoutError;
+      }
+      
+      // Create the booking_slot entry to link the booking with this layout
+      const { error: slotError } = await supabase
+        .from("booking_slots")
+        .insert({
+          booking_id: bookingId,
+          parking_layout_id: layoutData.id
+        });
+        
+      if (slotError) {
+        console.error("Error creating booking slot:", slotError);
+        toast({
+          title: "Error",
+          description: "Failed to associate parking slot with booking. Please try again.",
+          variant: "destructive",
+        });
+        throw slotError;
+      }
     }
 
     // Update the available parking slots in the events table
     const { error: updateError } = await supabase.rpc('decrement', { 
-      x: 1, 
+      x: bookingData.parkingSlots.length, 
       row_id: bookingData.eventId 
     });
 
@@ -110,8 +159,11 @@ export async function createBooking(bookingData: BookingData): Promise<string | 
       // Don't throw here, booking is already created
     }
 
-    toast.success("Booking confirmed successfully!");
-    return data?.id || null;
+    toast({
+      title: "Success",
+      description: "Booking confirmed successfully!",
+    });
+    return bookingId;
   } catch (error) {
     console.error("Error in createBooking:", error);
     throw error;
@@ -132,7 +184,6 @@ export async function fetchUserBookings() {
       booking_date,
       status,
       event_id,
-      parking_layout_id,
       qr_code_url,
       events (
         id,
@@ -141,11 +192,13 @@ export async function fetchUserBookings() {
         location,
         image_url
       ),
-      parking_layouts (
-        id,
-        row_number,
-        column_number,
-        price
+      booking_slots (
+        parking_layouts (
+          id,
+          row_number,
+          column_number,
+          price
+        )
       )
     `)
     .eq("user_id", session.session.user.id)
@@ -161,35 +214,37 @@ export async function fetchUserBookings() {
 
 export async function cancelBooking(bookingId: string): Promise<boolean> {
   try {
-    // First get the booking to find the event ID and parking layout
+    // First get the booking to find the event ID and associated slots
     const { data: booking, error: fetchError } = await supabase
       .from("bookings")
-      .select("event_id, parking_layout_id")
+      .select("event_id")
       .eq("id", bookingId)
       .single();
       
     if (fetchError) {
       console.error("Error fetching booking:", fetchError);
-      toast.error("Failed to find booking details. Please try again.");
+      toast({
+        title: "Error",
+        description: "Failed to find booking details. Please try again.",
+        variant: "destructive",
+      });
       throw fetchError;
     }
     
-    if (!booking || !booking.parking_layout_id || !booking.event_id) {
-      console.error("Incomplete booking data:", booking);
-      toast.error("Booking data is incomplete. Please try again.");
-      return false;
-    }
-    
-    // Get the layout details to release the parking spot
-    const { data: layout, error: layoutFetchError } = await supabase
-      .from("parking_layouts")
-      .select("*")
-      .eq("id", booking.parking_layout_id)
-      .single();
+    // Get all booking slots associated with this booking
+    const { data: bookingSlots, error: slotsError } = await supabase
+      .from("booking_slots")
+      .select("parking_layout_id")
+      .eq("booking_id", bookingId);
       
-    if (layoutFetchError) {
-      console.error("Error fetching parking layout:", layoutFetchError);
-      // Continue with the process
+    if (slotsError) {
+      console.error("Error fetching booking slots:", slotsError);
+      toast({
+        title: "Error",
+        description: "Failed to find booking slot details. Please try again.",
+        variant: "destructive",
+      });
+      throw slotsError;
     }
     
     // Update the booking status to cancelled
@@ -200,38 +255,45 @@ export async function cancelBooking(bookingId: string): Promise<boolean> {
 
     if (updateError) {
       console.error("Error cancelling booking:", updateError);
-      toast.error("Failed to cancel booking. Please try again.");
+      toast({
+        title: "Error",
+        description: "Failed to cancel booking. Please try again.",
+        variant: "destructive",
+      });
       throw updateError;
     }
     
-    // Free up the parking spot by updating the parking layout
-    const { error: layoutError } = await supabase
-      .from("parking_layouts")
-      .update({ is_reserved: false })
-      .eq("id", booking.parking_layout_id);
-      
-    if (layoutError) {
-      console.error("Error updating parking layout:", layoutError);
-      toast.error("Failed to free up the parking spot. Please contact support.");
-      // Don't throw here, booking is already cancelled
-    } else {
-      console.log("Successfully freed up the parking spot");
+    // Free up all the parking spots
+    for (const slot of bookingSlots || []) {
+      const { error: layoutError } = await supabase
+        .from("parking_layouts")
+        .update({ is_reserved: false })
+        .eq("id", slot.parking_layout_id);
+        
+      if (layoutError) {
+        console.error("Error updating parking layout:", layoutError);
+        // Continue with other slots
+      }
     }
       
     // Update the available slots count in the events table
-    const { data: incrementResult, error: eventError } = await supabase.rpc('increment', { 
-      x: 1, 
-      row_id: booking.event_id 
-    });
-      
-    if (eventError) {
-      console.error("Error updating event slots:", eventError);
-      // Don't throw here, booking is already cancelled and spot freed
-    } else {
-      console.log("Successfully incremented available slots to:", incrementResult);
+    const slotCount = bookingSlots?.length || 0;
+    if (slotCount > 0) {
+      const { error: eventError } = await supabase.rpc('increment', { 
+        x: slotCount, 
+        row_id: booking.event_id 
+      });
+        
+      if (eventError) {
+        console.error("Error updating event slots:", eventError);
+        // Don't throw here, booking is already cancelled and spots freed
+      }
     }
 
-    toast.success("Booking cancelled successfully!");
+    toast({
+      title: "Success",
+      description: "Booking cancelled successfully!",
+    });
     return true;
   } catch (error) {
     console.error("Error in cancelBooking:", error);

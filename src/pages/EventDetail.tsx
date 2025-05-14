@@ -1,4 +1,3 @@
-
 import { useState, useEffect, useCallback } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import Navbar from "@/components/Navbar";
@@ -88,7 +87,7 @@ const EventDetail = () => {
     if (selectedSlots.length === 0) {
       toast({
         title: "No parking selected",
-        description: "Please select a parking slot before booking.",
+        description: "Please select at least one parking slot before booking.",
         variant: "destructive",
       });
       return;
@@ -97,12 +96,15 @@ const EventDetail = () => {
     setIsBooking(true);
 
     try {
-      const slot = selectedSlots[0];
-      const bookingData = {
-        eventId: eventId!,
-        parkingSlotId: slot.id,
+      const parkingSlots = selectedSlots.map(slot => ({
+        slotId: slot.id,
         price: slot.price,
         slotLabel: slot.id,
+      }));
+      
+      const bookingData = {
+        eventId: eventId!,
+        parkingSlots,
       };
       
       const newBookingId = await createBooking(bookingData);
@@ -113,11 +115,6 @@ const EventDetail = () => {
         setBookingComplete(true);
         
         setRefreshTrigger(prev => prev + 1);
-        
-        toast({
-          title: "Booking successful!",
-          description: "Your parking spot has been reserved.",
-        });
       } else {
         throw new Error("Failed to create booking");
       }

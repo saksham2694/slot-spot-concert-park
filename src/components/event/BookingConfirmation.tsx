@@ -3,7 +3,7 @@ import { Button } from "@/components/ui/button";
 import { useNavigate } from "react-router-dom";
 import { Event } from "@/types/event";
 import { Ticket, IndianRupee, Download, QrCode } from "lucide-react";
-import { toast } from "sonner";
+import { toast } from "@/components/ui/use-toast";
 import { downloadBookingPDF, showQRCode } from "@/services/pdfService";
 import { useState } from "react";
 import { ParkingSlot } from "@/types/parking";
@@ -36,14 +36,17 @@ const BookingConfirmation = ({
   const handleDownloadPDF = () => {
     downloadBookingPDF(event, selectedSlots, bookingId || "", qrCodeData)
       .then(() => {
-        toast("Your booking confirmation has been downloaded.", {
-          description: "PDF Generated",
+        toast({
+          title: "Success",
+          description: "Your booking confirmation has been downloaded.",
         });
       })
       .catch(error => {
         console.error("Error downloading PDF:", error);
-        toast("Failed to download confirmation.", {
-          description: "Please try again later.",
+        toast({
+          title: "Error",
+          description: "Failed to download confirmation. Please try again later.",
+          variant: "destructive",
         });
       });
   };
