@@ -30,6 +30,7 @@ import {
 } from "@/components/ui/dialog";
 import { Event } from "@/types/event";
 import { ParkingSlot } from "@/types/parking";
+import AuthPrompt from "@/components/event/AuthPrompt";
 
 interface Booking {
   id: string;
@@ -47,27 +48,16 @@ const BookingsPage = () => {
   const [activeTab, setActiveTab] = useState<string>("upcoming");
   const { toast } = useToast();
   const navigate = useNavigate();
-  const { user } = useAuth();
+  const { user, isLoading: authLoading } = useAuth();
   const [selectedQRCode, setSelectedQRCode] = useState<string | null>(null);
   const [qrDialogOpen, setQrDialogOpen] = useState(false);
 
-  // Redirect to home page if user is not authenticated
-  useEffect(() => {
-    if (!user) {
-      toast({
-        title: "Authentication Required",
-        description: "Log in to view this page",
-        variant: "destructive"
-      });
-      navigate("/", { replace: true });
-    }
-  }, [user, navigate, toast]);
-
-  // Fetch bookings from the backend
-  const { data: allBookings = [], isLoading, error } = useQuery({
+  // Only fetch bookings when we have a confirmed user
+  const { data: allBookings = [], isLoading: bookingsLoading, error } = useQuery({
     queryKey: ["bookings"],
     queryFn: fetchUserBookings,
-    enabled: !!user,
+    enabled: !!user, // Only run query when user is authenticated
+    retry: false, // Don't retry if the query fails
   });
 
   // If there's an error fetching bookings, show a toast
@@ -313,6 +303,37 @@ const BookingsPage = () => {
     );
   };
 
+  // Show loading state while checking authentication
+  if (authLoading) {
+    return (
+      <div className="min-h-screen flex flex-col">
+        <Navbar />
+        <main className="flex-grow container py-12">
+          <h1 className="text-3xl font-bold mb-8">My Bookings</h1>
+          <div className="space-y-4">
+            <Skeleton className="h-10 w-full" />
+            <Skeleton className="h-64 w-full" />
+          </div>
+        </main>
+        <Footer />
+      </div>
+    );
+  }
+
+  // Show auth prompt if not logged in
+  if (!user) {
+    return (
+      <div className="min-h-screen flex flex-col">
+        <Navbar />
+        <main className="flex-grow container py-12">
+          <h1 className="text-3xl font-bold mb-8">My Bookings</h1>
+          <AuthPrompt />
+        </main>
+        <Footer />
+      </div>
+    );
+  }
+
   return (
     <div className="min-h-screen flex flex-col">
       <Navbar />
@@ -321,9 +342,7 @@ const BookingsPage = () => {
         <div className="container py-12">
           <h1 className="text-3xl font-bold mb-8">My Bookings</h1>
           
-          {!user ? (
-            null
-          ) : isLoading ? (
+          {bookingsLoading ? (
             <div className="space-y-4">
               <Skeleton className="h-10 w-full" />
               <Skeleton className="h-64 w-full" />
@@ -332,19 +351,19 @@ const BookingsPage = () => {
             <Tabs defaultValue="upcoming" value={activeTab} onValueChange={setActiveTab}>
               <TabsList className="w-full md:w-auto mb-6">
                 <TabsTrigger value="upcoming">
-                  Upcoming ({bookings.upcoming.length})
+                  Upcoming ({bookings.upcoming?.length || 0})
                 </TabsTrigger>
                 <TabsTrigger value="completed">
-                  Completed ({bookings.completed.length})
+                  Completed ({bookings.completed?.length || 0})
                 </TabsTrigger>
               </TabsList>
               
               <TabsContent value="upcoming" className="border rounded-lg p-4">
-                <BookingsList items={bookings.upcoming} type="upcoming" />
+                <BookingsList items={bookings.upcoming || []} type="upcoming" />
               </TabsContent>
               
               <TabsContent value="completed" className="border rounded-lg p-4">
-                <BookingsList items={bookings.completed} type="completed" />
+                <BookingsList items={bookings.completed || []} type="completed" />
               </TabsContent>
             </Tabs>
           )}
