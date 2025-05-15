@@ -20,6 +20,13 @@ const AdminLayout = () => {
   const [redirectAttempted, setRedirectAttempted] = useState<boolean>(false);
 
   useEffect(() => {
+    // Reset redirect attempt when user changes
+    if (user) {
+      setRedirectAttempted(false);
+    }
+  }, [user]);
+
+  useEffect(() => {
     const checkAdminRole = async () => {
       if (user) {
         try {

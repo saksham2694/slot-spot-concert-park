@@ -1,5 +1,5 @@
 
-import { createContext, useContext, useEffect, useState } from "react";
+import { createContext, useContext, useEffect, useState, useRef } from "react";
 import { Session, User } from "@supabase/supabase-js";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/components/ui/use-toast";
@@ -33,6 +33,10 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   const [session, setSession] = useState<Session | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const { toast } = useToast();
+  
+  // Use a ref to track initialization and prevent duplicate toasts
+  const initializedRef = useRef(false);
+  const authChangeHandledRef = useRef(false);
 
   // Fetch user profile
   const fetchProfile = async (userId: string) => {
@@ -156,12 +160,18 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   };
 
   useEffect(() => {
+    if (initializedRef.current) return;
+    initializedRef.current = true;
+    
     console.log('Setting up auth state listener');
     
     // Set up auth state listener FIRST
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       (event, currentSession) => {
         console.log('Auth state changed:', event);
+        
+        // Only show toast messages for interactive events, not initial session
+        const isInteractiveEvent = event !== 'INITIAL_SESSION';
         
         // Only synchronous state updates here
         setSession(currentSession);
@@ -182,16 +192,26 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
 
         setIsLoading(false);
 
-        if (event === 'SIGNED_IN') {
-          toast({
-            title: "Signed in",
-            description: "You have successfully signed in",
-          });
-        } else if (event === 'SIGNED_OUT') {
-          toast({
-            title: "Signed out",
-            description: "You have successfully signed out",
-          });
+        // Only show toast notifications for interactive events if we haven't shown one yet
+        if (isInteractiveEvent && !authChangeHandledRef.current && event !== 'TOKEN_REFRESHED') {
+          authChangeHandledRef.current = true;
+          
+          if (event === 'SIGNED_IN') {
+            toast({
+              title: "Signed in",
+              description: "You have successfully signed in",
+            });
+          } else if (event === 'SIGNED_OUT') {
+            toast({
+              title: "Signed out",
+              description: "You have successfully signed out",
+            });
+            
+            // Reset the auth change flag when signing out
+            setTimeout(() => {
+              authChangeHandledRef.current = false;
+            }, 1000);
+          }
         }
       }
     );
@@ -226,6 +246,8 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   const signOut = async () => {
     console.log('Signing out...');
     try {
+      // Reset the auth change flag so we can show toasts again after a new sign in
+      authChangeHandledRef.current = false;
       await supabase.auth.signOut();
       console.log('Sign out complete');
     } catch (error) {
