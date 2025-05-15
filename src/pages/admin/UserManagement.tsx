@@ -37,6 +37,12 @@ const UserManagement = () => {
     setIsLoading(true);
     console.log("Starting to fetch users...");
     try {
+      // Get auth.users - this won't work with anon key, so we'll skip and log
+      console.log("Attempting to fetch auth users (typically not accessible with anon key)");
+      const { data: authUsers, error: authError } = await supabase.auth.admin.listUsers();
+      
+      console.log("Auth users fetch result:", authUsers ? "Success" : "Failed", "Error:", authError);
+      
       // Get all profiles
       console.log("Fetching profiles...");
       const { data: profiles, error: profilesError } = await supabase
@@ -48,7 +54,7 @@ const UserManagement = () => {
         throw profilesError;
       }
       
-      console.log("Profiles fetched:", profiles?.length || 0, "profiles");
+      console.log("Profiles fetched:", profiles?.length || 0, "profiles", profiles);
       
       // Get all user roles
       console.log("Fetching user roles...");
@@ -61,7 +67,7 @@ const UserManagement = () => {
         throw rolesError;
       }
       
-      console.log("User roles fetched:", userRoles?.length || 0, "roles");
+      console.log("User roles fetched:", userRoles?.length || 0, "roles", userRoles);
       
       // Create maps for role lookups
       const adminUserIds = new Set((userRoles || [])
@@ -72,7 +78,10 @@ const UserManagement = () => {
         .filter(role => role.role === 'vendor')
         .map(role => role.user_id));
       
-      // Map profiles to user objects
+      console.log("Admin user IDs:", Array.from(adminUserIds));
+      console.log("Vendor user IDs:", Array.from(vendorUserIds));
+      
+      // If we couldn't get auth users, rely solely on profiles
       const mappedUsers = (profiles || []).map(profile => {
         return {
           id: profile.id,
