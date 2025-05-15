@@ -12,6 +12,7 @@ import BookingsPage from "./pages/BookingsPage";
 import BookingDetailPage from "./pages/BookingDetailPage";
 import ProfilePage from "./pages/ProfilePage";
 import AboutPage from "./pages/AboutPage";
+import PaymentCallback from "./pages/PaymentCallback";
 import NotFound from "./pages/NotFound";
 import AdminLayout from "./pages/admin/AdminLayout";
 import AdminDashboard from "./pages/admin/AdminDashboard";
@@ -35,6 +36,7 @@ const App = () => (
             <Route path="/bookings/:bookingId" element={<BookingDetailPage />} />
             <Route path="/profile" element={<ProfilePage />} />
             <Route path="/about" element={<AboutPage />} />
+            <Route path="/payment-callback" element={<PaymentCallback />} />
             
             {/* Admin Routes */}
             <Route path="/admin" element={<AdminLayout />}>

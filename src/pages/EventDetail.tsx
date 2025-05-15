@@ -1,3 +1,4 @@
+
 import { useState, useEffect, useCallback } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import Navbar from "@/components/Navbar";
@@ -9,6 +10,7 @@ import { Event } from "@/types/event";
 import { fetchEventById } from "@/services/eventService";
 import { useAuth } from "@/context/AuthContext";
 import { createBooking } from "@/services/bookingService";
+import { processPayment } from "@/services/paymentService";
 import EventHero from "@/components/event/EventHero";
 import BookingSummary from "@/components/event/BookingSummary";
 import AuthPrompt from "@/components/event/AuthPrompt";
@@ -25,6 +27,7 @@ const EventDetail = () => {
   const [bookingComplete, setBookingComplete] = useState(false);
   const [bookingId, setBookingId] = useState<string | null>(null);
   const [refreshTrigger, setRefreshTrigger] = useState(0);
+  const [paymentProcessing, setPaymentProcessing] = useState(false);
   const { toast } = useToast();
   const navigate = useNavigate();
   const { user } = useAuth();
@@ -111,10 +114,42 @@ const EventDetail = () => {
       
       if (newBookingId) {
         setBookingId(newBookingId);
-        setIsBooking(false);
-        setBookingComplete(true);
         
-        setRefreshTrigger(prev => prev + 1);
+        // Calculate total amount
+        const totalAmount = selectedSlots.reduce((sum, slot) => sum + slot.price, 0);
+        
+        // Start payment process
+        setPaymentProcessing(true);
+        
+        try {
+          const paymentResponse = await processPayment({
+            bookingId: newBookingId,
+            amount: totalAmount,
+            customerName: user.user_metadata?.full_name || `${user.user_metadata?.first_name || ''} ${user.user_metadata?.last_name || ''}`.trim() || 'Customer',
+            customerEmail: user.email,
+            customerPhone: user.user_metadata?.phone || '',
+            eventName: event?.title || 'Event'
+          });
+          
+          if (paymentResponse.paymentLink) {
+            // Redirect to payment page
+            window.location.href = paymentResponse.paymentLink;
+            return;
+          } else {
+            throw new Error("No payment link received");
+          }
+        } catch (paymentError) {
+          console.error("Payment processing error:", paymentError);
+          toast({
+            title: "Payment error",
+            description: "Failed to process payment. Please try again.",
+            variant: "destructive",
+          });
+          
+          setIsBooking(false);
+          setPaymentProcessing(false);
+          return;
+        }
       } else {
         throw new Error("Failed to create booking");
       }
@@ -128,6 +163,44 @@ const EventDetail = () => {
       setIsBooking(false);
     }
   };
+
+  // Check URL parameters for payment callback
+  useEffect(() => {
+    const urlParams = new URLSearchParams(window.location.search);
+    const paymentBookingId = urlParams.get('bookingId');
+    const paymentStatus = urlParams.get('status');
+    
+    if (paymentBookingId) {
+      setBookingId(paymentBookingId);
+      
+      if (paymentStatus === 'SUCCESS') {
+        setBookingComplete(true);
+        setIsBooking(false);
+        setPaymentProcessing(false);
+        
+        toast({
+          title: "Payment successful",
+          description: "Your booking has been confirmed.",
+        });
+        
+        // Clean up URL parameters
+        const newUrl = window.location.pathname;
+        window.history.replaceState({}, document.title, newUrl);
+        
+        setRefreshTrigger(prev => prev + 1);
+      } else if (paymentStatus === 'FAILED') {
+        toast({
+          title: "Payment failed",
+          description: "Your payment was not successful. Please try again.",
+          variant: "destructive",
+        });
+        
+        // Clean up URL parameters
+        const newUrl = window.location.pathname;
+        window.history.replaceState({}, document.title, newUrl);
+      }
+    }
+  }, []);
 
   const qrCodeData = `TIME2PARK-${eventId}-${selectedSlots.map(s => s.id).join('-')}-${bookingId || Date.now()}`;
 
@@ -183,7 +256,7 @@ const EventDetail = () => {
                     <BookingSummary
                       event={event}
                       selectedSlots={selectedSlots}
-                      isBooking={isBooking}
+                      isBooking={isBooking || paymentProcessing}
                       isUserLoggedIn={!!user}
                       onBookingClick={handleBooking}
                     />

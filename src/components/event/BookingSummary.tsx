@@ -3,6 +3,7 @@ import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
 import { Info, IndianRupee } from "lucide-react";
 import { Event } from "@/types/event";
+import { useAuth } from "@/context/AuthContext";
 
 interface ParkingSlot {
   id: string;
@@ -28,7 +29,8 @@ const BookingSummary = ({
   onBookingClick
 }: BookingSummaryProps) => {
   const totalPrice = selectedSlots.reduce((sum, slot) => sum + slot.price, 0);
-
+  const { user } = useAuth();
+  
   return (
     <div className="bg-card border rounded-lg p-6 sticky top-24">
       <h3 className="text-lg font-semibold mb-4">Booking Summary</h3>
@@ -84,7 +86,7 @@ const BookingSummary = ({
         onClick={onBookingClick} 
         disabled={!isUserLoggedIn || selectedSlots.length === 0 || isBooking}
       >
-        {isBooking ? "Processing..." : "Complete Booking"}
+        {isBooking ? "Processing..." : `Pay ₹${totalPrice.toFixed(2)}`}
       </Button>
       
       <div className="mt-4 flex items-start gap-2 text-xs text-muted-foreground">

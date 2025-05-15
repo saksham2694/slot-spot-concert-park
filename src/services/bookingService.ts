@@ -84,13 +84,13 @@ export async function createBooking(bookingInput: BookingData): Promise<string |
       }
     }
     
-    // Create a booking record
+    // Create a booking record with initial status as 'pending_payment'
     const { data: booking, error: bookingError } = await supabase
       .from("bookings")
       .insert({
         user_id: session.session.user.id,
         event_id: bookingInput.eventId,
-        status: "confirmed",
+        status: "pending_payment", // Changed from 'confirmed' to 'pending_payment'
         qr_code_url: `TIME2PARK-${bookingInput.eventId}-${Date.now()}`
       })
       .select("id")
@@ -156,21 +156,9 @@ export async function createBooking(bookingInput: BookingData): Promise<string |
       }
     }
 
-    // Update the available parking slots in the events table
-    const { error: updateError } = await supabase.rpc('decrement', { 
-      x: bookingInput.parkingSlots.length, 
-      row_id: bookingInput.eventId 
-    });
+    // The available parking slots will be updated after successful payment
+    // Update happens in the payment-webhook edge function
 
-    if (updateError) {
-      console.error("Error updating event slots:", updateError);
-      // Don't throw here, booking is already created
-    }
-
-    toast({
-      title: "Success",
-      description: "Booking confirmed successfully!",
-    });
     return bookingId;
   } catch (error) {
     console.error("Error in createBooking:", error);
