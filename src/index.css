@@ -8,8 +8,8 @@
     --background: 0 0% 100%;
     --foreground: 222.2 84% 4.9%;
  
-    --muted: 210 40% 96.1%;
-    --muted-foreground: 215.4 16.3% 46.9%;
+    --muted: 0 15% 96%;
+    --muted-foreground: 0 5% 46%;
  
     --popover: 0 0% 100%;
     --popover-foreground: 222.2 84% 4.9%;
@@ -17,36 +17,36 @@
     --card: 0 0% 100%;
     --card-foreground: 222.2 84% 4.9%;
  
-    --border: 214.3 31.8% 91.4%;
-    --input: 214.3 31.8% 91.4%;
+    --border: 0 12% 90%;
+    --input: 0 12% 90%;
  
-    --primary: 222.2 47.4% 11.2%;
-    --primary-foreground: 210 40% 98%;
+    --primary: 0 75% 42%; /* Red-maroon primary color */
+    --primary-foreground: 0 0% 98%;
  
-    --secondary: 210 40% 96.1%;
-    --secondary-foreground: 222.2 47.4% 11.2%;
+    --secondary: 0 15% 94%;
+    --secondary-foreground: 0 50% 30%;
  
-    --accent: 210 40% 96.1%;
-    --accent-foreground: 222.2 47.4% 11.2%;
+    --accent: 0 25% 92%;
+    --accent-foreground: 0 50% 20%;
  
     --destructive: 0 84.2% 60.2%;
     --destructive-foreground: 210 40% 98%;
  
-    --ring: 215 20.2% 65.1%;
+    --ring: 0 60% 65%;
  
     --radius: 0.5rem;
     
-    --parking-available: 210 40% 96.1%;
-    --parking-reserved: 0 84.2% 60.2%;
-    --parking-selected: 142.1 76.2% 36.3%;
+    --parking-available: 0 15% 94%;
+    --parking-reserved: 0 50% 50%;
+    --parking-selected: 0 75% 42%;
   }
  
   .dark {
     --background: 222.2 84% 4.9%;
     --foreground: 210 40% 98%;
  
-    --muted: 217.2 32.6% 17.5%;
-    --muted-foreground: 215 20.2% 65.1%;
+    --muted: 0 15% 20%;
+    --muted-foreground: 0 10% 75%;
  
     --popover: 222.2 84% 4.9%;
     --popover-foreground: 210 40% 98%;
@@ -54,22 +54,22 @@
     --card: 222.2 84% 4.9%;
     --card-foreground: 210 40% 98%;
  
-    --border: 217.2 32.6% 17.5%;
-    --input: 217.2 32.6% 17.5%;
+    --border: 0 15% 25%;
+    --input: 0 15% 25%;
  
-    --primary: 210 40% 98%;
-    --primary-foreground: 222.2 47.4% 11.2%;
+    --primary: 0 65% 50%;
+    --primary-foreground: 0 10% 98%;
  
-    --secondary: 217.2 32.6% 17.5%;
-    --secondary-foreground: 210 40% 98%;
+    --secondary: 0 15% 30%;
+    --secondary-foreground: 0 0% 98%;
  
-    --accent: 217.2 32.6% 17.5%;
-    --accent-foreground: 210 40% 98%;
+    --accent: 0 15% 30%;
+    --accent-foreground: 0 0% 98%;
  
     --destructive: 0 62.8% 30.6%;
     --destructive-foreground: 0 85.7% 97.3%;
  
-    --ring: 217.2 32.6% 17.5%;
+    --ring: 0 60% 40%;
   }
 }
  
@@ -88,7 +88,7 @@
   }
 
   .parking-slot-available {
-    @apply bg-parking-available hover:bg-blue-100 border-gray-300;
+    @apply bg-parking-available hover:bg-red-100 border-gray-300;
   }
 
   .parking-slot-reserved {
@@ -96,6 +96,6 @@
   }
 
   .parking-slot-selected {
-    @apply bg-parking-selected text-white hover:bg-green-600;
+    @apply bg-parking-selected text-white hover:bg-red-700;
   }
 }

@@ -64,16 +64,16 @@ export default {
 					ring: 'hsl(var(--sidebar-ring))'
 				},
 				parking: {
-					primary: '#9b87f5',
-					secondary: '#7E69AB',
-					accent: '#F97316',
-					background: '#F1F0FB',
+					primary: '#c11f1f',
+					secondary: '#a33030',
+					accent: '#e63535',
+					background: '#fbf0f0',
 					text: '#1A1F2C',
 					neutral: '#8E9196',
 					error: '#ea384c',
-					available: '#10b981',
+					available: '#c11f1f',
 					reserved: '#6b7280',
-					selected: '#F97316',
+					selected: '#e63535',
 				}
 			},
 			borderRadius: {
