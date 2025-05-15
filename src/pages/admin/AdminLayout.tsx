@@ -1,3 +1,4 @@
+
 import { useEffect, useState } from "react";
 import { Outlet, useNavigate } from "react-router-dom";
 import { useAuth } from "@/context/AuthContext";
@@ -16,6 +17,7 @@ const AdminLayout = () => {
   const { toast } = useToast();
   const [isAdmin, setIsAdmin] = useState<boolean>(false);
   const [isChecking, setIsChecking] = useState<boolean>(true);
+  const [redirectAttempted, setRedirectAttempted] = useState<boolean>(false);
 
   useEffect(() => {
     const checkAdminRole = async () => {
@@ -47,7 +49,10 @@ const AdminLayout = () => {
   }, [user, isLoading]);
 
   useEffect(() => {
-    if (!isLoading && !isChecking) {
+    // Only attempt to redirect once to prevent infinite redirects
+    if (!isLoading && !isChecking && !redirectAttempted) {
+      setRedirectAttempted(true);
+      
       if (!user) {
         toast({
           title: "Authentication required",
@@ -64,7 +69,7 @@ const AdminLayout = () => {
         navigate("/");
       }
     }
-  }, [user, isAdmin, isLoading, isChecking, navigate, toast]);
+  }, [user, isAdmin, isLoading, isChecking, navigate, toast, redirectAttempted]);
 
   if (isLoading || isChecking) {
     return (
