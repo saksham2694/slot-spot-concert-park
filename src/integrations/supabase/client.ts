@@ -22,3 +22,8 @@ export const supabase = createClient<Database>(SUPABASE_URL, SUPABASE_PUBLISHABL
     },
   },
 });
+
+// Helper functions for common operations
+export const syncUsersToProfiles = async () => {
+  return supabase.rpc('sync_users_to_profiles');
+};

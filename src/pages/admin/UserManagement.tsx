@@ -1,6 +1,6 @@
 
 import { useState, useEffect } from "react";
-import { supabase } from "@/integrations/supabase/client";
+import { supabase, syncUsersToProfiles } from "@/integrations/supabase/client";
 import { 
   Table, 
   TableBody, 
@@ -12,7 +12,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
 import { Input } from "@/components/ui/input";
-import { Search, User, UserCheck, Store } from "lucide-react";
+import { Search, User, UserCheck, Store, RefreshCw } from "lucide-react";
 import { useToast } from "@/components/ui/use-toast";
 import { useAuth } from "@/context/AuthContext";
 
@@ -28,6 +28,7 @@ interface UserProfile {
 const UserManagement = () => {
   const [users, setUsers] = useState<UserProfile[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [isSyncing, setIsSyncing] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
   const { toast } = useToast();
   const { user: currentUser } = useAuth();
@@ -112,6 +113,37 @@ const UserManagement = () => {
     console.log("UserManagement component mounted, fetching users...");
     fetchUsers();
   }, []);
+
+  // Sync users from auth.users to profiles
+  const handleSyncUsers = async () => {
+    setIsSyncing(true);
+    try {
+      console.log("Syncing users to profiles...");
+      const { error } = await syncUsersToProfiles();
+      
+      if (error) {
+        console.error("Error syncing users:", error);
+        throw error;
+      }
+      
+      toast({
+        title: "Users synced successfully",
+        description: "User profiles have been updated from auth users",
+      });
+      
+      // Refresh the user list
+      await fetchUsers();
+    } catch (error) {
+      console.error("Error syncing users:", error);
+      toast({
+        title: "Error syncing users",
+        description: "There was a problem syncing users to profiles",
+        variant: "destructive"
+      });
+    } finally {
+      setIsSyncing(false);
+    }
+  };
 
   // Toggle user role
   const toggleUserRole = async (userId: string, role: 'admin' | 'vendor', isCurrentlyActive: boolean) => {
@@ -198,14 +230,34 @@ const UserManagement = () => {
     <div>
       <h2 className="text-2xl font-semibold mb-6">User Management</h2>
       
-      <div className="relative mb-6">
-        <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground" />
-        <Input 
-          placeholder="Search users by name or email..." 
-          value={searchQuery}
-          onChange={(e) => setSearchQuery(e.target.value)}
-          className="pl-10"
-        />
+      <div className="flex justify-between items-center mb-6">
+        <div className="relative flex-1 mr-4">
+          <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground" />
+          <Input 
+            placeholder="Search users by name or email..." 
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            className="pl-10"
+          />
+        </div>
+        
+        <Button 
+          onClick={handleSyncUsers} 
+          disabled={isSyncing || isLoading}
+          className="whitespace-nowrap"
+        >
+          {isSyncing ? (
+            <>
+              <RefreshCw className="mr-2 h-4 w-4 animate-spin" />
+              Syncing...
+            </>
+          ) : (
+            <>
+              <RefreshCw className="mr-2 h-4 w-4" />
+              Sync Users
+            </>
+          )}
+        </Button>
       </div>
       
       {isLoading ? (
@@ -231,7 +283,9 @@ const UserManagement = () => {
               {filteredUsers.length === 0 ? (
                 <TableRow>
                   <TableCell colSpan={4} className="text-center py-8">
-                    {searchQuery ? "No users match your search" : "No users found"}
+                    {searchQuery 
+                      ? "No users match your search" 
+                      : "No users found. Click 'Sync Users' to sync user profiles from authentication."}
                   </TableCell>
                 </TableRow>
               ) : (

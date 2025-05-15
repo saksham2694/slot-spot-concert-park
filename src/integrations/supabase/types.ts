@@ -227,6 +227,10 @@ export type Database = {
         Args: Record<PropertyKey, never>
         Returns: boolean
       }
+      sync_users_to_profiles: {
+        Args: Record<PropertyKey, never>
+        Returns: undefined
+      }
     }
     Enums: {
       app_role: "admin" | "user" | "vendor"
