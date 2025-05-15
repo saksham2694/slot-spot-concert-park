@@ -1,3 +1,4 @@
+
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/components/ui/use-toast";
 
@@ -53,8 +54,33 @@ export async function createBooking(bookingInput: BookingData): Promise<string |
     // First, check if any of the selected slots are already reserved
     for (const slot of bookingInput.parkingSlots) {
       // Parse the row and column from the slot label (format: R1C1)
-      const rowNumber = parseInt(slot.slotLabel.charAt(1));
-      const columnNumber = parseInt(slot.slotLabel.charAt(3));
+      const rowMatch = slot.slotLabel.match(/R(\d+)/);
+      const colMatch = slot.slotLabel.match(/C(\d+)/);
+      
+      // Ensure we have valid numbers for row and column
+      if (!rowMatch || !colMatch) {
+        console.error(`Invalid slot label format: ${slot.slotLabel}`);
+        toast({
+          title: "Invalid Slot",
+          description: `Parking slot ${slot.slotLabel} has an invalid format. Please try again.`,
+          variant: "destructive",
+        });
+        return null;
+      }
+      
+      const rowNumber = parseInt(rowMatch[1], 10);
+      const columnNumber = parseInt(colMatch[1], 10);
+      
+      // Check if the parsing resulted in valid numbers
+      if (isNaN(rowNumber) || isNaN(columnNumber)) {
+        console.error(`Failed to parse row or column from: ${slot.slotLabel}`);
+        toast({
+          title: "Invalid Slot",
+          description: `Parking slot ${slot.slotLabel} has invalid coordinates. Please try again.`,
+          variant: "destructive",
+        });
+        return null;
+      }
       
       const { data: existingLayouts, error: checkError } = await supabase
         .from("parking_layouts")
@@ -90,7 +116,7 @@ export async function createBooking(bookingInput: BookingData): Promise<string |
       .insert({
         user_id: session.session.user.id,
         event_id: bookingInput.eventId,
-        status: "pending_payment", // Changed from 'confirmed' to 'pending_payment'
+        status: "payment_pending", // Changed from 'confirmed' to 'pending_payment'
         qr_code_url: `TIME2PARK-${bookingInput.eventId}-${Date.now()}`
       })
       .select("id")
@@ -111,8 +137,21 @@ export async function createBooking(bookingInput: BookingData): Promise<string |
     // Reserve each parking slot for this booking
     for (const slot of bookingInput.parkingSlots) {
       // Parse the row and column from the slot label (format: R1C1)
-      const rowNumber = parseInt(slot.slotLabel.charAt(1));
-      const columnNumber = parseInt(slot.slotLabel.charAt(3));
+      const rowMatch = slot.slotLabel.match(/R(\d+)/);
+      const colMatch = slot.slotLabel.match(/C(\d+)/);
+      
+      if (!rowMatch || !colMatch) {
+        console.error(`Invalid slot label format during reservation: ${slot.slotLabel}`);
+        continue; // Skip this slot but continue with others
+      }
+      
+      const rowNumber = parseInt(rowMatch[1], 10);
+      const columnNumber = parseInt(colMatch[1], 10);
+      
+      if (isNaN(rowNumber) || isNaN(columnNumber)) {
+        console.error(`Failed to parse row or column during reservation from: ${slot.slotLabel}`);
+        continue; // Skip this slot but continue with others
+      }
       
       // Create or update the parking layout for this slot
       const { data: layoutData, error: layoutError } = await supabase
