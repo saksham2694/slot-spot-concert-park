@@ -12,9 +12,15 @@ import {
 import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
 import { Input } from "@/components/ui/input";
-import { Search, User, UserCheck } from "lucide-react";
+import { Search, User, UserCheck, Store } from "lucide-react";
 import { useToast } from "@/components/ui/use-toast";
 import { useAuth } from "@/context/AuthContext";
+import { 
+  DropdownMenu, 
+  DropdownMenuContent, 
+  DropdownMenuItem, 
+  DropdownMenuTrigger 
+} from "@/components/ui/dropdown-menu";
 
 interface UserProfile {
   id: string;
@@ -22,6 +28,7 @@ interface UserProfile {
   first_name: string | null;
   last_name: string | null;
   is_admin: boolean;
+  is_vendor: boolean;
 }
 
 const UserManagement = () => {
@@ -31,7 +38,7 @@ const UserManagement = () => {
   const { toast } = useToast();
   const { user: currentUser } = useAuth();
 
-  // Fetch users and their admin status
+  // Fetch users and their roles
   const fetchUsers = async () => {
     setIsLoading(true);
     console.log("Starting to fetch users...");
@@ -53,19 +60,24 @@ const UserManagement = () => {
           throw profilesError;
         }
         
-        // Get all admin roles
-        const { data: adminRoles, error: rolesError } = await supabase
+        // Get all admin and vendor roles
+        const { data: userRoles, error: rolesError } = await supabase
           .from('user_roles')
-          .select('*')
-          .eq('role', 'admin');
+          .select('*');
         
         if (rolesError) {
-          console.error('Error fetching admin roles:', rolesError);
+          console.error('Error fetching user roles:', rolesError);
           throw rolesError;
         }
         
-        // Create a set of admin user IDs for faster lookup
-        const adminUserIds = new Set((adminRoles || []).map(role => role.user_id));
+        // Create maps for role lookups
+        const adminUserIds = new Set((userRoles || [])
+          .filter(role => role.role === 'admin')
+          .map(role => role.user_id));
+        
+        const vendorUserIds = new Set((userRoles || [])
+          .filter(role => role.role === 'vendor')
+          .map(role => role.user_id));
         
         // Map profiles to user objects
         const mappedUsers = (profiles || []).map(profile => ({
@@ -73,7 +85,8 @@ const UserManagement = () => {
           email: null, // We don't have this data with profiles-only approach
           first_name: profile.first_name,
           last_name: profile.last_name,
-          is_admin: adminUserIds.has(profile.id)
+          is_admin: adminUserIds.has(profile.id),
+          is_vendor: vendorUserIds.has(profile.id)
         }));
         
         console.log("Final users from profiles-only approach:", mappedUsers);
@@ -101,22 +114,27 @@ const UserManagement = () => {
         profileMap.set(profile.id, profile);
       });
       
-      // Get all admin roles
-      console.log("Fetching admin roles...");
-      const { data: adminRoles, error: rolesError } = await supabase
+      // Get all user roles
+      console.log("Fetching user roles...");
+      const { data: userRoles, error: rolesError } = await supabase
         .from('user_roles')
-        .select('*')
-        .eq('role', 'admin');
+        .select('*');
       
       if (rolesError) {
-        console.error('Error fetching admin roles:', rolesError);
+        console.error('Error fetching user roles:', rolesError);
         throw rolesError;
       }
       
-      // Create a set of admin user IDs for faster lookup
-      const adminUserIds = new Set((adminRoles || []).map(role => role.user_id));
+      // Create maps for role lookups
+      const adminUserIds = new Set((userRoles || [])
+        .filter(role => role.role === 'admin')
+        .map(role => role.user_id));
       
-      // Map users with profiles and admin status
+      const vendorUserIds = new Set((userRoles || [])
+        .filter(role => role.role === 'vendor')
+        .map(role => role.user_id));
+      
+      // Map users with profiles and roles
       const processedUsers = authUsers.map(authUser => {
         const profile = profileMap.get(authUser.id);
         
@@ -125,7 +143,8 @@ const UserManagement = () => {
           email: authUser.email,
           first_name: profile?.first_name || authUser.user_metadata?.first_name || null,
           last_name: profile?.last_name || authUser.user_metadata?.last_name || null,
-          is_admin: adminUserIds.has(authUser.id)
+          is_admin: adminUserIds.has(authUser.id),
+          is_vendor: vendorUserIds.has(authUser.id)
         };
       });
       
@@ -148,56 +167,70 @@ const UserManagement = () => {
     fetchUsers();
   }, []);
 
-  // Toggle admin role for a user
-  const toggleAdminRole = async (userId: string, isCurrentlyAdmin: boolean) => {
-    // Prevent toggling your own admin status
+  // Toggle user role
+  const toggleUserRole = async (userId: string, role: 'admin' | 'vendor', isCurrentlyActive: boolean) => {
+    // Prevent toggling your own role
     if (userId === currentUser?.id) {
       toast({
         title: "Action not allowed",
-        description: "You cannot change your own admin status",
+        description: "You cannot change your own role",
         variant: "destructive"
       });
       return;
     }
     
     try {
-      if (isCurrentlyAdmin) {
-        // Remove admin role
+      if (isCurrentlyActive) {
+        // Remove role
         const { error } = await supabase
           .from('user_roles')
           .delete()
           .eq('user_id', userId)
-          .eq('role', 'admin');
+          .eq('role', role);
         
         if (error) throw error;
         
-        setUsers(users.map(user => 
-          user.id === userId ? { ...user, is_admin: false } : user
-        ));
+        // Update local state based on role type
+        if (role === 'admin') {
+          setUsers(users.map(user => 
+            user.id === userId ? { ...user, is_admin: false } : user
+          ));
+        } else if (role === 'vendor') {
+          setUsers(users.map(user => 
+            user.id === userId ? { ...user, is_vendor: false } : user
+          ));
+        }
         
         toast({
-          title: "Admin role removed",
-          description: "User no longer has admin privileges"
+          title: `${role.charAt(0).toUpperCase() + role.slice(1)} role removed`,
+          description: `User no longer has ${role} privileges`
         });
       } else {
-        // Add admin role
+        // Add role
         const { error } = await supabase
           .from('user_roles')
-          .insert({ user_id: userId, role: 'admin' });
+          .insert({ user_id: userId, role });
         
         if (error) throw error;
         
-        setUsers(users.map(user => 
-          user.id === userId ? { ...user, is_admin: true } : user
-        ));
+        // Update local state based on role type
+        if (role === 'admin') {
+          setUsers(users.map(user => 
+            user.id === userId ? { ...user, is_admin: true } : user
+          ));
+        } else if (role === 'vendor') {
+          setUsers(users.map(user => 
+            user.id === userId ? { ...user, is_vendor: true } : user
+          ));
+        }
         
         toast({
-          title: "Admin role assigned",
-          description: "User now has admin privileges"
+          title: `${role.charAt(0).toUpperCase() + role.slice(1)} role assigned`,
+          description: `User now has ${role} privileges`
         });
       }
     } catch (error) {
-      console.error('Error toggling admin role:', error);
+      console.error(`Error toggling ${role} role:`, error);
       toast({
         title: "Failed to update role",
         description: "There was a problem updating the user's role",
@@ -269,13 +302,14 @@ const UserManagement = () => {
               <TableRow>
                 <TableHead>User</TableHead>
                 <TableHead>Email</TableHead>
-                <TableHead className="text-right">Admin Role</TableHead>
+                <TableHead className="text-center">Admin Role</TableHead>
+                <TableHead className="text-center">Vendor Role</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
               {filteredUsers.length === 0 ? (
                 <TableRow>
-                  <TableCell colSpan={3} className="text-center py-8">
+                  <TableCell colSpan={4} className="text-center py-8">
                     {searchQuery ? "No users match your search" : "No users found"}
                   </TableCell>
                 </TableRow>
@@ -295,12 +329,22 @@ const UserManagement = () => {
                       </div>
                     </TableCell>
                     <TableCell>{user.email || 'No email available'}</TableCell>
-                    <TableCell className="text-right">
-                      <div className="flex items-center justify-end gap-2">
+                    <TableCell className="text-center">
+                      <div className="flex items-center justify-center gap-2">
                         {user.is_admin && <UserCheck className="h-4 w-4 text-green-500" />}
                         <Switch 
                           checked={user.is_admin}
-                          onCheckedChange={(checked) => toggleAdminRole(user.id, user.is_admin)}
+                          onCheckedChange={(checked) => toggleUserRole(user.id, 'admin', user.is_admin)}
+                          disabled={user.id === currentUser?.id}
+                        />
+                      </div>
+                    </TableCell>
+                    <TableCell className="text-center">
+                      <div className="flex items-center justify-center gap-2">
+                        {user.is_vendor && <Store className="h-4 w-4 text-blue-500" />}
+                        <Switch 
+                          checked={user.is_vendor}
+                          onCheckedChange={(checked) => toggleUserRole(user.id, 'vendor', user.is_vendor)}
                           disabled={user.id === currentUser?.id}
                         />
                       </div>

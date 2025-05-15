@@ -11,6 +11,7 @@ export interface UserProfile {
   last_name?: string | null;
   avatar_url?: string | null;
   is_admin?: boolean;
+  is_vendor?: boolean;
 }
 
 interface AuthContextType {
@@ -21,6 +22,7 @@ interface AuthContextType {
   signOut: () => Promise<void>;
   updateProfile: (profile: Partial<UserProfile>) => Promise<void>;
   checkIfAdmin: () => Promise<boolean>;
+  checkIfVendor: () => Promise<boolean>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -92,6 +94,31 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       return !!data;
     } catch (error) {
       console.error('Error checking admin status:', error);
+      return false;
+    }
+  };
+
+  // Check if user has vendor role
+  const checkIfVendor = async (): Promise<boolean> => {
+    if (!user) return false;
+
+    try {
+      // Check if the user has the vendor role
+      const { data, error } = await supabase
+        .from('user_roles')
+        .select('*')
+        .eq('user_id', user.id)
+        .eq('role', 'vendor')
+        .maybeSingle();
+      
+      if (error) {
+        console.error('Error checking vendor role:', error);
+        return false;
+      }
+      
+      return !!data;
+    } catch (error) {
+      console.error('Error checking vendor status:', error);
       return false;
     }
   };
@@ -219,6 +246,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     signOut,
     updateProfile,
     checkIfAdmin,
+    checkIfVendor,
   };
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
