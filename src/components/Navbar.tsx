@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
@@ -97,12 +96,12 @@ const Navbar = () => {
                 alt="Time2Park Logo" 
                 className="h-full w-full object-contain"
                 style={{
-                  imageRendering: 'high-quality',
-                  filter: 'contrast(1.05) brightness(1.05)'
+                  imageRendering: "crisp-edges",
+                  filter: "contrast(1.05) brightness(1.05)"
                 }}
               />
             </div>
-            <span className="font-bold text-lg text-foreground">Time2Park</span>
+            <span className="font-bold text-xl md:text-2xl text-foreground" style={{ fontFamily: "'Poppins', sans-serif" }}>Time2Park</span>
           </Link>
         </div>
 
