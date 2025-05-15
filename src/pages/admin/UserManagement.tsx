@@ -15,12 +15,6 @@ import { Input } from "@/components/ui/input";
 import { Search, User, UserCheck, Store } from "lucide-react";
 import { useToast } from "@/components/ui/use-toast";
 import { useAuth } from "@/context/AuthContext";
-import { 
-  DropdownMenu, 
-  DropdownMenuContent, 
-  DropdownMenuItem, 
-  DropdownMenuTrigger 
-} from "@/components/ui/dropdown-menu";
 
 interface UserProfile {
   id: string;

@@ -1,19 +1,20 @@
 
 import { useEffect, useState } from "react";
-import { Outlet, useNavigate } from "react-router-dom";
+import { Outlet, useNavigate, Link } from "react-router-dom";
 import { useAuth } from "@/context/AuthContext";
-import Navbar from "@/components/Navbar";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Link } from "react-router-dom";
-import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/components/ui/use-toast";
-import { AlertCircle } from "lucide-react";
-import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import {
+  LayoutDashboard,
+  CalendarPlus,
+  Users,
+  Loader2,
+} from "lucide-react";
 
 const AdminLayout = () => {
-  const { user, profile, isLoading } = useAuth();
   const navigate = useNavigate();
+  const { user, checkIfAdmin } = useAuth();
   const { toast } = useToast();
   const [isAdmin, setIsAdmin] = useState<boolean>(false);
   const [isChecking, setIsChecking] = useState<boolean>(true);
@@ -28,103 +29,93 @@ const AdminLayout = () => {
 
   useEffect(() => {
     const checkAdminRole = async () => {
-      if (user) {
-        try {
-          const { data, error } = await supabase.rpc('is_admin');
-          
-          if (error) {
-            console.error('Error checking admin role:', error);
-            setIsAdmin(false);
-          } else {
-            setIsAdmin(data);
-          }
-        } catch (error) {
-          console.error('Error checking admin role:', error);
-          setIsAdmin(false);
-        } finally {
-          setIsChecking(false);
+      if (!user) {
+        if (!redirectAttempted) {
+          setRedirectAttempted(true);
+          toast({
+            title: "Access denied",
+            description: "Please sign in to access the admin dashboard",
+            variant: "destructive",
+          });
+          navigate("/");
         }
-      } else {
-        setIsAdmin(false);
+        return;
+      }
+
+      try {
+        const isUserAdmin = await checkIfAdmin();
+        setIsAdmin(isUserAdmin);
+        
+        if (!isUserAdmin && !redirectAttempted) {
+          setRedirectAttempted(true);
+          toast({
+            title: "Access denied",
+            description: "You do not have permission to access this area",
+            variant: "destructive",
+          });
+          navigate("/");
+        }
+      } catch (error) {
+        console.error("Error checking admin status:", error);
+        if (!redirectAttempted) {
+          setRedirectAttempted(true);
+          toast({
+            title: "Something went wrong",
+            description: "Could not verify your access permissions",
+            variant: "destructive",
+          });
+          navigate("/");
+        }
+      } finally {
         setIsChecking(false);
       }
     };
 
-    if (!isLoading) {
-      checkAdminRole();
-    }
-  }, [user, isLoading]);
+    checkAdminRole();
+  }, [user, checkIfAdmin, navigate, toast, redirectAttempted]);
 
-  useEffect(() => {
-    // Only attempt to redirect once to prevent infinite redirects
-    if (!isLoading && !isChecking && !redirectAttempted) {
-      setRedirectAttempted(true);
-      
-      if (!user) {
-        toast({
-          title: "Authentication required",
-          description: "Please log in to access the admin dashboard",
-          variant: "destructive"
-        });
-        navigate("/");
-      } else if (!isAdmin) {
-        toast({
-          title: "Access denied",
-          description: "You don't have permission to access the admin dashboard",
-          variant: "destructive"
-        });
-        navigate("/");
-      }
-    }
-  }, [user, isAdmin, isLoading, isChecking, navigate, toast, redirectAttempted]);
-
-  if (isLoading || isChecking) {
+  if (isChecking) {
     return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+      <div className="flex flex-col items-center justify-center min-h-screen">
+        <Loader2 className="h-8 w-8 animate-spin text-primary mb-4" />
+        <p className="text-muted-foreground">Verifying access...</p>
       </div>
     );
   }
 
   if (!isAdmin) {
-    return (
-      <div className="min-h-screen flex items-center justify-center p-4">
-        <Alert variant="destructive" className="max-w-md">
-          <AlertCircle className="h-4 w-4" />
-          <AlertTitle>Access Denied</AlertTitle>
-          <AlertDescription>
-            You don't have permission to access the admin dashboard. Please contact an administrator if you believe this is an error.
-          </AlertDescription>
-        </Alert>
-      </div>
-    );
+    return null;
   }
 
   return (
-    <div className="min-h-screen flex flex-col">
-      <Navbar />
-      <div className="container py-6 flex-1">
-        <div className="mb-6 flex items-center justify-between">
-          <h1 className="text-3xl font-bold">Admin Dashboard</h1>
-          <Button asChild variant="outline">
-            <Link to="/">Back to Site</Link>
-          </Button>
-        </div>
-
-        <Tabs defaultValue="dashboard" className="mb-6">
-          <TabsList>
-            <TabsTrigger value="dashboard" asChild>
-              <Link to="/admin">Dashboard</Link>
-            </TabsTrigger>
-            <TabsTrigger value="create-event" asChild>
-              <Link to="/admin/create-event">Create Event</Link>
-            </TabsTrigger>
+    <div className="container mx-auto p-4 md:p-6">
+      <div className="mb-8">
+        <h1 className="text-3xl font-bold mb-4">Admin Dashboard</h1>
+        <Tabs defaultValue="dashboard" className="w-full">
+          <TabsList className="mb-6 flex flex-wrap">
+            <Link to="/admin">
+              <TabsTrigger value="dashboard" className="flex items-center gap-2">
+                <LayoutDashboard className="h-4 w-4" />
+                Dashboard
+              </TabsTrigger>
+            </Link>
+            <Link to="/admin/create-event">
+              <TabsTrigger value="create-event" className="flex items-center gap-2">
+                <CalendarPlus className="h-4 w-4" />
+                Create Event
+              </TabsTrigger>
+            </Link>
+            <Link to="/admin/users">
+              <TabsTrigger value="users" className="flex items-center gap-2">
+                <Users className="h-4 w-4" />
+                User Management
+              </TabsTrigger>
+            </Link>
           </TabsList>
         </Tabs>
-
-        <div className="bg-card p-6 rounded-lg border shadow-sm">
-          <Outlet />
-        </div>
+      </div>
+      <div className="bg-card rounded-lg shadow-sm border p-4 md:p-6">
+        <Outlet />
       </div>
     </div>
   );
