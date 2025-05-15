@@ -5,15 +5,16 @@ import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
-import { useToast } from "@/hooks/use-toast";
+import { useToast } from "@/components/ui/use-toast";
 import { verifyPaymentStatus } from "@/services/paymentService";
 import { LoaderCircle, CheckCircle2, XCircle } from "lucide-react";
 
 const PaymentCallback = () => {
   const [searchParams] = useSearchParams();
   const bookingId = searchParams.get("bookingId");
+  const paymentStatus = searchParams.get("status"); // Get the status from URL params
   const [loading, setLoading] = useState(true);
-  const [paymentStatus, setPaymentStatus] = useState<string | null>(null);
+  const [bookingStatus, setBookingStatus] = useState<string | null>(null);
   const navigate = useNavigate();
   const { toast } = useToast();
 
@@ -31,22 +32,66 @@ const PaymentCallback = () => {
 
       try {
         setLoading(true);
-        const result = await verifyPaymentStatus(bookingId);
-        setPaymentStatus(result.status);
         
-        // Display appropriate toast message
-        if (result.status === "confirmed") {
+        // Use the status from URL if available (from our simulated payment page)
+        if (paymentStatus === "SUCCESS") {
+          // Simulate a successful payment verification
+          setBookingStatus("confirmed");
           toast({
             title: "Payment successful",
             description: "Your booking has been confirmed",
           });
-        } else if (result.status === "payment_failed") {
+        } else if (paymentStatus === "FAILED") {
+          setBookingStatus("payment_failed");
           toast({
             title: "Payment failed",
             description: "Your payment was not successful",
             variant: "destructive",
           });
+        } else {
+          // If no status in URL, verify with the backend
+          const result = await verifyPaymentStatus(bookingId);
+          setBookingStatus(result.status);
+          
+          // Display appropriate toast message
+          if (result.status === "confirmed") {
+            toast({
+              title: "Payment successful",
+              description: "Your booking has been confirmed",
+            });
+          } else if (result.status === "payment_failed") {
+            toast({
+              title: "Payment failed",
+              description: "Your payment was not successful",
+              variant: "destructive",
+            });
+          }
         }
+        
+        // Update the booking status in the database via webhook simulation
+        if (paymentStatus === "SUCCESS") {
+          // Call the payment-webhook function to update the booking status
+          try {
+            await fetch(`${window.location.origin}/api/payment-webhook`, {
+              method: "POST",
+              headers: {
+                "Content-Type": "application/json",
+              },
+              body: JSON.stringify({
+                orderId: `ORDER_${bookingId}_${Date.now()}`,
+                orderAmount: "0",
+                referenceId: `REF_${Date.now()}`,
+                txStatus: paymentStatus,
+                paymentMode: "SIMULATED",
+                txTime: new Date().toISOString(),
+              }),
+            });
+          } catch (webhookError) {
+            console.error("Error calling payment webhook:", webhookError);
+            // Don't show error to user as this is just for simulation
+          }
+        }
+        
       } catch (error) {
         console.error("Error verifying payment:", error);
         toast({
@@ -60,7 +105,18 @@ const PaymentCallback = () => {
     };
 
     checkPaymentStatus();
-  }, [bookingId, navigate, toast]);
+    
+    // Clean up URL parameters after processing
+    const cleanupUrlParams = () => {
+      const newUrl = window.location.pathname;
+      window.history.replaceState({}, document.title, newUrl);
+    };
+    
+    // Clean up after a short delay to allow processing
+    const cleanupTimeout = setTimeout(cleanupUrlParams, 1000);
+    
+    return () => clearTimeout(cleanupTimeout);
+  }, [bookingId, navigate, toast, paymentStatus]);
 
   return (
     <div className="min-h-screen flex flex-col">
@@ -78,7 +134,7 @@ const PaymentCallback = () => {
                 Please wait while we verify your payment status...
               </p>
             </div>
-          ) : paymentStatus === "confirmed" ? (
+          ) : bookingStatus === "confirmed" || paymentStatus === "SUCCESS" ? (
             <div className="space-y-6">
               <div className="flex justify-center">
                 <CheckCircle2 className="h-20 w-20 text-green-500" />
