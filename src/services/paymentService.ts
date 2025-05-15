@@ -40,10 +40,24 @@ export async function processPayment(params: ProcessPaymentParams) {
       });
       throw error;
     }
+
+    if (!data || !data.paymentLink) {
+      toast({
+        title: "Payment Error",
+        description: "No payment link received. Please try again.",
+        variant: "destructive",
+      });
+      throw new Error("No payment link received");
+    }
     
     return data;
   } catch (error) {
     console.error("Payment service error:", error);
+    toast({
+      title: "Payment Error",
+      description: "Failed to process payment. Please try again.",
+      variant: "destructive",
+    });
     throw error;
   }
 }

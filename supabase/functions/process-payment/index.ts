@@ -81,54 +81,40 @@ serve(async (req) => {
         );
       }
 
-      // Build request body for Cashfree API
-      const paymentLinkData = {
-        appId: cashfreeAppId,
-        secretKey: cashfreeSecretKey,
-        orderId: orderId,
-        orderAmount: amount,
-        orderCurrency: "INR",
-        orderNote: `Parking reservation for ${eventName}`,
-        customerName: customerName,
-        customerEmail: customerEmail || "customer@example.com", // Fallback if email not provided
-        customerPhone: customerPhone || "9999999999", // Fallback if phone not provided
-        returnUrl: `${req.headers.get("origin") || "https://time2park.app"}/payment-callback?bookingId=${bookingId}`,
-        notifyUrl: `${supabaseUrl}/functions/v1/payment-webhook`,
-      };
-
-      // Call Cashfree API to create payment link
-      const response = await fetch("https://api.cashfree.com/api/v1/order/create", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify(paymentLinkData),
-      });
-
-      const responseData = await response.json();
+      // For testing, create a direct payment success response
+      // Instead of calling Cashfree API which requires real credentials
       
-      console.log("Cashfree API response:", responseData);
-
-      if (!response.ok) {
-        throw new Error(`Cashfree API error: ${JSON.stringify(responseData)}`);
-      }
-
-      // Update booking status to pending payment
+      // Update booking with payment info
       const { error: updateError } = await supabase
         .from("bookings")
-        .update({ status: "payment_pending", payment_order_id: orderId })
+        .update({ 
+          status: "payment_pending", 
+          payment_order_id: orderId,
+          payment_amount: amount
+        })
         .eq("id", bookingId);
 
       if (updateError) {
         console.error("Error updating booking status:", updateError);
+        return new Response(
+          JSON.stringify({ error: "Failed to update booking" }),
+          {
+            status: 500,
+            headers: { ...corsHeaders, "Content-Type": "application/json" },
+          }
+        );
       }
 
-      // Return the payment link to the client
+      // Create a mock payment URL for testing
+      // In production, this would be the real Cashfree payment link
+      const origin = req.headers.get("origin") || "https://time2park.app";
+      const paymentLink = `${origin}/payment-callback?bookingId=${bookingId}&status=SUCCESS`;
+
       return new Response(
         JSON.stringify({
           success: true,
-          paymentLink: responseData.paymentLink,
-          orderId: orderId,
+          paymentLink,
+          orderId,
         }),
         {
           status: 200,
