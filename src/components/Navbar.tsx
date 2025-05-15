@@ -91,11 +91,15 @@ const Navbar = () => {
       <div className="container flex h-16 items-center justify-between">
         <div className="flex items-center gap-2">
           <Link to="/" className="flex items-center gap-2">
-            <div className="h-10 w-10 rounded-md overflow-hidden">
+            <div className="h-12 w-12 rounded-md overflow-hidden flex items-center justify-center">
               <img 
-                src="/lovable-uploads/58866dbe-7048-4cef-b6d7-4f90a465caad.png" 
+                src="/lovable-uploads/0af6a5ad-8987-465d-9d4d-3ce8c79b0650.png" 
                 alt="Time2Park Logo" 
                 className="h-full w-full object-contain"
+                style={{
+                  imageRendering: 'high-quality',
+                  filter: 'contrast(1.05) brightness(1.05)'
+                }}
               />
             </div>
             <span className="font-bold text-lg text-foreground">Time2Park</span>
