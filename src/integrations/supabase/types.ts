@@ -51,6 +51,11 @@ export type Database = {
           event_id: string | null
           id: string
           parking_layout_id: string | null
+          payment_amount: number | null
+          payment_date: string | null
+          payment_mode: string | null
+          payment_order_id: string | null
+          payment_reference_id: string | null
           qr_code_url: string | null
           status: string | null
           user_id: string | null
@@ -60,6 +65,11 @@ export type Database = {
           event_id?: string | null
           id?: string
           parking_layout_id?: string | null
+          payment_amount?: number | null
+          payment_date?: string | null
+          payment_mode?: string | null
+          payment_order_id?: string | null
+          payment_reference_id?: string | null
           qr_code_url?: string | null
           status?: string | null
           user_id?: string | null
@@ -69,6 +79,11 @@ export type Database = {
           event_id?: string | null
           id?: string
           parking_layout_id?: string | null
+          payment_amount?: number | null
+          payment_date?: string | null
+          payment_mode?: string | null
+          payment_order_id?: string | null
+          payment_reference_id?: string | null
           qr_code_url?: string | null
           status?: string | null
           user_id?: string | null
