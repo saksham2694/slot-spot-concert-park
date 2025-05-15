@@ -8,7 +8,7 @@ import {
   SheetTrigger 
 } from "@/components/ui/sheet";
 import AuthButton from "@/components/ui/auth-button";
-import { Menu, X, User, LogOut, LayoutDashboard, Smartphone, MapPin } from "lucide-react";
+import { Menu, X, User, LogOut, LayoutDashboard } from "lucide-react";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { useAuth } from "@/context/AuthContext";
 import {
@@ -91,11 +91,11 @@ const Navbar = () => {
       <div className="container flex h-16 items-center justify-between">
         <div className="flex items-center gap-2">
           <Link to="/" className="flex items-center gap-2">
-            <div className="relative bg-primary rounded-md p-2 overflow-visible">
-              <Smartphone className="h-6 w-6 text-primary-foreground" />
-              <MapPin 
-                className="absolute -top-2 -right-2 h-5 w-5 text-primary-foreground animate-pulse-light" 
-                strokeWidth={2.5}
+            <div className="h-10 w-10 rounded-md overflow-hidden">
+              <img 
+                src="/lovable-uploads/58866dbe-7048-4cef-b6d7-4f90a465caad.png" 
+                alt="Time2Park Logo" 
+                className="h-full w-full object-contain"
               />
             </div>
             <span className="font-bold text-lg text-foreground">Time2Park</span>
