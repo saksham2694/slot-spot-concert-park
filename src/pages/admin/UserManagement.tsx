@@ -37,12 +37,6 @@ const UserManagement = () => {
     setIsLoading(true);
     console.log("Starting to fetch users...");
     try {
-      // Get auth.users - this won't work with anon key, so we'll skip and log
-      console.log("Attempting to fetch auth users (typically not accessible with anon key)");
-      const { data: authUsers, error: authError } = await supabase.auth.admin.listUsers();
-      
-      console.log("Auth users fetch result:", authUsers ? "Success" : "Failed", "Error:", authError);
-      
       // Get all profiles
       console.log("Fetching profiles...");
       const { data: profiles, error: profilesError } = await supabase
@@ -81,11 +75,18 @@ const UserManagement = () => {
       console.log("Admin user IDs:", Array.from(adminUserIds));
       console.log("Vendor user IDs:", Array.from(vendorUserIds));
       
-      // If we couldn't get auth users, rely solely on profiles
-      const mappedUsers = (profiles || []).map(profile => {
+      // We need to rely solely on profiles
+      if (!profiles || profiles.length === 0) {
+        console.log("No profiles found. Check if profiles are being created when users sign up.");
+        setUsers([]);
+        setIsLoading(false);
+        return;
+      }
+      
+      const mappedUsers = profiles.map(profile => {
         return {
           id: profile.id,
-          email: null, // We don't have this data with profiles-only approach
+          email: null, // We don't have this data without auth.users access
           first_name: profile.first_name,
           last_name: profile.last_name,
           is_admin: adminUserIds.has(profile.id),
