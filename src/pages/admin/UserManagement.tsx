@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { supabase, syncUsersToProfiles } from "@/integrations/supabase/client";
 import { 
@@ -76,8 +75,8 @@ const UserManagement = () => {
       console.log("Admin user IDs:", Array.from(adminUserIds));
       console.log("Vendor user IDs:", Array.from(vendorUserIds));
       
-      // We need to rely solely on profiles
-      if (!profiles || profiles.length === 0) {
+      // Ensure we properly process all profiles
+      if (!profiles) {
         console.log("No profiles found. Check if profiles are being created when users sign up.");
         setUsers([]);
         setIsLoading(false);
@@ -87,7 +86,7 @@ const UserManagement = () => {
       const mappedUsers = profiles.map(profile => {
         return {
           id: profile.id,
-          email: null, // We don't have this data without auth.users access
+          email: null, // We don't have direct access to email from auth.users
           first_name: profile.first_name,
           last_name: profile.last_name,
           is_admin: adminUserIds.has(profile.id),
