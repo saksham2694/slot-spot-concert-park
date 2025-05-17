@@ -38,11 +38,15 @@ const UserManagement = () => {
     setIsLoading(true);
     console.log("Starting to fetch users...");
     try {
-      // Get all profiles - Important: No filter by ID to get ALL profiles
-      console.log("Fetching ALL profiles...");
+      // To get all users, we need to use RPC or bypass RLS with service role
+      // Since we can't use service role on the client, we'll fetch authenticated users via RPC
+      console.log("Fetching all auth users via RPC...");
+      
+      // First, get all profiles
       const { data: profiles, error: profilesError } = await supabase
         .from('profiles')
-        .select('*');
+        .select('*')
+        .order('created_at', { ascending: false });
       
       if (profilesError) {
         console.error('Error fetching profiles:', profilesError);

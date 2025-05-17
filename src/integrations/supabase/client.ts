@@ -25,7 +25,17 @@ export const supabase = createClient<Database>(SUPABASE_URL, SUPABASE_PUBLISHABL
 
 // Helper functions for common operations
 export const syncUsersToProfiles = async () => {
-  const { error } = await supabase.rpc('sync_users_to_profiles');
-  if (error) throw error;
-  return { error };
+  console.log("Starting user sync process...");
+  try {
+    const { error } = await supabase.rpc('sync_users_to_profiles');
+    if (error) {
+      console.error("Error in sync_users_to_profiles RPC:", error);
+      throw error;
+    }
+    console.log("User sync completed successfully");
+    return { success: true };
+  } catch (err) {
+    console.error("Exception in syncUsersToProfiles:", err);
+    throw err;
+  }
 };
