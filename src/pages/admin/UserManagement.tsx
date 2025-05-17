@@ -38,9 +38,8 @@ const UserManagement = () => {
     setIsLoading(true);
     console.log("Starting to fetch users...");
     try {
-      // Get auth users directly using service role (not available in client)
-      // Instead, we'll get all profiles which should have entries for all users
-      console.log("Fetching profiles...");
+      // Get all profiles - Important: No filter by ID to get ALL profiles
+      console.log("Fetching ALL profiles...");
       const { data: profiles, error: profilesError } = await supabase
         .from('profiles')
         .select('*');
@@ -51,10 +50,6 @@ const UserManagement = () => {
       }
       
       console.log("Profiles fetched:", profiles?.length || 0, "profiles", profiles);
-
-      // Get all user emails from auth.users through the admin API
-      // Note: This isn't directly possible with client-side Supabase
-      // We'll have to rely on the profiles table and assume it's synced
       
       // Get all user roles
       console.log("Fetching user roles...");
@@ -88,10 +83,6 @@ const UserManagement = () => {
         setIsLoading(false);
         return;
       }
-      
-      // To retrieve emails, we need to make a separate call to auth.users
-      // But since we can't do this client-side, we'll use available info
-      // A proper solution would involve a server function or edge function
       
       // For now, map profiles to users (email will remain null)
       const mappedUsers = profiles.map(profile => ({
