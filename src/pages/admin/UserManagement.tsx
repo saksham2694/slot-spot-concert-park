@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import { supabase, syncUsersToProfiles } from "@/integrations/supabase/client";
 import { 
@@ -37,7 +38,8 @@ const UserManagement = () => {
     setIsLoading(true);
     console.log("Starting to fetch users...");
     try {
-      // Get all profiles
+      // Get auth users directly using service role (not available in client)
+      // Instead, we'll get all profiles which should have entries for all users
       console.log("Fetching profiles...");
       const { data: profiles, error: profilesError } = await supabase
         .from('profiles')
@@ -49,6 +51,10 @@ const UserManagement = () => {
       }
       
       console.log("Profiles fetched:", profiles?.length || 0, "profiles", profiles);
+
+      // Get all user emails from auth.users through the admin API
+      // Note: This isn't directly possible with client-side Supabase
+      // We'll have to rely on the profiles table and assume it's synced
       
       // Get all user roles
       console.log("Fetching user roles...");
@@ -83,16 +89,19 @@ const UserManagement = () => {
         return;
       }
       
-      const mappedUsers = profiles.map(profile => {
-        return {
-          id: profile.id,
-          email: null, // We don't have direct access to email from auth.users
-          first_name: profile.first_name,
-          last_name: profile.last_name,
-          is_admin: adminUserIds.has(profile.id),
-          is_vendor: vendorUserIds.has(profile.id)
-        };
-      });
+      // To retrieve emails, we need to make a separate call to auth.users
+      // But since we can't do this client-side, we'll use available info
+      // A proper solution would involve a server function or edge function
+      
+      // For now, map profiles to users (email will remain null)
+      const mappedUsers = profiles.map(profile => ({
+        id: profile.id,
+        email: null, // We don't have direct access to email from auth.users
+        first_name: profile.first_name,
+        last_name: profile.last_name,
+        is_admin: adminUserIds.has(profile.id),
+        is_vendor: vendorUserIds.has(profile.id)
+      }));
       
       console.log("Final mapped users:", mappedUsers);
       setUsers(mappedUsers);
@@ -118,12 +127,7 @@ const UserManagement = () => {
     setIsSyncing(true);
     try {
       console.log("Syncing users to profiles...");
-      const { error } = await syncUsersToProfiles();
-      
-      if (error) {
-        console.error("Error syncing users:", error);
-        throw error;
-      }
+      await syncUsersToProfiles();
       
       toast({
         title: "Users synced successfully",
@@ -168,15 +172,9 @@ const UserManagement = () => {
         if (error) throw error;
         
         // Update local state based on role type
-        if (role === 'admin') {
-          setUsers(users.map(user => 
-            user.id === userId ? { ...user, is_admin: false } : user
-          ));
-        } else if (role === 'vendor') {
-          setUsers(users.map(user => 
-            user.id === userId ? { ...user, is_vendor: false } : user
-          ));
-        }
+        setUsers(users.map(user => 
+          user.id === userId ? { ...user, [role === 'admin' ? 'is_admin' : 'is_vendor']: false } : user
+        ));
         
         toast({
           title: `${role.charAt(0).toUpperCase() + role.slice(1)} role removed`,
@@ -191,15 +189,9 @@ const UserManagement = () => {
         if (error) throw error;
         
         // Update local state based on role type
-        if (role === 'admin') {
-          setUsers(users.map(user => 
-            user.id === userId ? { ...user, is_admin: true } : user
-          ));
-        } else if (role === 'vendor') {
-          setUsers(users.map(user => 
-            user.id === userId ? { ...user, is_vendor: true } : user
-          ));
-        }
+        setUsers(users.map(user => 
+          user.id === userId ? { ...user, [role === 'admin' ? 'is_admin' : 'is_vendor']: true } : user
+        ));
         
         toast({
           title: `${role.charAt(0).toUpperCase() + role.slice(1)} role assigned`,
