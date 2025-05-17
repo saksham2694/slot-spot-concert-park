@@ -16,9 +16,9 @@ import { Search, User, UserCheck, Store, RefreshCw } from "lucide-react";
 import { useToast } from "@/components/ui/use-toast";
 import { useAuth } from "@/context/AuthContext";
 
-interface UserProfile {
+interface UserData {
   id: string;
-  email: string | null;
+  email: string;
   first_name: string | null;
   last_name: string | null;
   is_admin: boolean;
@@ -26,7 +26,7 @@ interface UserProfile {
 }
 
 const UserManagement = () => {
-  const [users, setUsers] = useState<UserProfile[]>([]);
+  const [users, setUsers] = useState<UserData[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isSyncing, setIsSyncing] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
@@ -38,68 +38,27 @@ const UserManagement = () => {
     setIsLoading(true);
     console.log("Starting to fetch users...");
     try {
-      // To get all users, we need to use RPC or bypass RLS with service role
-      // Since we can't use service role on the client, we'll fetch authenticated users via RPC
-      console.log("Fetching all auth users via RPC...");
-      
-      // First, get all profiles
-      const { data: profiles, error: profilesError } = await supabase
-        .from('profiles')
+      // Now we can fetch directly from the users table which has all the data we need
+      const { data: users, error } = await supabase
+        .from('users')
         .select('*')
         .order('created_at', { ascending: false });
       
-      if (profilesError) {
-        console.error('Error fetching profiles:', profilesError);
-        throw profilesError;
+      if (error) {
+        console.error('Error fetching users:', error);
+        throw error;
       }
       
-      console.log("Profiles fetched:", profiles?.length || 0, "profiles", profiles);
+      console.log("Users fetched:", users?.length || 0, "users", users);
       
-      // Get all user roles
-      console.log("Fetching user roles...");
-      const { data: userRoles, error: rolesError } = await supabase
-        .from('user_roles')
-        .select('*');
-      
-      if (rolesError) {
-        console.error('Error fetching user roles:', rolesError);
-        throw rolesError;
-      }
-      
-      console.log("User roles fetched:", userRoles?.length || 0, "roles", userRoles);
-      
-      // Create maps for role lookups
-      const adminUserIds = new Set((userRoles || [])
-        .filter(role => role.role === 'admin')
-        .map(role => role.user_id));
-      
-      const vendorUserIds = new Set((userRoles || [])
-        .filter(role => role.role === 'vendor')
-        .map(role => role.user_id));
-      
-      console.log("Admin user IDs:", Array.from(adminUserIds));
-      console.log("Vendor user IDs:", Array.from(vendorUserIds));
-      
-      // Ensure we properly process all profiles
-      if (!profiles) {
-        console.log("No profiles found. Check if profiles are being created when users sign up.");
+      if (!users) {
+        console.log("No users found. Check if users are being created when users sign up.");
         setUsers([]);
         setIsLoading(false);
         return;
       }
       
-      // For now, map profiles to users (email will remain null)
-      const mappedUsers = profiles.map(profile => ({
-        id: profile.id,
-        email: null, // We don't have direct access to email from auth.users
-        first_name: profile.first_name,
-        last_name: profile.last_name,
-        is_admin: adminUserIds.has(profile.id),
-        is_vendor: vendorUserIds.has(profile.id)
-      }));
-      
-      console.log("Final mapped users:", mappedUsers);
-      setUsers(mappedUsers);
+      setUsers(users);
     } catch (error) {
       console.error('Error fetching users:', error);
       toast({
@@ -117,16 +76,16 @@ const UserManagement = () => {
     fetchUsers();
   }, []);
 
-  // Sync users from auth.users to profiles
+  // Sync users from auth.users to our custom tables
   const handleSyncUsers = async () => {
     setIsSyncing(true);
     try {
-      console.log("Syncing users to profiles...");
+      console.log("Syncing users...");
       await syncUsersToProfiles();
       
       toast({
         title: "Users synced successfully",
-        description: "User profiles have been updated from auth users",
+        description: "User data has been synchronized from auth users",
       });
       
       // Refresh the user list
@@ -135,7 +94,7 @@ const UserManagement = () => {
       console.error("Error syncing users:", error);
       toast({
         title: "Error syncing users",
-        description: "There was a problem syncing users to profiles",
+        description: "There was a problem syncing users",
         variant: "destructive"
       });
     } finally {
@@ -166,7 +125,7 @@ const UserManagement = () => {
         
         if (error) throw error;
         
-        // Update local state based on role type
+        // Update local state
         setUsers(users.map(user => 
           user.id === userId ? { ...user, [role === 'admin' ? 'is_admin' : 'is_vendor']: false } : user
         ));
@@ -183,7 +142,7 @@ const UserManagement = () => {
         
         if (error) throw error;
         
-        // Update local state based on role type
+        // Update local state
         setUsers(users.map(user => 
           user.id === userId ? { ...user, [role === 'admin' ? 'is_admin' : 'is_vendor']: true } : user
         ));
@@ -271,7 +230,7 @@ const UserManagement = () => {
                   <TableCell colSpan={4} className="text-center py-8">
                     {searchQuery 
                       ? "No users match your search" 
-                      : "No users found. Click 'Sync Users' to sync user profiles from authentication."}
+                      : "No users found. Click 'Sync Users' to sync user data."}
                   </TableCell>
                 </TableRow>
               ) : (

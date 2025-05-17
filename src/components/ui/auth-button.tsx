@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { Button } from "../ui/button";
 import { 
@@ -101,22 +100,8 @@ const AuthButton = ({ className }: AuthButtonProps) => {
 
       console.log("Signup successful:", data);
       
-      // Insert into profiles table directly
-      if (data?.user) {
-        const { error: profileError } = await supabase
-          .from('profiles')
-          .insert([
-            { 
-              id: data.user.id,
-              first_name: firstName,
-              last_name: lastName 
-            }
-          ]);
-        
-        if (profileError) {
-          console.error("Error creating profile:", profileError);
-        }
-      }
+      // Note: We don't need to manually insert into profiles or users table anymore
+      // The triggers we created will handle this automatically
       
       toast({
         title: "Sign up successful",

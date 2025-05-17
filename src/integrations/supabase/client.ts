@@ -27,11 +27,19 @@ export const supabase = createClient<Database>(SUPABASE_URL, SUPABASE_PUBLISHABL
 export const syncUsersToProfiles = async () => {
   console.log("Starting user sync process...");
   try {
-    const { error } = await supabase.rpc('sync_users_to_profiles');
-    if (error) {
-      console.error("Error in sync_users_to_profiles RPC:", error);
-      throw error;
+    // First sync users to profiles (older method)
+    const { error: profileError } = await supabase.rpc('sync_users_to_profiles');
+    if (profileError) {
+      console.error("Error in sync_users_to_profiles RPC:", profileError);
     }
+    
+    // Then sync auth.users to public.users (new method)
+    const { error: usersError } = await supabase.rpc('sync_all_users');
+    if (usersError) {
+      console.error("Error in sync_all_users RPC:", usersError);
+      throw usersError;
+    }
+    
     console.log("User sync completed successfully");
     return { success: true };
   } catch (err) {
