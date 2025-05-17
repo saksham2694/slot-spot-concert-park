@@ -102,7 +102,7 @@ const UserManagement = () => {
     }
   };
 
-  // Toggle user role
+  // Toggle user role - updated to correctly interact with user_roles table
   const toggleUserRole = async (userId: string, role: 'admin' | 'vendor', isCurrentlyActive: boolean) => {
     // Prevent toggling your own role
     if (userId === currentUser?.id) {
@@ -116,16 +116,19 @@ const UserManagement = () => {
     
     try {
       if (isCurrentlyActive) {
-        // Remove role
+        // Remove role from user_roles table
         const { error } = await supabase
           .from('user_roles')
           .delete()
           .eq('user_id', userId)
           .eq('role', role);
         
-        if (error) throw error;
+        if (error) {
+          console.error(`Error removing ${role} role:`, error);
+          throw error;
+        }
         
-        // Update local state
+        // Update local state - the trigger will handle updating the users table
         setUsers(users.map(user => 
           user.id === userId ? { ...user, [role === 'admin' ? 'is_admin' : 'is_vendor']: false } : user
         ));
@@ -135,14 +138,22 @@ const UserManagement = () => {
           description: `User no longer has ${role} privileges`
         });
       } else {
-        // Add role
+        // Add role to user_roles table
         const { error } = await supabase
           .from('user_roles')
           .insert({ user_id: userId, role });
         
-        if (error) throw error;
+        if (error) {
+          // If there's a unique constraint error, the role may already exist
+          if (error.code === '23505') { // Unique violation
+            console.log(`User already has ${role} role, skipping insert`);
+          } else {
+            console.error(`Error adding ${role} role:`, error);
+            throw error;
+          }
+        }
         
-        // Update local state
+        // Update local state - the trigger will handle updating the users table
         setUsers(users.map(user => 
           user.id === userId ? { ...user, [role === 'admin' ? 'is_admin' : 'is_vendor']: true } : user
         ));
