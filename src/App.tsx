@@ -5,6 +5,7 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { AuthProvider } from "@/context/AuthContext";
+import { ThemeProvider } from "@/context/ThemeProvider";
 import Index from "./pages/Index";
 import EventDetail from "./pages/EventDetail";
 import EventsPage from "./pages/EventsPage";
@@ -29,40 +30,42 @@ const queryClient = new QueryClient();
 
 const App = () => (
   <QueryClientProvider client={queryClient}>
-    <TooltipProvider>
-      <AuthProvider>
-        <Toaster />
-        <Sonner />
-        <BrowserRouter>
-          <Routes>
-            <Route path="/" element={<Index />} />
-            <Route path="/events" element={<EventsPage />} />
-            <Route path="/events/:eventId" element={<EventDetail />} />
-            <Route path="/bookings" element={<BookingsPage />} />
-            <Route path="/bookings/:bookingId" element={<BookingDetailPage />} />
-            <Route path="/profile" element={<ProfilePage />} />
-            <Route path="/about" element={<AboutPage />} />
-            <Route path="/payment-callback" element={<PaymentCallback />} />
-            
-            {/* Admin Routes */}
-            <Route path="/admin" element={<AdminLayout />}>
-              <Route index element={<AdminDashboard />} />
-              <Route path="create-event" element={<AdminCreateEvent />} />
-              <Route path="users" element={<UserManagement />} />
-            </Route>
-            
-            {/* Vendor Routes */}
-            <Route path="/vendor" element={<VendorLayout />}>
-              <Route index element={<VendorDashboard />} />
-              <Route path="events/:eventId" element={<EventCheckIn />} />
-              <Route path="scan-qr" element={<QRScanner />} />
-            </Route>
-            
-            <Route path="*" element={<NotFound />} />
-          </Routes>
-        </BrowserRouter>
-      </AuthProvider>
-    </TooltipProvider>
+    <ThemeProvider defaultTheme="system" storageKey="time2park-theme">
+      <TooltipProvider>
+        <AuthProvider>
+          <Toaster />
+          <Sonner />
+          <BrowserRouter>
+            <Routes>
+              <Route path="/" element={<Index />} />
+              <Route path="/events" element={<EventsPage />} />
+              <Route path="/events/:eventId" element={<EventDetail />} />
+              <Route path="/bookings" element={<BookingsPage />} />
+              <Route path="/bookings/:bookingId" element={<BookingDetailPage />} />
+              <Route path="/profile" element={<ProfilePage />} />
+              <Route path="/about" element={<AboutPage />} />
+              <Route path="/payment-callback" element={<PaymentCallback />} />
+              
+              {/* Admin Routes */}
+              <Route path="/admin" element={<AdminLayout />}>
+                <Route index element={<AdminDashboard />} />
+                <Route path="create-event" element={<AdminCreateEvent />} />
+                <Route path="users" element={<UserManagement />} />
+              </Route>
+              
+              {/* Vendor Routes */}
+              <Route path="/vendor" element={<VendorLayout />}>
+                <Route index element={<VendorDashboard />} />
+                <Route path="events/:eventId" element={<EventCheckIn />} />
+                <Route path="scan-qr" element={<QRScanner />} />
+              </Route>
+              
+              <Route path="*" element={<NotFound />} />
+            </Routes>
+          </BrowserRouter>
+        </AuthProvider>
+      </TooltipProvider>
+    </ThemeProvider>
   </QueryClientProvider>
 );
 
