@@ -11,17 +11,7 @@ import { Filter, CalendarIcon, Search, X, Building } from "lucide-react";
 import { Link } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
-
-// Define university type
-type University = {
-  id: string;
-  name: string;
-  location: string;
-  image_url: string | null;
-  total_parking_slots: number;
-  available_parking_slots: number;
-  hourly_rate: number;
-};
+import { University } from "@/types/university";
 
 // Function to fetch universities
 const fetchUniversities = async (): Promise<University[]> => {
@@ -35,7 +25,7 @@ const fetchUniversities = async (): Promise<University[]> => {
     throw error;
   }
 
-  return data || [];
+  return data as University[];
 };
 
 const UniversitiesPage = () => {

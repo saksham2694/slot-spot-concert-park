@@ -1,6 +1,6 @@
 
 import { useEffect, useState } from "react";
-import { Outlet, useNavigate, Link } from "react-router-dom";
+import { Outlet, useNavigate, Link, useLocation } from "react-router-dom";
 import { useAuth } from "@/context/AuthContext";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -10,15 +10,29 @@ import {
   CalendarPlus,
   Users,
   Loader2,
+  Building,
+  Plane
 } from "lucide-react";
 
 const AdminLayout = () => {
   const navigate = useNavigate();
+  const location = useLocation();
   const { user, checkIfAdmin } = useAuth();
   const { toast } = useToast();
   const [isAdmin, setIsAdmin] = useState<boolean>(false);
   const [isChecking, setIsChecking] = useState<boolean>(true);
   const [redirectAttempted, setRedirectAttempted] = useState<boolean>(false);
+
+  // Determine active tab based on current path
+  const getActiveTab = () => {
+    const path = location.pathname;
+    if (path === "/admin") return "dashboard";
+    if (path.includes("/admin/create-event")) return "create-event";
+    if (path.includes("/admin/users")) return "users";
+    if (path.includes("/admin/universities") || path.includes("/admin/create-university")) return "universities";
+    if (path.includes("/admin/airports") || path.includes("/admin/create-airport")) return "airports";
+    return "dashboard";
+  };
 
   useEffect(() => {
     // Reset redirect attempt when user changes
@@ -91,7 +105,7 @@ const AdminLayout = () => {
     <div className="container mx-auto p-4 md:p-6">
       <div className="mb-8">
         <h1 className="text-3xl font-bold mb-4">Admin Dashboard</h1>
-        <Tabs defaultValue="dashboard" className="w-full">
+        <Tabs defaultValue={getActiveTab()} className="w-full">
           <TabsList className="mb-6 flex flex-wrap">
             <Link to="/admin">
               <TabsTrigger value="dashboard" className="flex items-center gap-2">
@@ -103,6 +117,18 @@ const AdminLayout = () => {
               <TabsTrigger value="create-event" className="flex items-center gap-2">
                 <CalendarPlus className="h-4 w-4" />
                 Create Event
+              </TabsTrigger>
+            </Link>
+            <Link to="/admin/universities">
+              <TabsTrigger value="universities" className="flex items-center gap-2">
+                <Building className="h-4 w-4" />
+                Universities
+              </TabsTrigger>
+            </Link>
+            <Link to="/admin/airports">
+              <TabsTrigger value="airports" className="flex items-center gap-2">
+                <Plane className="h-4 w-4" />
+                Airports
               </TabsTrigger>
             </Link>
             <Link to="/admin/users">

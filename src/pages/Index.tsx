@@ -2,6 +2,8 @@
 import Navbar from "@/components/Navbar";
 import HeroSection from "@/components/HeroSection";
 import FeaturedEvents from "@/components/FeaturedEvents";
+import FeaturedUniversities from "@/components/FeaturedUniversities";
+import FeaturedAirports from "@/components/FeaturedAirports";
 import Footer from "@/components/Footer";
 import { Button } from "@/components/ui/button";
 import { Car, Clock, CreditCard, MapPin, Shield, Star, Building, Plane } from "lucide-react";
@@ -18,6 +20,8 @@ const Index = () => {
         <HeroSection />
         
         <FeaturedEvents />
+        <FeaturedUniversities />
+        <FeaturedAirports />
         
         {/* Parking Options Section */}
         <section className="py-16 bg-muted">

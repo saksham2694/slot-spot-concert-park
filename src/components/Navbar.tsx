@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
 import { useAuth } from "@/context/AuthContext";
@@ -21,6 +22,8 @@ import {
   Store,
   Menu,
   X,
+  Building,
+  Plane,
 } from "lucide-react";
 import {
   Sheet,
@@ -32,6 +35,15 @@ import {
 } from "@/components/ui/sheet";
 import { getInitials } from "@/lib/utils";
 import AuthModal from "@/components/AuthModal";
+import {
+  NavigationMenu,
+  NavigationMenuContent,
+  NavigationMenuItem,
+  NavigationMenuLink,
+  NavigationMenuList,
+  NavigationMenuTrigger,
+  navigationMenuTriggerStyle,
+} from "@/components/ui/navigation-menu";
 
 const Navbar = () => {
   const { user, profile, signOut, checkIfAdmin, checkIfVendor } = useAuth();
@@ -109,6 +121,14 @@ const Navbar = () => {
                   Events
                   <X className="h-5 w-5" />
                 </Link>
+                <Link to="/universities" className="text-lg font-medium hover:text-primary transition-colors flex items-center justify-between">
+                  Universities
+                  <X className="h-5 w-5" />
+                </Link>
+                <Link to="/airports" className="text-lg font-medium hover:text-primary transition-colors flex items-center justify-between">
+                  Airports
+                  <X className="h-5 w-5" />
+                </Link>
                 <Link to="/about" className="text-lg font-medium hover:text-primary transition-colors flex items-center justify-between">
                   About
                   <X className="h-5 w-5" />
@@ -145,14 +165,20 @@ const Navbar = () => {
           </Sheet>
           
           {/* Navigation Links */}
-          <nav className="hidden md:flex items-center space-x-6">
-            <Link to="/" className="text-lg font-medium hover:text-primary transition-colors">
+          <nav className="hidden md:flex items-center space-x-2">
+            <Link to="/" className="px-3 py-2 text-lg font-medium hover:text-primary transition-colors">
               Home
             </Link>
-            <Link to="/events" className="text-lg font-medium hover:text-primary transition-colors">
+            <Link to="/events" className="px-3 py-2 text-lg font-medium hover:text-primary transition-colors">
               Events
             </Link>
-            <Link to="/about" className="text-lg font-medium hover:text-primary transition-colors">
+            <Link to="/universities" className="px-3 py-2 text-lg font-medium hover:text-primary transition-colors">
+              Universities
+            </Link>
+            <Link to="/airports" className="px-3 py-2 text-lg font-medium hover:text-primary transition-colors">
+              Airports
+            </Link>
+            <Link to="/about" className="px-3 py-2 text-lg font-medium hover:text-primary transition-colors">
               About
             </Link>
           </nav>

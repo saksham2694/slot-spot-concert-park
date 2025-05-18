@@ -19,6 +19,10 @@ import AdminLayout from "./pages/admin/AdminLayout";
 import AdminDashboard from "./pages/admin/AdminDashboard";
 import AdminCreateEvent from "./pages/admin/AdminCreateEvent";
 import UserManagement from "./pages/admin/UserManagement";
+import AdminUniversities from "./pages/admin/AdminUniversities";
+import AdminAirports from "./pages/admin/AdminAirports";
+import AdminCreateUniversity from "./pages/admin/AdminCreateUniversity";
+import AdminCreateAirport from "./pages/admin/AdminCreateAirport";
 
 // Vendor routes
 import VendorLayout from "./pages/vendor/VendorLayout";
@@ -66,6 +70,10 @@ const App = () => (
               <Route path="/admin" element={<AdminLayout />}>
                 <Route index element={<AdminDashboard />} />
                 <Route path="create-event" element={<AdminCreateEvent />} />
+                <Route path="universities" element={<AdminUniversities />} />
+                <Route path="create-university" element={<AdminCreateUniversity />} />
+                <Route path="airports" element={<AdminAirports />} />
+                <Route path="create-airport" element={<AdminCreateAirport />} />
                 <Route path="users" element={<UserManagement />} />
               </Route>
               

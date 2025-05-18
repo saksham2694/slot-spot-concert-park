@@ -11,17 +11,7 @@ import { Filter, Search, X, Plane } from "lucide-react";
 import { Link } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
-
-// Define airport type
-type Airport = {
-  id: string;
-  name: string;
-  location: string;
-  image_url: string | null;
-  total_parking_slots: number;
-  available_parking_slots: number;
-  hourly_rate: number;
-};
+import { Airport } from "@/types/airport";
 
 // Function to fetch airports
 const fetchAirports = async (): Promise<Airport[]> => {
@@ -35,7 +25,7 @@ const fetchAirports = async (): Promise<Airport[]> => {
     throw error;
   }
 
-  return data || [];
+  return data as Airport[];
 };
 
 const AirportsPage = () => {

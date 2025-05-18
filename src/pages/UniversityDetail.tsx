@@ -8,17 +8,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { Building } from "lucide-react";
-
-// Define university type
-type University = {
-  id: string;
-  name: string;
-  location: string;
-  image_url: string | null;
-  total_parking_slots: number;
-  available_parking_slots: number;
-  hourly_rate: number;
-};
+import { University } from "@/types/university";
 
 const UniversityDetail = () => {
   const { universityId } = useParams<{ universityId: string }>();
@@ -52,7 +42,7 @@ const UniversityDetail = () => {
         }
 
         if (data) {
-          setUniversity(data);
+          setUniversity(data as University);
         } else {
           toast({
             title: "Not found",

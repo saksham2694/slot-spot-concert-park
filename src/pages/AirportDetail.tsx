@@ -8,17 +8,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { Plane } from "lucide-react";
-
-// Define airport type
-type Airport = {
-  id: string;
-  name: string;
-  location: string;
-  image_url: string | null;
-  total_parking_slots: number;
-  available_parking_slots: number;
-  hourly_rate: number;
-};
+import { Airport } from "@/types/airport";
 
 const AirportDetail = () => {
   const { airportId } = useParams<{ airportId: string }>();
@@ -52,7 +42,7 @@ const AirportDetail = () => {
         }
 
         if (data) {
-          setAirport(data);
+          setAirport(data as Airport);
         } else {
           toast({
             title: "Not found",
