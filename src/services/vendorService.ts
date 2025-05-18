@@ -36,7 +36,8 @@ export const fetchVendorEvents = async (): Promise<VendorEvent[]> => {
     // Get all events
     const { data: events, error: eventsError } = await supabase
       .from("events")
-      .select("id, title, date, location, image_url");
+      .select("id, title, date, location, image_url")
+      .order("date", { ascending: true });
 
     if (eventsError) {
       console.error("Error fetching events:", eventsError);
@@ -180,45 +181,54 @@ export const verifyAndCheckInByQR = async (bookingId: string): Promise<boolean> 
   try {
     console.log("Verifying booking with ID:", bookingId);
     
-    // CHANGED: Fetch all bookings and filter client-side instead of using query params
-    const { data: allBookings, error: bookingsError } = await supabase
+    // Debug: First check if we can get ANY bookings at all - no filters
+    const { data: allBookingsDebug, error: debugError } = await supabase
       .from("bookings")
       .select("id, status");
     
-    if (bookingsError) {
-      console.error("Error fetching bookings:", bookingsError);
+    // Log how many bookings we found in total
+    console.log(`Total bookings in database: ${allBookingsDebug?.length || 0}`);
+    
+    if (debugError) {
+      console.error("Error accessing bookings table:", debugError);
       toast({
-        title: "Error",
-        description: "Error accessing booking information. Please try again.",
+        title: "Database Error",
+        description: "Cannot access booking information. Please contact support.",
         variant: "destructive"
       });
       return false;
     }
     
-    // Debug: Log all bookings to see what we're getting
-    console.log("All bookings fetched:", allBookings);
+    // Check if the specific booking exists
+    const { data: specificBooking, error: specificError } = await supabase
+      .from("bookings")
+      .select("id, status")
+      .eq("id", bookingId)
+      .single();
     
-    // Find the specific booking we're looking for
-    const booking = allBookings?.find(b => b.id === bookingId);
-    
-    // Log what we found for debugging
-    if (!booking) {
-      console.error("No booking found with ID:", bookingId);
+    if (specificError) {
+      // The .single() method will throw an error if no results are found
+      console.log("Error finding specific booking:", specificError.message);
+      
+      // Try to find the booking ID manually in the debug data
+      const manuallyFoundBooking = allBookingsDebug?.find(b => b.id === bookingId);
+      console.log("Manually searching for booking:", manuallyFoundBooking || "Not found");
+      
       toast({
         title: "Invalid QR Code",
-        description: "No booking found for this booking ID.",
+        description: "No booking found for this QR code.",
         variant: "destructive"
       });
       return false;
-    } 
+    }
     
-    console.log("Found booking data:", booking);
+    console.log("Found booking data:", specificBooking);
       
     // If booking exists but is not confirmed
-    if (booking.status !== 'confirmed') {
+    if (specificBooking.status !== 'confirmed') {
       toast({
         title: "Invalid Booking Status",
-        description: `Booking found but status is '${booking.status}'. Only confirmed bookings can be checked in.`,
+        description: `Booking found but status is '${specificBooking.status}'. Only confirmed bookings can be checked in.`,
         variant: "destructive"
       });
       return false;
@@ -235,24 +245,24 @@ export const verifyAndCheckInByQR = async (bookingId: string): Promise<boolean> 
       throw slotError;
     }
     
-    if (slotData && slotData.length > 0) {
-      // Check if all slots are already marked as arrived
-      const allArrived = slotData.every(slot => slot.customer_arrived);
-      if (allArrived) {
-        console.log("Customer already checked in for booking:", bookingId);
-        toast({
-          title: "Already Checked In",
-          description: "This booking has already been checked in.",
-          variant: "info"
-        });
-        return false;
-      }
-    } else {
+    if (!slotData || slotData.length === 0) {
       console.log("No associated booking slots found for booking ID:", bookingId);
       toast({
         title: "Booking Error",
         description: "Booking found but no associated parking slots were found.",
         variant: "destructive"
+      });
+      return false;
+    }
+    
+    // Check if all slots are already marked as arrived
+    const allArrived = slotData.every(slot => slot.customer_arrived);
+    if (allArrived) {
+      console.log("Customer already checked in for booking:", bookingId);
+      toast({
+        title: "Already Checked In",
+        description: "This booking has already been checked in.",
+        variant: "info"
       });
       return false;
     }

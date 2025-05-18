@@ -19,6 +19,7 @@ const QRScanner = () => {
   const [activeTab, setActiveTab] = useState<string>("manual");
   const [lastScannedCode, setLastScannedCode] = useState<string | null>(null);
   const [scanDelay, setScanDelay] = useState<number>(500);
+  const [debugInfo, setDebugInfo] = useState<string | null>(null);
 
   // Reset scan result when changing tabs
   useEffect(() => {
@@ -38,11 +39,13 @@ const QRScanner = () => {
     
     if (bookingIdMatch && bookingIdMatch[1]) {
       console.log("Extracted booking ID from format:", bookingIdMatch[1]);
+      setDebugInfo(`Extracted ID: ${bookingIdMatch[1]}`);
       return bookingIdMatch[1]; // Return the UUID part
     }
     
     // If no match, return the original value as a fallback
     console.log("No match found, using original value:", qrCodeValue);
+    setDebugInfo(`No pattern match, using as-is: ${qrCodeValue}`);
     return qrCodeValue;
   };
 
@@ -76,6 +79,7 @@ const QRScanner = () => {
       
       // Update lastScannedCode after validating to prevent duplicate scans
       setLastScannedCode(code);
+      setDebugInfo(`Processing: ${bookingId}`);
       
       const success = await verifyAndCheckInByQR(bookingId);
       
@@ -85,12 +89,14 @@ const QRScanner = () => {
           message: "Check-in successful! Customer has been marked as arrived.",
         });
         setQrCode(""); // Clear the input on success
+        setDebugInfo(`Success: ${bookingId}`);
       } else {
         // Error message will be displayed via toast from the service
         setScanResult({
           success: false,
           message: "Check-in failed. Please verify the booking status.",
         });
+        setDebugInfo(`Failed: ${bookingId}`);
       }
     } catch (error) {
       console.error("Error processing QR code:", error);
@@ -98,6 +104,7 @@ const QRScanner = () => {
         success: false,
         message: "Error processing QR code. Please try again.",
       });
+      setDebugInfo(`Error: ${error instanceof Error ? error.message : String(error)}`);
     } finally {
       setIsProcessing(false);
       // Reset scan delay after processing completes
@@ -124,6 +131,7 @@ const QRScanner = () => {
       success: false,
       message: "Error scanning QR code. Please try again or use manual entry.",
     });
+    setDebugInfo(`Scan error: ${error instanceof Error ? error.message : String(error)}`);
   };
 
   return (
@@ -177,6 +185,7 @@ const QRScanner = () => {
               <QrReader
                 constraints={{ facingMode: 'environment' }}
                 onResult={handleScan}
+                onError={handleScanError}
                 scanDelay={scanDelay}
                 className="w-full"
                 videoStyle={{ objectFit: 'cover', width: '100%' }}
@@ -206,6 +215,14 @@ const QRScanner = () => {
               )}
               <p>{scanResult.message}</p>
             </div>
+          </div>
+        )}
+
+        {/* Debug information panel */}
+        {debugInfo && (
+          <div className="mt-4 p-2 bg-slate-100 rounded-md text-xs font-mono text-slate-700 overflow-auto max-h-24">
+            <p className="font-semibold mb-1">Debug Info:</p>
+            <p>{debugInfo}</p>
           </div>
         )}
 
