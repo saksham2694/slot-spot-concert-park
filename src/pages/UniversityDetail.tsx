@@ -9,19 +9,27 @@ import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { Building, CalendarIcon } from "lucide-react";
 import { University } from "@/types/university";
-import { ParkingSlot } from "@/types/parking";
+import { ParkingSlot, assertData } from "@/types/parking";
 import { Card, CardContent } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import { cn } from "@/lib/utils";
 import { format, addHours } from "date-fns";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { z } from "zod";
 import UniversityParkingLayout from "@/components/parking/UniversityParkingLayout";
 import AuthPrompt from "@/components/event/AuthPrompt";
 import BookingConfirmation from "@/components/university/BookingConfirmation";
 import { createUniversityBooking } from "@/services/universityBookingService";
+
+interface AuthPromptProps {
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+  message: string;
+}
+
+const AuthPrompt2 = ({ open, onOpenChange, message }: AuthPromptProps) => {
+  return <AuthPrompt isOpen={open} onClose={() => onOpenChange(false)} message={message} />;
+};
 
 const UniversityDetail = () => {
   const { universityId } = useParams<{ universityId: string }>();
@@ -72,7 +80,7 @@ const UniversityDetail = () => {
         }
 
         if (data) {
-          setUniversity(data as University);
+          setUniversity(assertData<University>(data));
         } else {
           toast({
             title: "Not found",
@@ -289,7 +297,15 @@ const UniversityDetail = () => {
                               <p className="text-sm text-muted-foreground mb-4">
                                 Once you've selected your date and duration, proceed to select your parking slot.
                               </p>
-                              <Button className="w-full" onClick={() => document.querySelector('[data-value="slots"]')?.click()}>
+                              <Button 
+                                className="w-full" 
+                                onClick={() => {
+                                  const tabElement = document.querySelector('[data-value="slots"]');
+                                  if (tabElement instanceof HTMLElement) {
+                                    tabElement.click();
+                                  }
+                                }}
+                              >
                                 Continue to Slot Selection
                               </Button>
                             </div>
@@ -385,9 +401,9 @@ const UniversityDetail = () => {
       
       {/* Auth Prompt Dialog */}
       {showAuthPrompt && (
-        <AuthPrompt 
-          isOpen={showAuthPrompt} 
-          onClose={() => setShowAuthPrompt(false)}
+        <AuthPrompt2
+          open={showAuthPrompt}
+          onOpenChange={setShowAuthPrompt}
           message="You need to be logged in to book a parking spot."
         />
       )}

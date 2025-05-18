@@ -1,7 +1,7 @@
 
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/components/ui/use-toast";
-import { ParkingSlot } from "@/types/parking";
+import { ParkingSlot, assertData } from "@/types/parking";
 
 interface UniversityBookingInput {
   universityId: string;
@@ -99,7 +99,7 @@ export async function createUniversityBooking({
     const totalAmount = selectedSlots.reduce((sum, slot) => sum + (slot.price * hours), 0);
     
     // Create a booking record
-    const { data: booking, error: bookingError } = await supabase
+    const { data: bookingData, error: bookingError } = await supabase
       .from("university_bookings")
       .insert({
         university_id: universityId,
@@ -124,6 +124,7 @@ export async function createUniversityBooking({
       throw bookingError;
     }
 
+    const booking = assertData<{ id: string }>(bookingData);
     const bookingId = booking.id;
     
     // Reserve each parking slot for this booking
@@ -167,12 +168,14 @@ export async function createUniversityBooking({
         throw layoutError;
       }
       
+      const layout = assertData<{ id: string }>(layoutData);
+      
       // Create the booking_slot entry to link the booking with this layout
       const { error: slotError } = await supabase
         .from("university_booking_slots")
         .insert({
           booking_id: bookingId,
-          parking_layout_id: layoutData.id
+          parking_layout_id: layout.id
         });
         
       if (slotError) {
@@ -187,7 +190,7 @@ export async function createUniversityBooking({
     }
 
     // Update available parking slots count
-    const { error: updateError } = await supabase
+    await supabase
       .from("universities")
       .update({ 
         available_parking_slots: supabase.rpc('decrement', { 
@@ -196,10 +199,6 @@ export async function createUniversityBooking({
         })
       })
       .eq("id", universityId);
-      
-    if (updateError) {
-      console.error("Error updating available slots:", updateError);
-    }
 
     return bookingId;
   } catch (error) {

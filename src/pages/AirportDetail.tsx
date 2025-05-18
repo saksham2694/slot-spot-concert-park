@@ -9,7 +9,7 @@ import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { Plane, CalendarIcon } from "lucide-react";
 import { Airport } from "@/types/airport";
-import { ParkingSlot } from "@/types/parking";
+import { ParkingSlot, assertData } from "@/types/parking";
 import { Card, CardContent } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Calendar } from "@/components/ui/calendar";
@@ -20,6 +20,16 @@ import AirportParkingLayout from "@/components/parking/AirportParkingLayout";
 import AuthPrompt from "@/components/event/AuthPrompt";
 import BookingConfirmation from "@/components/airport/BookingConfirmation";
 import { createAirportBooking } from "@/services/airportBookingService";
+
+interface AuthPromptProps {
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+  message: string;
+}
+
+const AuthPrompt2 = ({ open, onOpenChange, message }: AuthPromptProps) => {
+  return <AuthPrompt isOpen={open} onClose={() => onOpenChange(false)} message={message} />;
+};
 
 const AirportDetail = () => {
   const { airportId } = useParams<{ airportId: string }>();
@@ -70,7 +80,7 @@ const AirportDetail = () => {
         }
 
         if (data) {
-          setAirport(data as Airport);
+          setAirport(assertData<Airport>(data));
         } else {
           toast({
             title: "Not found",
@@ -287,7 +297,15 @@ const AirportDetail = () => {
                               <p className="text-sm text-muted-foreground mb-4">
                                 Once you've selected your date and duration, proceed to select your parking slot.
                               </p>
-                              <Button className="w-full" onClick={() => document.querySelector('[data-value="slots"]')?.click()}>
+                              <Button 
+                                className="w-full" 
+                                onClick={() => {
+                                  const tabElement = document.querySelector('[data-value="slots"]');
+                                  if (tabElement instanceof HTMLElement) {
+                                    tabElement.click();
+                                  }
+                                }}
+                              >
                                 Continue to Slot Selection
                               </Button>
                             </div>
@@ -383,9 +401,9 @@ const AirportDetail = () => {
       
       {/* Auth Prompt Dialog */}
       {showAuthPrompt && (
-        <AuthPrompt 
-          isOpen={showAuthPrompt} 
-          onClose={() => setShowAuthPrompt(false)}
+        <AuthPrompt2
+          open={showAuthPrompt}
+          onOpenChange={setShowAuthPrompt}
           message="You need to be logged in to book a parking spot."
         />
       )}

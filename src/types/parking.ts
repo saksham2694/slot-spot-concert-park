@@ -1,3 +1,4 @@
+
 export type SlotState = "available" | "reserved" | "selected";
 
 export interface ParkingSlot {
@@ -45,3 +46,12 @@ export type AirportReservedSpot = {
   column_number: number;
   price: number;
 };
+
+// Add safe type assertion helper
+export function assertData<T>(data: any): T {
+  if (data && !('error' in data)) {
+    return data as T;
+  }
+  console.error('Error in data:', data);
+  throw new Error('Invalid data returned from database');
+}

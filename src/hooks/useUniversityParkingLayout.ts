@@ -1,7 +1,7 @@
 
 import { useState, useEffect, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
-import { ParkingSlot, UniversityReservedSpot } from "@/types/parking";
+import { ParkingSlot, UniversityReservedSpot, assertData } from "@/types/parking";
 import { useToast } from "@/hooks/use-toast";
 
 export function useUniversityParkingLayout(universityId: string, totalSlots: number, hourlyRate: number) {
@@ -21,7 +21,7 @@ export function useUniversityParkingLayout(universityId: string, totalSlots: num
     
     try {
       // Fetch all reserved parking spots for this university
-      const { data: reservedSpots, error } = await supabase
+      const { data: queryData, error } = await supabase
         .from("university_parking_layouts")
         .select("row_number, column_number, price")
         .eq("university_id", universityId)
@@ -38,9 +38,12 @@ export function useUniversityParkingLayout(universityId: string, totalSlots: num
         return;
       }
       
+      // Safely cast the data with proper type checking
+      const reservedSpots = queryData ? assertData<UniversityReservedSpot[]>(queryData) : [];
+      
       // Create a map of reserved spots for quick lookup
       const reservedSpotsMap = new Map<string, number>();
-      (reservedSpots || []).forEach((spot: UniversityReservedSpot) => {
+      reservedSpots.forEach((spot: UniversityReservedSpot) => {
         const key = `R${spot.row_number}C${spot.column_number}`;
         reservedSpotsMap.set(key, spot.price);
       });
