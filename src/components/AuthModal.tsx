@@ -13,6 +13,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { toast } from "@/components/ui/use-toast";
+import { Loader2 } from "lucide-react";
 
 interface AuthModalProps {
   open: boolean;
@@ -35,7 +36,10 @@ const AuthModal = ({ open, onOpenChange }: AuthModalProps) => {
 
     try {
       if (isLogin) {
-        await signIn({ email, password });
+        console.log("Attempting to sign in with email:", email);
+        const result = await signIn({ email, password });
+        console.log("Sign in result:", result);
+        
         toast({
           title: "Welcome back!",
           description: "You've successfully signed in.",
@@ -47,6 +51,7 @@ const AuthModal = ({ open, onOpenChange }: AuthModalProps) => {
             description: "Please provide both first and last name.",
             variant: "destructive",
           });
+          setIsLoading(false);
           return;
         }
 
@@ -108,6 +113,7 @@ const AuthModal = ({ open, onOpenChange }: AuthModalProps) => {
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
                   required
+                  disabled={isLoading}
                 />
               </div>
               <div className="space-y-2">
@@ -118,11 +124,17 @@ const AuthModal = ({ open, onOpenChange }: AuthModalProps) => {
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   required
+                  disabled={isLoading}
                 />
               </div>
               
               <Button type="submit" className="w-full" disabled={isLoading}>
-                {isLoading ? "Processing..." : "Sign In"}
+                {isLoading ? (
+                  <>
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    Processing...
+                  </>
+                ) : "Sign In"}
               </Button>
             </TabsContent>
             
@@ -136,6 +148,7 @@ const AuthModal = ({ open, onOpenChange }: AuthModalProps) => {
                     value={firstName}
                     onChange={(e) => setFirstName(e.target.value)}
                     required
+                    disabled={isLoading}
                   />
                 </div>
                 <div className="space-y-2">
@@ -146,6 +159,7 @@ const AuthModal = ({ open, onOpenChange }: AuthModalProps) => {
                     value={lastName}
                     onChange={(e) => setLastName(e.target.value)}
                     required
+                    disabled={isLoading}
                   />
                 </div>
               </div>
@@ -159,6 +173,7 @@ const AuthModal = ({ open, onOpenChange }: AuthModalProps) => {
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
                   required
+                  disabled={isLoading}
                 />
               </div>
               <div className="space-y-2">
@@ -169,11 +184,17 @@ const AuthModal = ({ open, onOpenChange }: AuthModalProps) => {
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   required
+                  disabled={isLoading}
                 />
               </div>
               
               <Button type="submit" className="w-full" disabled={isLoading}>
-                {isLoading ? "Processing..." : "Create Account"}
+                {isLoading ? (
+                  <>
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    Processing...
+                  </>
+                ) : "Create Account"}
               </Button>
             </TabsContent>
           </form>

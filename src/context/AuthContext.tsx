@@ -1,17 +1,14 @@
+
 import React, { createContext, useState, useEffect, useContext } from 'react';
-import {
-  Session,
-  User as SupabaseUser,
-  useSession,
-  useSupabaseClient,
-} from '@supabase/auth-helpers-react';
+import { Session, User } from '@supabase/supabase-js';
+import { supabase } from '@/integrations/supabase/client';
 import { Database } from '@/integrations/supabase/types';
 
 type Profile = Database['public']['Tables']['profiles']['Row'];
 
 interface AuthContextType {
   session: Session | null;
-  user: SupabaseUser | null;
+  user: User | null;
   profile: Profile | null;
   isLoading: boolean;
   signUp: (details: any) => Promise<any>;
@@ -33,38 +30,70 @@ export function useAuth() {
 }
 
 export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
+  const [session, setSession] = useState<Session | null>(null);
+  const [user, setUser] = useState<User | null>(null);
   const [profile, setProfile] = useState<Profile | null>(null);
   const [isLoading, setIsLoading] = useState(true);
-  const session = useSession();
-  const user = session?.user ?? null;
-  const supabase = useSupabaseClient<Database>();
 
   useEffect(() => {
-    const getProfile = async () => {
-      setIsLoading(true);
-      try {
-        if (user) {
-          let { data, error, status } = await supabase
-            .from('profiles')
-            .select(`first_name, last_name, avatar_url`)
-            .eq('id', user.id)
-            .single();
-
-          if (error && status !== 406) {
-            throw error;
-          }
-
-          setProfile(data);
+    // Set up auth state listener
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(
+      (event, currentSession) => {
+        console.log("Auth state changed:", event);
+        setSession(currentSession);
+        setUser(currentSession?.user ?? null);
+        
+        // Defer profile loading to prevent deadlocks
+        if (currentSession?.user) {
+          setTimeout(() => {
+            getProfile(currentSession.user.id);
+          }, 0);
+        } else {
+          setProfile(null);
         }
-      } catch (error: any) {
-        console.error('Error fetching profile:', error.message);
-      } finally {
-        setIsLoading(false);
       }
-    };
+    );
 
-    getProfile();
-  }, [session, user, supabase]);
+    // Check for existing session
+    supabase.auth.getSession().then(({ data: { session: currentSession } }) => {
+      console.log("Initial session check:", currentSession ? "Session found" : "No session");
+      setSession(currentSession);
+      setUser(currentSession?.user ?? null);
+      
+      if (currentSession?.user) {
+        getProfile(currentSession.user.id);
+      }
+      
+      setIsLoading(false);
+    });
+
+    return () => {
+      subscription.unsubscribe();
+    };
+  }, []);
+
+  const getProfile = async (userId: string) => {
+    try {
+      setIsLoading(true);
+      let { data, error, status } = await supabase
+        .from('profiles')
+        .select('*')
+        .eq('id', userId)
+        .single();
+
+      if (error && status !== 406) {
+        throw error;
+      }
+
+      if (data) {
+        setProfile(data);
+      }
+    } catch (error: any) {
+      console.error('Error fetching profile:', error.message);
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
   async function signUp(details: any) {
     const { email, password, firstName, lastName } = details;
@@ -80,11 +109,13 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
           },
         },
       });
+      
       if (error) throw error;
       alert('Please check your email to verify your account!');
       return data;
     } catch (error: any) {
       alert(error.error_description || error.message);
+      throw error;
     } finally {
       setIsLoading(false);
     }
@@ -94,14 +125,16 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     const { email, password } = details;
     try {
       setIsLoading(true);
-      let { data, error } = await supabase.auth.signInWithPassword({
+      const { data, error } = await supabase.auth.signInWithPassword({
         email,
         password,
       });
+      
       if (error) throw error;
       return data;
     } catch (error: any) {
       alert(error.error_description || error.message);
+      throw error;
     } finally {
       setIsLoading(false);
     }
@@ -121,13 +154,25 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   async function updateProfile(updates: any) {
     try {
       setIsLoading(true);
+      
+      if (!user) throw new Error('No user logged in');
+      
       const { error } = await supabase.from('profiles').upsert({
-        id: user?.id,
+        id: user.id,
         ...updates,
       });
+      
       if (error) throw error;
+      
       alert('Profile updated!');
-      setProfile({ ...profile, ...updates });
+      
+      // Update local profile state with the updates
+      if (profile) {
+        setProfile({
+          ...profile,
+          ...updates
+        });
+      }
     } catch (error: any) {
       alert(error.error_description || error.message);
     } finally {
@@ -177,7 +222,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         signOut,
         updateProfile,
         checkIfAdmin,
-        checkIfVendor, // Add this line to include the new function
+        checkIfVendor,
       }}
     >
       {children}
