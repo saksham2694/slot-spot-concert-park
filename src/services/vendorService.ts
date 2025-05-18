@@ -180,15 +180,14 @@ export const verifyAndCheckInByQR = async (bookingId: string): Promise<boolean> 
   try {
     console.log("Verifying booking with ID:", bookingId);
     
-    // First, check if booking exists without status filter to see if it exists at all
-    const { data: bookingCheck, error: checkError } = await supabase
+    // Fix: Query the bookings table directly without using .maybeSingle() initially
+    const { data: bookingData, error: bookingError } = await supabase
       .from("bookings")
       .select("id, status")
-      .eq("id", bookingId)
-      .maybeSingle();
+      .eq("id", bookingId);
 
-    if (checkError) {
-      console.error("Error checking booking:", checkError);
+    if (bookingError) {
+      console.error("Error checking booking:", bookingError);
       toast({
         title: "Error",
         description: "Error verifying booking information. Please try again.",
@@ -198,7 +197,7 @@ export const verifyAndCheckInByQR = async (bookingId: string): Promise<boolean> 
     }
 
     // Log what we found for debugging
-    if (!bookingCheck) {
+    if (!bookingData || bookingData.length === 0) {
       console.error("No booking found with ID:", bookingId);
       toast({
         title: "Invalid QR Code",
@@ -206,40 +205,18 @@ export const verifyAndCheckInByQR = async (bookingId: string): Promise<boolean> 
         variant: "destructive"
       });
       return false;
-    } else {
-      console.log("Found booking with status:", bookingCheck.status);
-      
-      // If booking exists but is not confirmed
-      if (bookingCheck.status !== 'confirmed') {
-        toast({
-          title: "Invalid Booking Status",
-          description: `Booking found but status is '${bookingCheck.status}'. Only confirmed bookings can be checked in.`,
-          variant: "destructive"
-        });
-        return false;
-      }
-    }
+    } 
     
-    // Now get the confirmed booking
-    const { data: bookingData, error: bookingError } = await supabase
-      .from("bookings")
-      .select("id")
-      .eq("id", bookingId)
-      .eq("status", "confirmed")
-      .maybeSingle();
-
-    if (bookingError) {
-      console.error("Error finding confirmed booking:", bookingError);
+    console.log("Found booking data:", bookingData);
+    const booking = bookingData[0];
+      
+    // If booking exists but is not confirmed
+    if (booking.status !== 'confirmed') {
       toast({
-        title: "Error",
-        description: "Error verifying booking information. Please try again.",
+        title: "Invalid Booking Status",
+        description: `Booking found but status is '${booking.status}'. Only confirmed bookings can be checked in.`,
         variant: "destructive"
       });
-      return false;
-    }
-
-    if (!bookingData) {
-      console.log("No confirmed booking found with ID:", bookingId);
       return false;
     }
 
@@ -266,6 +243,14 @@ export const verifyAndCheckInByQR = async (bookingId: string): Promise<boolean> 
         });
         return false;
       }
+    } else {
+      console.log("No associated booking slots found for booking ID:", bookingId);
+      toast({
+        title: "Booking Error",
+        description: "Booking found but no associated parking slots were found.",
+        variant: "destructive"
+      });
+      return false;
     }
 
     // Use the database function to mark customer as arrived

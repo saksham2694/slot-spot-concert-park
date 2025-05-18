@@ -1,5 +1,5 @@
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
 import { QrReader } from "react-qr-reader";
 import { verifyAndCheckInByQR } from "@/services/vendorService";
@@ -19,6 +19,11 @@ const QRScanner = () => {
   const [activeTab, setActiveTab] = useState<string>("manual");
   const [lastScannedCode, setLastScannedCode] = useState<string | null>(null);
   const [scanDelay, setScanDelay] = useState<number>(500);
+
+  // Reset scan result when changing tabs
+  useEffect(() => {
+    setScanResult(null);
+  }, [activeTab]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -49,7 +54,6 @@ const QRScanner = () => {
 
     setIsProcessing(true);
     setScanResult(null);
-    setLastScannedCode(code);
     
     try {
       // Temporarily increase scan delay to avoid multiple scans
@@ -57,7 +61,7 @@ const QRScanner = () => {
 
       // Extract booking ID from QR code if it matches the expected format
       const bookingId = extractBookingId(code);
-      console.log("Extracted booking ID:", bookingId);
+      console.log("Processing booking ID:", bookingId);
       
       // Check if the booking ID looks like a valid UUID
       const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
@@ -69,6 +73,9 @@ const QRScanner = () => {
         setIsProcessing(false);
         return;
       }
+      
+      // Update lastScannedCode after validating to prevent duplicate scans
+      setLastScannedCode(code);
       
       const success = await verifyAndCheckInByQR(bookingId);
       
@@ -103,7 +110,7 @@ const QRScanner = () => {
   const handleScan = (result: any) => {
     if (result && !isProcessing) {
       const scannedData = result?.text;
-      if (scannedData && scannedData !== lastScannedCode) {
+      if (scannedData && (!lastScannedCode || scannedData !== lastScannedCode)) {
         console.log("Scanned QR code value:", scannedData);
         setQrCode(scannedData);
         processQrCode(scannedData);
