@@ -181,16 +181,29 @@ export const verifyAndCheckInByQR = async (bookingId: string): Promise<boolean> 
   try {
     console.log("Verifying booking with ID:", bookingId);
     
-    // First, find the booking by ID
+    // First, find the booking by ID, using maybeSingle() instead of single()
+    // to avoid errors when no rows are found
     const { data: bookingData, error: bookingError } = await supabase
       .from("bookings")
       .select("id")
       .eq("id", bookingId)
       .eq("status", "confirmed")
-      .single();
+      .maybeSingle();  // Use maybeSingle() instead of single()
 
-    if (bookingError || !bookingData) {
+    // Check if we have an error (not including "no rows" errors which maybeSingle handles)
+    if (bookingError) {
       console.error("Error finding booking by ID:", bookingError);
+      toast({
+        title: "Error",
+        description: "Error verifying booking information. Please try again.",
+        variant: "destructive"
+      });
+      return false;
+    }
+
+    // Check if we actually found a booking
+    if (!bookingData) {
+      console.log("No valid booking found with ID:", bookingId);
       toast({
         title: "Invalid QR Code",
         description: "No valid booking found for this booking ID.",

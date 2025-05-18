@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { ArrowLeft, Scan, CheckCircle2, X, Camera } from "lucide-react";
+import { ArrowLeft, Scan, CheckCircle2, X, Camera, AlertCircle } from "lucide-react";
 
 const QRScanner = () => {
   const [qrCode, setQrCode] = useState<string>("");
@@ -17,6 +17,7 @@ const QRScanner = () => {
     message: string;
   } | null>(null);
   const [activeTab, setActiveTab] = useState<string>("manual");
+  const [lastScannedCode, setLastScannedCode] = useState<string | null>(null);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -39,11 +40,23 @@ const QRScanner = () => {
   const processQrCode = async (code: string) => {
     setIsProcessing(true);
     setScanResult(null);
+    setLastScannedCode(code);
 
     try {
       // Extract booking ID from QR code if it matches the expected format
       const bookingId = extractBookingId(code);
       console.log("Extracted booking ID:", bookingId);
+      
+      // Check if the booking ID looks like a valid UUID
+      const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+      if (!uuidRegex.test(bookingId)) {
+        setScanResult({
+          success: false,
+          message: "Invalid QR code format. Expected a valid booking ID.",
+        });
+        setIsProcessing(false);
+        return;
+      }
       
       const success = await verifyAndCheckInByQR(bookingId);
       
@@ -73,7 +86,7 @@ const QRScanner = () => {
   const handleScan = (result: any) => {
     if (result && !isProcessing) {
       const scannedData = result?.text;
-      if (scannedData) {
+      if (scannedData && scannedData !== lastScannedCode) {
         setQrCode(scannedData);
         processQrCode(scannedData);
       }
@@ -172,6 +185,10 @@ const QRScanner = () => {
         )}
 
         <div className="text-sm text-muted-foreground mt-4">
+          <p className="flex items-center gap-1.5 mb-2">
+            <AlertCircle className="h-4 w-4 text-amber-500" />
+            <strong>Important:</strong> Make sure the booking is in "confirmed" status.
+          </p>
           <p>
             Verify customer bookings by scanning their QR code or entering the code value.
           </p>
