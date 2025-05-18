@@ -2,7 +2,7 @@
 import { Button } from "@/components/ui/button";
 import { useNavigate } from "react-router-dom";
 import { Event } from "@/types/event";
-import { Ticket, IndianRupee, Download, QrCode } from "lucide-react";
+import { Ticket, IndianRupee, Download, QrCode, Info } from "lucide-react";
 import { toast } from "@/components/ui/use-toast";
 import { downloadBookingPDF, showQRCode } from "@/services/pdfService";
 import { useState } from "react";
@@ -15,6 +15,7 @@ import {
   DialogDescription,
   DialogClose,
 } from "@/components/ui/dialog";
+import { Badge } from "@/components/ui/badge";
 
 interface BookingConfirmationProps {
   event: Event;
@@ -61,13 +62,29 @@ const BookingConfirmation = ({
         Your parking spot{selectedSlots.length > 1 ? 's' : ''} for {event.title} {selectedSlots.length > 1 ? 'have' : 'has'} been reserved.
       </p>
       
-      <div className="mb-6 flex justify-center">
-        <img
-          src={`https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${encodeURIComponent(qrCodeData)}`}
-          alt="Booking QR Code"
-          className="border rounded-lg p-3 max-w-full h-auto cursor-pointer"
-          onClick={() => setQrDialogOpen(true)}
-        />
+      <div className="mb-6 flex flex-col items-center">
+        <div className="relative">
+          <img
+            src={`https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${encodeURIComponent(qrCodeData)}`}
+            alt="Booking QR Code"
+            className="border rounded-lg p-3 max-w-full h-auto cursor-pointer"
+            onClick={() => setQrDialogOpen(true)}
+          />
+          <Badge className="absolute bottom-2 right-2 bg-black/70 text-white hover:bg-black/70">
+            Click to enlarge
+          </Badge>
+        </div>
+        
+        <div className="mt-3 text-sm px-4 py-2 bg-muted rounded-md">
+          <div className="flex items-center gap-2">
+            <Info className="h-4 w-4 text-blue-500" />
+            <p>
+              Present this QR code at the venue for check-in
+            </p>
+          </div>
+          {/* Display QR code data if we want to show it */}
+          {/* <p className="mt-1 font-mono text-xs text-muted-foreground select-all">{qrCodeData}</p> */}
+        </div>
       </div>
       
       <div className="bg-muted p-4 rounded-lg mb-6 text-left">
@@ -117,6 +134,7 @@ const BookingConfirmation = ({
             <DialogTitle>Your Booking QR Code</DialogTitle>
             <DialogDescription>
               Present this QR code at the venue entrance for verification.
+              When scanned by venue staff, this will check you in automatically.
             </DialogDescription>
           </DialogHeader>
           <div className="flex flex-col items-center justify-center p-4">

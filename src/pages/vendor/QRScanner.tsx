@@ -1,11 +1,13 @@
 
 import { useState } from "react";
 import { Link } from "react-router-dom";
+import { QrReader } from "react-qr-reader";
 import { verifyAndCheckInByQR } from "@/services/vendorService";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card } from "@/components/ui/card";
-import { ArrowLeft, Scan, CheckCircle2, X } from "lucide-react";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { ArrowLeft, Scan, CheckCircle2, X, Camera } from "lucide-react";
 
 const QRScanner = () => {
   const [qrCode, setQrCode] = useState<string>("");
@@ -14,16 +16,21 @@ const QRScanner = () => {
     success: boolean;
     message: string;
   } | null>(null);
+  const [activeTab, setActiveTab] = useState<string>("manual");
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!qrCode.trim()) return;
 
+    processQrCode(qrCode);
+  };
+
+  const processQrCode = async (code: string) => {
     setIsProcessing(true);
     setScanResult(null);
 
     try {
-      const success = await verifyAndCheckInByQR(qrCode);
+      const success = await verifyAndCheckInByQR(code);
       
       if (success) {
         setScanResult({
@@ -42,6 +49,24 @@ const QRScanner = () => {
     }
   };
 
+  const handleScan = (result: any) => {
+    if (result && !isProcessing) {
+      const scannedData = result?.text;
+      if (scannedData) {
+        setQrCode(scannedData);
+        processQrCode(scannedData);
+      }
+    }
+  };
+
+  const handleScanError = (error: any) => {
+    console.error("QR scan error:", error);
+    setScanResult({
+      success: false,
+      message: "Error scanning QR code. Please try again or use manual entry.",
+    });
+  };
+
   return (
     <div className="max-w-md mx-auto">
       <div className="flex items-center gap-2 mb-6">
@@ -54,59 +79,86 @@ const QRScanner = () => {
       </div>
       
       <Card className="p-6">
-        <form onSubmit={handleSubmit} className="space-y-4">
-          <div className="flex items-center space-x-2">
-            <Input
-              type="text"
-              placeholder="Enter QR code value"
-              value={qrCode}
-              onChange={(e) => setQrCode(e.target.value)}
-              className="flex-1"
-              disabled={isProcessing}
-            />
-            <Button type="submit" disabled={!qrCode.trim() || isProcessing}>
-              {isProcessing ? (
-                <span className="flex items-center">
-                  <Scan className="mr-2 h-4 w-4 animate-pulse" />
-                  Processing...
-                </span>
-              ) : (
-                <span className="flex items-center">
-                  <Scan className="mr-2 h-4 w-4" />
-                  Verify
-                </span>
-              )}
-            </Button>
-          </div>
-
-          {scanResult && (
-            <div
-              className={`p-4 rounded-md mt-4 ${
-                scanResult.success
-                  ? "bg-green-500/10 text-green-700"
-                  : "bg-red-500/10 text-red-700"
-              }`}
-            >
-              <div className="flex items-center gap-2">
-                {scanResult.success ? (
-                  <CheckCircle2 className="h-5 w-5" />
-                ) : (
-                  <X className="h-5 w-5" />
-                )}
-                <p>{scanResult.message}</p>
+        <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
+          <TabsList className="grid w-full grid-cols-2 mb-4">
+            <TabsTrigger value="manual">Manual Entry</TabsTrigger>
+            <TabsTrigger value="camera">Camera Scan</TabsTrigger>
+          </TabsList>
+          
+          <TabsContent value="manual">
+            <form onSubmit={handleSubmit} className="space-y-4">
+              <div className="flex items-center space-x-2">
+                <Input
+                  type="text"
+                  placeholder="Enter QR code value"
+                  value={qrCode}
+                  onChange={(e) => setQrCode(e.target.value)}
+                  className="flex-1"
+                  disabled={isProcessing}
+                />
+                <Button type="submit" disabled={!qrCode.trim() || isProcessing}>
+                  {isProcessing ? (
+                    <span className="flex items-center">
+                      <Scan className="mr-2 h-4 w-4 animate-pulse" />
+                      Processing...
+                    </span>
+                  ) : (
+                    <span className="flex items-center">
+                      <Scan className="mr-2 h-4 w-4" />
+                      Verify
+                    </span>
+                  )}
+                </Button>
               </div>
+            </form>
+          </TabsContent>
+          
+          <TabsContent value="camera" className="space-y-4">
+            <div className="rounded border overflow-hidden">
+              <QrReader
+                constraints={{ facingMode: 'environment' }}
+                onResult={handleScan}
+                scanDelay={500}
+                className="w-full"
+                videoStyle={{ objectFit: 'cover', width: '100%' }}
+                videoContainerStyle={{ width: '100%', height: 'auto', minHeight: '250px', maxHeight: '300px' }}
+                onError={handleScanError}
+              />
             </div>
-          )}
+            <div className="text-center text-sm text-muted-foreground mt-2">
+              <p>Point your camera at a customer's QR code</p>
+              {isProcessing && <p className="mt-2 font-medium text-primary">Processing scan...</p>}
+            </div>
+          </TabsContent>
+        </Tabs>
 
-          <div className="text-sm text-muted-foreground mt-4">
-            <p>
-              Enter the QR code value shown on the customer's booking confirmation.
-            </p>
-            <p className="mt-2">
-              This will verify the booking and mark the customer as arrived.
-            </p>
+        {scanResult && (
+          <div
+            className={`p-4 rounded-md mt-4 ${
+              scanResult.success
+                ? "bg-green-500/10 text-green-700"
+                : "bg-red-500/10 text-red-700"
+            }`}
+          >
+            <div className="flex items-center gap-2">
+              {scanResult.success ? (
+                <CheckCircle2 className="h-5 w-5" />
+              ) : (
+                <X className="h-5 w-5" />
+              )}
+              <p>{scanResult.message}</p>
+            </div>
           </div>
-        </form>
+        )}
+
+        <div className="text-sm text-muted-foreground mt-4">
+          <p>
+            Verify customer bookings by scanning their QR code or entering the code value.
+          </p>
+          <p className="mt-2">
+            The QR code contains a unique identifier that links to their booking.
+          </p>
+        </div>
       </Card>
     </div>
   );
