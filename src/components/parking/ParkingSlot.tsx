@@ -1,6 +1,6 @@
 
 import React from 'react';
-import { Car, IndianRupee } from 'lucide-react';
+import { Car } from 'lucide-react';
 import {
   Tooltip,
   TooltipContent,
@@ -37,7 +37,7 @@ const ParkingSlotButton = ({ slot, onClick }: ParkingSlotProps) => {
         <TooltipContent>
           <div className="text-sm">
             <p className="font-semibold">{slot.id}</p>
-            <p className="flex items-center">Price: <IndianRupee className="h-3 w-3 mx-1" />{slot.price}</p>
+            <p className="flex items-center">Price: ₹{slot.price}</p>
             <p>
               Status:{" "}
               {slot.state === "available"

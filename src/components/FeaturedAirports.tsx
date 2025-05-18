@@ -9,16 +9,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Plane } from "lucide-react";
 import { Link } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
-
-type Airport = {
-  id: string;
-  name: string;
-  location: string;
-  image_url: string | null;
-  total_parking_slots: number;
-  available_parking_slots: number;
-  hourly_rate: number;
-};
+import { Airport } from "@/types/airport";
 
 const fetchAirports = async (): Promise<Airport[]> => {
   const { data, error } = await supabase
@@ -84,7 +75,7 @@ const FeaturedAirports = () => {
                   )}
                   <div className="absolute top-2 right-2">
                     <Badge className="bg-primary">
-                      ${airport.hourly_rate.toFixed(2)}/hr
+                      ₹{airport.hourly_rate.toFixed(2)}/hr
                     </Badge>
                   </div>
                 </div>

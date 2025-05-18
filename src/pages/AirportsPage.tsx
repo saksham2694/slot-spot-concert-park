@@ -136,7 +136,7 @@ const AirportsPage = () => {
                     )}
                     <div className="absolute top-2 right-2">
                       <Badge className="bg-primary">
-                        ${airport.hourly_rate.toFixed(2)}/hr
+                        ₹{airport.hourly_rate.toFixed(2)}/hr
                       </Badge>
                     </div>
                   </div>

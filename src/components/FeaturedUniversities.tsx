@@ -45,7 +45,7 @@ const FeaturedUniversities = () => {
   });
 
   return (
-    <section className="py-12 bg-muted/50">
+    <section className="py-12">
       <div className="container">
         <div className="flex justify-between items-center mb-6">
           <h2 className="text-2xl font-bold">Featured Universities</h2>
@@ -84,7 +84,7 @@ const FeaturedUniversities = () => {
                   )}
                   <div className="absolute top-2 right-2">
                     <Badge className="bg-primary">
-                      ${university.hourly_rate.toFixed(2)}/hr
+                      ₹{university.hourly_rate.toFixed(2)}/hr
                     </Badge>
                   </div>
                 </div>
