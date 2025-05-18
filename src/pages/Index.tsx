@@ -4,7 +4,7 @@ import HeroSection from "@/components/HeroSection";
 import FeaturedEvents from "@/components/FeaturedEvents";
 import Footer from "@/components/Footer";
 import { Button } from "@/components/ui/button";
-import { Car, Clock, CreditCard, MapPin, Shield, Star } from "lucide-react";
+import { Car, Clock, CreditCard, MapPin, Shield, Star, Building, Plane } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 
 const Index = () => {
@@ -19,13 +19,13 @@ const Index = () => {
         
         <FeaturedEvents />
         
-        {/* How It Works Section */}
+        {/* Parking Options Section */}
         <section className="py-16 bg-muted">
           <div className="container">
             <div className="text-center mb-12">
-              <h2 className="text-3xl font-bold mb-4">How It Works</h2>
+              <h2 className="text-3xl font-bold mb-4">Our Parking Solutions</h2>
               <p className="text-lg text-muted-foreground max-w-2xl mx-auto">
-                Find and book parking spots for your favorite events in just a few simple steps
+                Find and book parking spots for various locations based on your needs
               </p>
             </div>
             
@@ -34,9 +34,62 @@ const Index = () => {
                 <div className="bg-primary/10 w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4">
                   <MapPin className="h-8 w-8 text-primary" />
                 </div>
-                <h3 className="text-xl font-semibold mb-2">Find Your Event</h3>
+                <h3 className="text-xl font-semibold mb-2">Event Parking</h3>
+                <p className="text-muted-foreground mb-4">
+                  Secure your parking spot for concerts, games, and special events
+                </p>
+                <Button onClick={() => navigate("/events")} variant="outline" className="mt-2">
+                  Browse Events
+                </Button>
+              </div>
+              
+              <div className="bg-card p-6 rounded-lg text-center">
+                <div className="bg-primary/10 w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4">
+                  <Building className="h-8 w-8 text-primary" />
+                </div>
+                <h3 className="text-xl font-semibold mb-2">University Parking</h3>
+                <p className="text-muted-foreground mb-4">
+                  Book campus parking spots for students, faculty, and visitors
+                </p>
+                <Button onClick={() => navigate("/universities")} variant="outline" className="mt-2">
+                  Find Universities
+                </Button>
+              </div>
+              
+              <div className="bg-card p-6 rounded-lg text-center">
+                <div className="bg-primary/10 w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4">
+                  <Plane className="h-8 w-8 text-primary" />
+                </div>
+                <h3 className="text-xl font-semibold mb-2">Airport Parking</h3>
+                <p className="text-muted-foreground mb-4">
+                  Reserve long-term or short-term parking at major airports
+                </p>
+                <Button onClick={() => navigate("/airports")} variant="outline" className="mt-2">
+                  Find Airports
+                </Button>
+              </div>
+            </div>
+          </div>
+        </section>
+        
+        {/* How It Works Section */}
+        <section className="py-16">
+          <div className="container">
+            <div className="text-center mb-12">
+              <h2 className="text-3xl font-bold mb-4">How It Works</h2>
+              <p className="text-lg text-muted-foreground max-w-2xl mx-auto">
+                Find and book parking spots in just a few simple steps
+              </p>
+            </div>
+            
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+              <div className="bg-card p-6 rounded-lg text-center">
+                <div className="bg-primary/10 w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4">
+                  <MapPin className="h-8 w-8 text-primary" />
+                </div>
+                <h3 className="text-xl font-semibold mb-2">Find Your Location</h3>
                 <p className="text-muted-foreground">
-                  Browse upcoming events or search for a specific concert, game, or venue
+                  Browse events, universities, or airports to find your desired parking location
                 </p>
               </div>
               
@@ -56,21 +109,15 @@ const Index = () => {
                 </div>
                 <h3 className="text-xl font-semibold mb-2">Book & Go</h3>
                 <p className="text-muted-foreground">
-                  Pay securely and receive a QR code for easy access on event day
+                  Pay securely and receive a QR code for easy access on arrival
                 </p>
               </div>
-            </div>
-            
-            <div className="text-center mt-10">
-              <Button onClick={() => navigate("/events")} size="lg">
-                Browse All Events
-              </Button>
             </div>
           </div>
         </section>
         
         {/* Why Choose Time2Park Section */}
-        <section className="py-16">
+        <section className="py-16 bg-muted">
           <div className="container">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-12 items-center">
               <div>
@@ -144,14 +191,17 @@ const Index = () => {
           <div className="container text-center">
             <h2 className="text-3xl font-bold mb-4">Ready to Secure Your Spot?</h2>
             <p className="text-xl mb-8 max-w-2xl mx-auto opacity-90">
-              Join thousands of event-goers who park stress-free with Time2Park
+              Join thousands of customers who park stress-free with Time2Park
             </p>
             <div className="flex flex-col sm:flex-row gap-4 justify-center">
               <Button variant="default" className="bg-white text-parking-primary hover:bg-gray-100" onClick={() => navigate("/events")}>
                 Browse Events
               </Button>
-              <Button variant="outline" className="border-white text-parking-primary hover:bg-white/10" onClick={() => navigate("/about")}>
-                Learn More
+              <Button variant="outline" className="border-white text-white hover:bg-white/10" onClick={() => navigate("/universities")}>
+                Find University Parking
+              </Button>
+              <Button variant="outline" className="border-white text-white hover:bg-white/10" onClick={() => navigate("/airports")}>
+                Find Airport Parking
               </Button>
             </div>
           </div>

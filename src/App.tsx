@@ -26,6 +26,14 @@ import VendorDashboard from "./pages/vendor/VendorDashboard";
 import EventCheckIn from "./pages/vendor/EventCheckIn";
 import QRScanner from "./pages/vendor/QRScanner";
 
+// University routes
+import UniversitiesPage from "./pages/UniversitiesPage";
+import UniversityDetail from "./pages/UniversityDetail";
+
+// Airport routes
+import AirportsPage from "./pages/AirportsPage";
+import AirportDetail from "./pages/AirportDetail";
+
 const queryClient = new QueryClient();
 
 const App = () => (
@@ -45,6 +53,14 @@ const App = () => (
               <Route path="/profile" element={<ProfilePage />} />
               <Route path="/about" element={<AboutPage />} />
               <Route path="/payment-callback" element={<PaymentCallback />} />
+              
+              {/* University Routes */}
+              <Route path="/universities" element={<UniversitiesPage />} />
+              <Route path="/universities/:universityId" element={<UniversityDetail />} />
+              
+              {/* Airport Routes */}
+              <Route path="/airports" element={<AirportsPage />} />
+              <Route path="/airports/:airportId" element={<AirportDetail />} />
               
               {/* Admin Routes */}
               <Route path="/admin" element={<AdminLayout />}>

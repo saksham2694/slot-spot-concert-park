@@ -9,6 +9,197 @@ export type Json =
 export type Database = {
   public: {
     Tables: {
+      airport_booking_slots: {
+        Row: {
+          booking_id: string
+          created_at: string
+          customer_arrived: boolean | null
+          id: string
+          parking_layout_id: string
+        }
+        Insert: {
+          booking_id: string
+          created_at?: string
+          customer_arrived?: boolean | null
+          id?: string
+          parking_layout_id: string
+        }
+        Update: {
+          booking_id?: string
+          created_at?: string
+          customer_arrived?: boolean | null
+          id?: string
+          parking_layout_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "airport_booking_slots_booking_id_fkey"
+            columns: ["booking_id"]
+            isOneToOne: false
+            referencedRelation: "airport_bookings"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "airport_booking_slots_booking_id_fkey"
+            columns: ["booking_id"]
+            isOneToOne: false
+            referencedRelation: "vendor_airport_bookings_view"
+            referencedColumns: ["booking_id"]
+          },
+          {
+            foreignKeyName: "airport_booking_slots_parking_layout_id_fkey"
+            columns: ["parking_layout_id"]
+            isOneToOne: false
+            referencedRelation: "airport_parking_layouts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "airport_booking_slots_parking_layout_id_fkey"
+            columns: ["parking_layout_id"]
+            isOneToOne: false
+            referencedRelation: "vendor_airport_bookings_view"
+            referencedColumns: ["parking_layout_id"]
+          },
+        ]
+      }
+      airport_bookings: {
+        Row: {
+          airport_id: string
+          created_at: string
+          end_date: string
+          id: string
+          payment_amount: number | null
+          payment_date: string | null
+          payment_mode: string | null
+          payment_order_id: string | null
+          payment_reference_id: string | null
+          qr_code_url: string | null
+          start_date: string
+          status: string | null
+          user_id: string | null
+        }
+        Insert: {
+          airport_id: string
+          created_at?: string
+          end_date: string
+          id?: string
+          payment_amount?: number | null
+          payment_date?: string | null
+          payment_mode?: string | null
+          payment_order_id?: string | null
+          payment_reference_id?: string | null
+          qr_code_url?: string | null
+          start_date: string
+          status?: string | null
+          user_id?: string | null
+        }
+        Update: {
+          airport_id?: string
+          created_at?: string
+          end_date?: string
+          id?: string
+          payment_amount?: number | null
+          payment_date?: string | null
+          payment_mode?: string | null
+          payment_order_id?: string | null
+          payment_reference_id?: string | null
+          qr_code_url?: string | null
+          start_date?: string
+          status?: string | null
+          user_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "airport_bookings_airport_id_fkey"
+            columns: ["airport_id"]
+            isOneToOne: false
+            referencedRelation: "airports"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "airport_bookings_airport_id_fkey"
+            columns: ["airport_id"]
+            isOneToOne: false
+            referencedRelation: "vendor_airport_bookings_view"
+            referencedColumns: ["airport_id"]
+          },
+        ]
+      }
+      airport_parking_layouts: {
+        Row: {
+          airport_id: string | null
+          column_number: number
+          id: string
+          is_reserved: boolean | null
+          price: number
+          row_number: number
+        }
+        Insert: {
+          airport_id?: string | null
+          column_number: number
+          id?: string
+          is_reserved?: boolean | null
+          price: number
+          row_number: number
+        }
+        Update: {
+          airport_id?: string | null
+          column_number?: number
+          id?: string
+          is_reserved?: boolean | null
+          price?: number
+          row_number?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "airport_parking_layouts_airport_id_fkey"
+            columns: ["airport_id"]
+            isOneToOne: false
+            referencedRelation: "airports"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "airport_parking_layouts_airport_id_fkey"
+            columns: ["airport_id"]
+            isOneToOne: false
+            referencedRelation: "vendor_airport_bookings_view"
+            referencedColumns: ["airport_id"]
+          },
+        ]
+      }
+      airports: {
+        Row: {
+          available_parking_slots: number
+          created_at: string
+          hourly_rate: number
+          id: string
+          image_url: string | null
+          location: string
+          name: string
+          total_parking_slots: number
+        }
+        Insert: {
+          available_parking_slots: number
+          created_at?: string
+          hourly_rate?: number
+          id?: string
+          image_url?: string | null
+          location: string
+          name: string
+          total_parking_slots: number
+        }
+        Update: {
+          available_parking_slots?: number
+          created_at?: string
+          hourly_rate?: number
+          id?: string
+          image_url?: string | null
+          location?: string
+          name?: string
+          total_parking_slots?: number
+        }
+        Relationships: []
+      }
       booking_slots: {
         Row: {
           booking_id: string
@@ -238,6 +429,197 @@ export type Database = {
         }
         Relationships: []
       }
+      universities: {
+        Row: {
+          available_parking_slots: number
+          created_at: string
+          hourly_rate: number
+          id: string
+          image_url: string | null
+          location: string
+          name: string
+          total_parking_slots: number
+        }
+        Insert: {
+          available_parking_slots: number
+          created_at?: string
+          hourly_rate?: number
+          id?: string
+          image_url?: string | null
+          location: string
+          name: string
+          total_parking_slots: number
+        }
+        Update: {
+          available_parking_slots?: number
+          created_at?: string
+          hourly_rate?: number
+          id?: string
+          image_url?: string | null
+          location?: string
+          name?: string
+          total_parking_slots?: number
+        }
+        Relationships: []
+      }
+      university_booking_slots: {
+        Row: {
+          booking_id: string
+          created_at: string
+          customer_arrived: boolean | null
+          id: string
+          parking_layout_id: string
+        }
+        Insert: {
+          booking_id: string
+          created_at?: string
+          customer_arrived?: boolean | null
+          id?: string
+          parking_layout_id: string
+        }
+        Update: {
+          booking_id?: string
+          created_at?: string
+          customer_arrived?: boolean | null
+          id?: string
+          parking_layout_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "university_booking_slots_booking_id_fkey"
+            columns: ["booking_id"]
+            isOneToOne: false
+            referencedRelation: "university_bookings"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "university_booking_slots_booking_id_fkey"
+            columns: ["booking_id"]
+            isOneToOne: false
+            referencedRelation: "vendor_university_bookings_view"
+            referencedColumns: ["booking_id"]
+          },
+          {
+            foreignKeyName: "university_booking_slots_parking_layout_id_fkey"
+            columns: ["parking_layout_id"]
+            isOneToOne: false
+            referencedRelation: "university_parking_layouts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "university_booking_slots_parking_layout_id_fkey"
+            columns: ["parking_layout_id"]
+            isOneToOne: false
+            referencedRelation: "vendor_university_bookings_view"
+            referencedColumns: ["parking_layout_id"]
+          },
+        ]
+      }
+      university_bookings: {
+        Row: {
+          created_at: string
+          end_date: string
+          id: string
+          payment_amount: number | null
+          payment_date: string | null
+          payment_mode: string | null
+          payment_order_id: string | null
+          payment_reference_id: string | null
+          qr_code_url: string | null
+          start_date: string
+          status: string | null
+          university_id: string
+          user_id: string | null
+        }
+        Insert: {
+          created_at?: string
+          end_date: string
+          id?: string
+          payment_amount?: number | null
+          payment_date?: string | null
+          payment_mode?: string | null
+          payment_order_id?: string | null
+          payment_reference_id?: string | null
+          qr_code_url?: string | null
+          start_date: string
+          status?: string | null
+          university_id: string
+          user_id?: string | null
+        }
+        Update: {
+          created_at?: string
+          end_date?: string
+          id?: string
+          payment_amount?: number | null
+          payment_date?: string | null
+          payment_mode?: string | null
+          payment_order_id?: string | null
+          payment_reference_id?: string | null
+          qr_code_url?: string | null
+          start_date?: string
+          status?: string | null
+          university_id?: string
+          user_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "university_bookings_university_id_fkey"
+            columns: ["university_id"]
+            isOneToOne: false
+            referencedRelation: "universities"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "university_bookings_university_id_fkey"
+            columns: ["university_id"]
+            isOneToOne: false
+            referencedRelation: "vendor_university_bookings_view"
+            referencedColumns: ["university_id"]
+          },
+        ]
+      }
+      university_parking_layouts: {
+        Row: {
+          column_number: number
+          id: string
+          is_reserved: boolean | null
+          price: number
+          row_number: number
+          university_id: string | null
+        }
+        Insert: {
+          column_number: number
+          id?: string
+          is_reserved?: boolean | null
+          price: number
+          row_number: number
+          university_id?: string | null
+        }
+        Update: {
+          column_number?: number
+          id?: string
+          is_reserved?: boolean | null
+          price?: number
+          row_number?: number
+          university_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "university_parking_layouts_university_id_fkey"
+            columns: ["university_id"]
+            isOneToOne: false
+            referencedRelation: "universities"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "university_parking_layouts_university_id_fkey"
+            columns: ["university_id"]
+            isOneToOne: false
+            referencedRelation: "vendor_university_bookings_view"
+            referencedColumns: ["university_id"]
+          },
+        ]
+      }
       user_roles: {
         Row: {
           created_at: string | null
@@ -294,6 +676,29 @@ export type Database = {
       }
     }
     Views: {
+      vendor_airport_bookings_view: {
+        Row: {
+          airport_id: string | null
+          airport_location: string | null
+          airport_name: string | null
+          booking_date: string | null
+          booking_id: string | null
+          booking_slot_id: string | null
+          booking_status: string | null
+          column_number: number | null
+          customer_arrived: boolean | null
+          customer_email: string | null
+          customer_name: string | null
+          end_date: string | null
+          parking_layout_id: string | null
+          qr_code_url: string | null
+          row_number: number | null
+          slot_id: string | null
+          start_date: string | null
+          user_id: string | null
+        }
+        Relationships: []
+      }
       vendor_bookings_view: {
         Row: {
           booking_date: string | null
@@ -312,6 +717,29 @@ export type Database = {
           qr_code_url: string | null
           row_number: number | null
           slot_id: string | null
+          user_id: string | null
+        }
+        Relationships: []
+      }
+      vendor_university_bookings_view: {
+        Row: {
+          booking_date: string | null
+          booking_id: string | null
+          booking_slot_id: string | null
+          booking_status: string | null
+          column_number: number | null
+          customer_arrived: boolean | null
+          customer_email: string | null
+          customer_name: string | null
+          end_date: string | null
+          parking_layout_id: string | null
+          qr_code_url: string | null
+          row_number: number | null
+          slot_id: string | null
+          start_date: string | null
+          university_id: string | null
+          university_location: string | null
+          university_name: string | null
           user_id: string | null
         }
         Relationships: []
