@@ -1,3 +1,4 @@
+
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/components/ui/use-toast";
 
@@ -35,8 +36,7 @@ export const fetchVendorEvents = async (): Promise<VendorEvent[]> => {
     // Get all events
     const { data: events, error: eventsError } = await supabase
       .from("events")
-      .select("id, title, date, location, image_url")
-      .order("date", { ascending: true });
+      .select("id, title, date, location, image_url");
 
     if (eventsError) {
       console.error("Error fetching events:", eventsError);
@@ -180,24 +180,29 @@ export const verifyAndCheckInByQR = async (bookingId: string): Promise<boolean> 
   try {
     console.log("Verifying booking with ID:", bookingId);
     
-    // Fix: Query the bookings table directly without using .maybeSingle() initially
-    const { data: bookingData, error: bookingError } = await supabase
+    // CHANGED: Fetch all bookings and filter client-side instead of using query params
+    const { data: allBookings, error: bookingsError } = await supabase
       .from("bookings")
-      .select("id, status")
-      .eq("id", bookingId);
-
-    if (bookingError) {
-      console.error("Error checking booking:", bookingError);
+      .select("id, status");
+    
+    if (bookingsError) {
+      console.error("Error fetching bookings:", bookingsError);
       toast({
         title: "Error",
-        description: "Error verifying booking information. Please try again.",
+        description: "Error accessing booking information. Please try again.",
         variant: "destructive"
       });
       return false;
     }
-
+    
+    // Debug: Log all bookings to see what we're getting
+    console.log("All bookings fetched:", allBookings);
+    
+    // Find the specific booking we're looking for
+    const booking = allBookings?.find(b => b.id === bookingId);
+    
     // Log what we found for debugging
-    if (!bookingData || bookingData.length === 0) {
+    if (!booking) {
       console.error("No booking found with ID:", bookingId);
       toast({
         title: "Invalid QR Code",
@@ -207,8 +212,7 @@ export const verifyAndCheckInByQR = async (bookingId: string): Promise<boolean> 
       return false;
     } 
     
-    console.log("Found booking data:", bookingData);
-    const booking = bookingData[0];
+    console.log("Found booking data:", booking);
       
     // If booking exists but is not confirmed
     if (booking.status !== 'confirmed') {

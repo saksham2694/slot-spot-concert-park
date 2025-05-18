@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { ArrowLeft, Scan, CheckCircle2, X, Camera, AlertCircle } from "lucide-react";
+import { ArrowLeft, Scan, CheckCircle2, X, AlertCircle } from "lucide-react";
 
 const QRScanner = () => {
   const [qrCode, setQrCode] = useState<string>("");
