@@ -18,6 +18,7 @@ const QRScanner = () => {
   } | null>(null);
   const [activeTab, setActiveTab] = useState<string>("manual");
   const [lastScannedCode, setLastScannedCode] = useState<string | null>(null);
+  const [scanDelay, setScanDelay] = useState<number>(500);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -26,23 +27,34 @@ const QRScanner = () => {
     processQrCode(qrCode);
   };
 
-  const extractBookingId = (qrCodeValue: string): string | null => {
+  const extractBookingId = (qrCodeValue: string): string => {
     // Try to match the format TIME2PARK-BOOKING-{uuid}
     const bookingIdMatch = qrCodeValue.match(/TIME2PARK-BOOKING-([0-9a-f-]+)/i);
     
     if (bookingIdMatch && bookingIdMatch[1]) {
+      console.log("Extracted booking ID from format:", bookingIdMatch[1]);
       return bookingIdMatch[1]; // Return the UUID part
     }
     
-    return qrCodeValue; // Return the original value if no match (fallback)
+    // If no match, return the original value as a fallback
+    console.log("No match found, using original value:", qrCodeValue);
+    return qrCodeValue;
   };
 
   const processQrCode = async (code: string) => {
+    // Prevent processing if already handling a code
+    if (isProcessing) {
+      return;
+    }
+
     setIsProcessing(true);
     setScanResult(null);
     setLastScannedCode(code);
-
+    
     try {
+      // Temporarily increase scan delay to avoid multiple scans
+      setScanDelay(2000);
+
       // Extract booking ID from QR code if it matches the expected format
       const bookingId = extractBookingId(code);
       console.log("Extracted booking ID:", bookingId);
@@ -67,9 +79,10 @@ const QRScanner = () => {
         });
         setQrCode(""); // Clear the input on success
       } else {
+        // Error message will be displayed via toast from the service
         setScanResult({
           success: false,
-          message: "Invalid QR code. No booking found or already checked in.",
+          message: "Check-in failed. Please verify the booking status.",
         });
       }
     } catch (error) {
@@ -80,6 +93,10 @@ const QRScanner = () => {
       });
     } finally {
       setIsProcessing(false);
+      // Reset scan delay after processing completes
+      setTimeout(() => {
+        setScanDelay(500);
+      }, 2000);
     }
   };
 
@@ -87,6 +104,7 @@ const QRScanner = () => {
     if (result && !isProcessing) {
       const scannedData = result?.text;
       if (scannedData && scannedData !== lastScannedCode) {
+        console.log("Scanned QR code value:", scannedData);
         setQrCode(scannedData);
         processQrCode(scannedData);
       }
@@ -152,7 +170,7 @@ const QRScanner = () => {
               <QrReader
                 constraints={{ facingMode: 'environment' }}
                 onResult={handleScan}
-                scanDelay={500}
+                scanDelay={scanDelay}
                 className="w-full"
                 videoStyle={{ objectFit: 'cover', width: '100%' }}
                 videoContainerStyle={{ width: '100%', height: 'auto', minHeight: '250px', maxHeight: '300px' }}

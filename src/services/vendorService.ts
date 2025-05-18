@@ -1,4 +1,3 @@
-
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/components/ui/use-toast";
 
@@ -181,18 +180,15 @@ export const verifyAndCheckInByQR = async (bookingId: string): Promise<boolean> 
   try {
     console.log("Verifying booking with ID:", bookingId);
     
-    // First, find the booking by ID, using maybeSingle() instead of single()
-    // to avoid errors when no rows are found
-    const { data: bookingData, error: bookingError } = await supabase
+    // First, check if booking exists without status filter to see if it exists at all
+    const { data: bookingCheck, error: checkError } = await supabase
       .from("bookings")
-      .select("id")
+      .select("id, status")
       .eq("id", bookingId)
-      .eq("status", "confirmed")
-      .maybeSingle();  // Use maybeSingle() instead of single()
+      .maybeSingle();
 
-    // Check if we have an error (not including "no rows" errors which maybeSingle handles)
-    if (bookingError) {
-      console.error("Error finding booking by ID:", bookingError);
+    if (checkError) {
+      console.error("Error checking booking:", checkError);
       toast({
         title: "Error",
         description: "Error verifying booking information. Please try again.",
@@ -201,20 +197,80 @@ export const verifyAndCheckInByQR = async (bookingId: string): Promise<boolean> 
       return false;
     }
 
-    // Check if we actually found a booking
-    if (!bookingData) {
-      console.log("No valid booking found with ID:", bookingId);
+    // Log what we found for debugging
+    if (!bookingCheck) {
+      console.error("No booking found with ID:", bookingId);
       toast({
         title: "Invalid QR Code",
-        description: "No valid booking found for this booking ID.",
+        description: "No booking found for this booking ID.",
+        variant: "destructive"
+      });
+      return false;
+    } else {
+      console.log("Found booking with status:", bookingCheck.status);
+      
+      // If booking exists but is not confirmed
+      if (bookingCheck.status !== 'confirmed') {
+        toast({
+          title: "Invalid Booking Status",
+          description: `Booking found but status is '${bookingCheck.status}'. Only confirmed bookings can be checked in.`,
+          variant: "destructive"
+        });
+        return false;
+      }
+    }
+    
+    // Now get the confirmed booking
+    const { data: bookingData, error: bookingError } = await supabase
+      .from("bookings")
+      .select("id")
+      .eq("id", bookingId)
+      .eq("status", "confirmed")
+      .maybeSingle();
+
+    if (bookingError) {
+      console.error("Error finding confirmed booking:", bookingError);
+      toast({
+        title: "Error",
+        description: "Error verifying booking information. Please try again.",
         variant: "destructive"
       });
       return false;
     }
 
+    if (!bookingData) {
+      console.log("No confirmed booking found with ID:", bookingId);
+      return false;
+    }
+
+    // Check if customer has already been marked as arrived
+    const { data: slotData, error: slotError } = await supabase
+      .from("booking_slots")
+      .select("id, customer_arrived")
+      .eq("booking_id", bookingId);
+    
+    if (slotError) {
+      console.error("Error checking booking slots:", slotError);
+      throw slotError;
+    }
+    
+    if (slotData && slotData.length > 0) {
+      // Check if all slots are already marked as arrived
+      const allArrived = slotData.every(slot => slot.customer_arrived);
+      if (allArrived) {
+        console.log("Customer already checked in for booking:", bookingId);
+        toast({
+          title: "Already Checked In",
+          description: "This booking has already been checked in.",
+          variant: "info"
+        });
+        return false;
+      }
+    }
+
     // Use the database function to mark customer as arrived
     const { data, error } = await supabase.rpc('mark_customer_arrived', {
-      booking_id_param: bookingData.id
+      booking_id_param: bookingId
     });
 
     if (error) {
