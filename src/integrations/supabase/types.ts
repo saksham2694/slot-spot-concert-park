@@ -13,18 +13,21 @@ export type Database = {
         Row: {
           booking_id: string
           created_at: string
+          customer_arrived: boolean | null
           id: string
           parking_layout_id: string
         }
         Insert: {
           booking_id: string
           created_at?: string
+          customer_arrived?: boolean | null
           id?: string
           parking_layout_id: string
         }
         Update: {
           booking_id?: string
           created_at?: string
+          customer_arrived?: boolean | null
           id?: string
           parking_layout_id?: string
         }
@@ -37,11 +40,25 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "booking_slots_booking_id_fkey"
+            columns: ["booking_id"]
+            isOneToOne: false
+            referencedRelation: "vendor_bookings_view"
+            referencedColumns: ["booking_id"]
+          },
+          {
             foreignKeyName: "booking_slots_parking_layout_id_fkey"
             columns: ["parking_layout_id"]
             isOneToOne: false
             referencedRelation: "parking_layouts"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "booking_slots_parking_layout_id_fkey"
+            columns: ["parking_layout_id"]
+            isOneToOne: false
+            referencedRelation: "vendor_bookings_view"
+            referencedColumns: ["parking_layout_id"]
           },
         ]
       }
@@ -97,11 +114,25 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "bookings_event_id_fkey"
+            columns: ["event_id"]
+            isOneToOne: false
+            referencedRelation: "vendor_bookings_view"
+            referencedColumns: ["event_id"]
+          },
+          {
             foreignKeyName: "bookings_parking_layout_id_fkey"
             columns: ["parking_layout_id"]
             isOneToOne: false
             referencedRelation: "parking_layouts"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "bookings_parking_layout_id_fkey"
+            columns: ["parking_layout_id"]
+            isOneToOne: false
+            referencedRelation: "vendor_bookings_view"
+            referencedColumns: ["parking_layout_id"]
           },
         ]
       }
@@ -173,6 +204,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "events"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "parking_layouts_event_id_fkey"
+            columns: ["event_id"]
+            isOneToOne: false
+            referencedRelation: "vendor_bookings_view"
+            referencedColumns: ["event_id"]
           },
         ]
       }
@@ -256,7 +294,28 @@ export type Database = {
       }
     }
     Views: {
-      [_ in never]: never
+      vendor_bookings_view: {
+        Row: {
+          booking_date: string | null
+          booking_id: string | null
+          booking_slot_id: string | null
+          booking_status: string | null
+          column_number: number | null
+          customer_arrived: boolean | null
+          customer_email: string | null
+          customer_name: string | null
+          event_date: string | null
+          event_id: string | null
+          event_location: string | null
+          event_title: string | null
+          parking_layout_id: string | null
+          qr_code_url: string | null
+          row_number: number | null
+          slot_id: string | null
+          user_id: string | null
+        }
+        Relationships: []
+      }
     }
     Functions: {
       decrement: {
@@ -274,6 +333,16 @@ export type Database = {
       is_admin: {
         Args: Record<PropertyKey, never>
         Returns: boolean
+      }
+      mark_customer_arrived: {
+        Args: { booking_id_param: string }
+        Returns: {
+          booking_id: string
+          created_at: string
+          customer_arrived: boolean | null
+          id: string
+          parking_layout_id: string
+        }[]
       }
       sync_all_users: {
         Args: Record<PropertyKey, never>

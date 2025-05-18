@@ -19,6 +19,12 @@ import AdminDashboard from "./pages/admin/AdminDashboard";
 import AdminCreateEvent from "./pages/admin/AdminCreateEvent";
 import UserManagement from "./pages/admin/UserManagement";
 
+// Vendor routes
+import VendorLayout from "./pages/vendor/VendorLayout";
+import VendorDashboard from "./pages/vendor/VendorDashboard";
+import EventCheckIn from "./pages/vendor/EventCheckIn";
+import QRScanner from "./pages/vendor/QRScanner";
+
 const queryClient = new QueryClient();
 
 const App = () => (
@@ -43,6 +49,13 @@ const App = () => (
               <Route index element={<AdminDashboard />} />
               <Route path="create-event" element={<AdminCreateEvent />} />
               <Route path="users" element={<UserManagement />} />
+            </Route>
+            
+            {/* Vendor Routes */}
+            <Route path="/vendor" element={<VendorLayout />}>
+              <Route index element={<VendorDashboard />} />
+              <Route path="events/:eventId" element={<EventCheckIn />} />
+              <Route path="scan-qr" element={<QRScanner />} />
             </Route>
             
             <Route path="*" element={<NotFound />} />
