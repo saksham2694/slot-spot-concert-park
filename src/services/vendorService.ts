@@ -44,6 +44,10 @@ export const fetchVendorEvents = async (): Promise<VendorEvent[]> => {
       throw eventsError;
     }
 
+    if (!events) {
+      return [];
+    }
+
     // For each event, get booking statistics
     const eventsWithStats = await Promise.all(
       events.map(async (event) => {
@@ -65,8 +69,20 @@ export const fetchVendorEvents = async (): Promise<VendorEvent[]> => {
           };
         }
 
-        const totalBookings = bookingData?.length || 0;
-        const arrivedCustomers = bookingData?.filter(b => b.customer_arrived)?.length || 0;
+        if (!bookingData) {
+          return {
+            id: event.id,
+            title: event.title,
+            date: new Date(event.date).toLocaleDateString(),
+            location: event.location,
+            imageUrl: event.image_url,
+            totalBookings: 0,
+            arrivedCustomers: 0
+          };
+        }
+
+        const totalBookings = bookingData.length || 0;
+        const arrivedCustomers = bookingData.filter(b => b.customer_arrived)?.length || 0;
 
         return {
           id: event.id,
@@ -105,7 +121,11 @@ export const fetchEventBookingSlots = async (eventId: string): Promise<BookingSl
       throw error;
     }
 
-    return (data || []).map(item => ({
+    if (!data) {
+      return [];
+    }
+
+    return data.map(item => ({
       id: item.booking_slot_id,
       bookingId: item.booking_id,
       slotId: item.slot_id,
@@ -157,21 +177,23 @@ export const markCustomerArrived = async (bookingSlotId: string): Promise<boolea
 };
 
 // Verify and mark a customer as arrived by QR code
-export const verifyAndCheckInByQR = async (qrCode: string): Promise<boolean> => {
+export const verifyAndCheckInByQR = async (bookingId: string): Promise<boolean> => {
   try {
-    // First, find the booking by QR code
+    console.log("Verifying booking with ID:", bookingId);
+    
+    // First, find the booking by ID
     const { data: bookingData, error: bookingError } = await supabase
       .from("bookings")
       .select("id")
-      .eq("qr_code_url", qrCode)
+      .eq("id", bookingId)
       .eq("status", "confirmed")
       .single();
 
     if (bookingError || !bookingData) {
-      console.error("Error finding booking by QR code:", bookingError);
+      console.error("Error finding booking by ID:", bookingError);
       toast({
         title: "Invalid QR Code",
-        description: "No valid booking found for this QR code.",
+        description: "No valid booking found for this booking ID.",
         variant: "destructive"
       });
       return false;

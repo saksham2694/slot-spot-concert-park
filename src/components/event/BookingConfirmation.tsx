@@ -34,8 +34,11 @@ const BookingConfirmation = ({
   const totalPrice = selectedSlots.reduce((sum, slot) => sum + slot.price, 0);
   const [qrDialogOpen, setQrDialogOpen] = useState(false);
 
+  // Format the QR code data for display
+  const formattedQrData = bookingId ? `TIME2PARK-BOOKING-${bookingId}` : qrCodeData;
+
   const handleDownloadPDF = () => {
-    downloadBookingPDF(event, selectedSlots, bookingId || "", qrCodeData)
+    downloadBookingPDF(event, selectedSlots, bookingId || "", formattedQrData)
       .then(() => {
         toast({
           title: "Success",
@@ -65,7 +68,7 @@ const BookingConfirmation = ({
       <div className="mb-6 flex flex-col items-center">
         <div className="relative">
           <img
-            src={`https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${encodeURIComponent(qrCodeData)}`}
+            src={`https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${encodeURIComponent(formattedQrData)}`}
             alt="Booking QR Code"
             className="border rounded-lg p-3 max-w-full h-auto cursor-pointer"
             onClick={() => setQrDialogOpen(true)}
@@ -82,8 +85,9 @@ const BookingConfirmation = ({
               Present this QR code at the venue for check-in
             </p>
           </div>
-          {/* Display QR code data if we want to show it */}
-          {/* <p className="mt-1 font-mono text-xs text-muted-foreground select-all">{qrCodeData}</p> */}
+          <p className="mt-1 font-mono text-xs text-muted-foreground select-all break-all">
+            {formattedQrData}
+          </p>
         </div>
       </div>
       
@@ -139,17 +143,20 @@ const BookingConfirmation = ({
           </DialogHeader>
           <div className="flex flex-col items-center justify-center p-4">
             <img
-              src={showQRCode(bookingId || "", qrCodeData)}
+              src={showQRCode(bookingId || "", formattedQrData)}
               alt="Booking QR Code"
               className="border rounded-lg p-3 w-full max-w-xs h-auto"
             />
             <p className="mt-4 text-center text-sm text-muted-foreground">
               Booking ID: {bookingId || "Temporary ID"}
             </p>
+            <p className="mt-2 text-center font-mono text-xs text-muted-foreground break-all select-all">
+              {formattedQrData}
+            </p>
           </div>
           <div className="flex justify-between mt-4">
             <a 
-              href={showQRCode(bookingId || "", qrCodeData)} 
+              href={showQRCode(bookingId || "", formattedQrData)} 
               download={`qrcode-${bookingId || "booking"}.png`}
               className="w-full"
             >

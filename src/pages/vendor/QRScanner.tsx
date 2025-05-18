@@ -25,12 +25,27 @@ const QRScanner = () => {
     processQrCode(qrCode);
   };
 
+  const extractBookingId = (qrCodeValue: string): string | null => {
+    // Try to match the format TIME2PARK-BOOKING-{uuid}
+    const bookingIdMatch = qrCodeValue.match(/TIME2PARK-BOOKING-([0-9a-f-]+)/i);
+    
+    if (bookingIdMatch && bookingIdMatch[1]) {
+      return bookingIdMatch[1]; // Return the UUID part
+    }
+    
+    return qrCodeValue; // Return the original value if no match (fallback)
+  };
+
   const processQrCode = async (code: string) => {
     setIsProcessing(true);
     setScanResult(null);
 
     try {
-      const success = await verifyAndCheckInByQR(code);
+      // Extract booking ID from QR code if it matches the expected format
+      const bookingId = extractBookingId(code);
+      console.log("Extracted booking ID:", bookingId);
+      
+      const success = await verifyAndCheckInByQR(bookingId);
       
       if (success) {
         setScanResult({
@@ -44,6 +59,12 @@ const QRScanner = () => {
           message: "Invalid QR code. No booking found or already checked in.",
         });
       }
+    } catch (error) {
+      console.error("Error processing QR code:", error);
+      setScanResult({
+        success: false,
+        message: "Error processing QR code. Please try again.",
+      });
     } finally {
       setIsProcessing(false);
     }
@@ -122,7 +143,6 @@ const QRScanner = () => {
                 className="w-full"
                 videoStyle={{ objectFit: 'cover', width: '100%' }}
                 videoContainerStyle={{ width: '100%', height: 'auto', minHeight: '250px', maxHeight: '300px' }}
-                onError={handleScanError}
               />
             </div>
             <div className="text-center text-sm text-muted-foreground mt-2">
@@ -157,6 +177,9 @@ const QRScanner = () => {
           </p>
           <p className="mt-2">
             The QR code contains a unique identifier that links to their booking.
+          </p>
+          <p className="mt-2 text-xs">
+            Format: TIME2PARK-BOOKING-[booking-id]
           </p>
         </div>
       </Card>
