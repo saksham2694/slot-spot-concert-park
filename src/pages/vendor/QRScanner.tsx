@@ -1,13 +1,13 @@
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { Link } from "react-router-dom";
-import { QrReader } from "react-qr-reader";
 import { verifyAndCheckInByQR } from "@/services/vendorService";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { ArrowLeft, Scan, CheckCircle2, X, AlertCircle } from "lucide-react";
+import { Html5QrcodeScanner } from "html5-qrcode";
 
 const QRScanner = () => {
   const [qrCode, setQrCode] = useState<string>("");
@@ -18,18 +18,59 @@ const QRScanner = () => {
   } | null>(null);
   const [activeTab, setActiveTab] = useState<string>("manual");
   const [lastScannedCode, setLastScannedCode] = useState<string | null>(null);
-  const [scanDelay, setScanDelay] = useState<number>(500);
   const [debugInfo, setDebugInfo] = useState<string | null>(null);
+  const scannerRef = useRef<any>(null);
+  const scannerContainerRef = useRef<HTMLDivElement>(null);
+
+  // Initialize scanner when tab switches to camera
+  useEffect(() => {
+    if (activeTab === "camera" && scannerContainerRef.current) {
+      // Reset the scanner container
+      scannerContainerRef.current.innerHTML = '';
+      
+      // Create a new scanner
+      const scanner = new Html5QrcodeScanner(
+        "qr-reader", 
+        { 
+          fps: 10,
+          qrbox: { width: 250, height: 250 },
+          rememberLastUsedCamera: true,
+        },
+        /* verbose= */ false
+      );
+      
+      scanner.render(onScanSuccess, onScanFailure);
+      scannerRef.current = scanner;
+      
+      return () => {
+        // Clean up scanner when unmounting or changing tabs
+        if (scannerRef.current && scannerRef.current.clear) {
+          scannerRef.current.clear();
+        }
+      };
+    }
+  }, [activeTab]);
 
   // Reset scan result when changing tabs
   useEffect(() => {
     setScanResult(null);
   }, [activeTab]);
 
+  const onScanSuccess = (decodedText: string) => {
+    console.log(`QR Code scanned: ${decodedText}`);
+    if (!isProcessing && decodedText) {
+      setQrCode(decodedText);
+      processQrCode(decodedText);
+    }
+  };
+  
+  const onScanFailure = (error: any) => {
+    console.warn(`QR scan error: ${error}`);
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!qrCode.trim()) return;
-
     processQrCode(qrCode);
   };
 
@@ -59,9 +100,6 @@ const QRScanner = () => {
     setScanResult(null);
     
     try {
-      // Temporarily increase scan delay to avoid multiple scans
-      setScanDelay(2000);
-
       // Extract booking ID from QR code if it matches the expected format
       const bookingId = extractBookingId(code);
       console.log("Processing booking ID:", bookingId);
@@ -107,21 +145,6 @@ const QRScanner = () => {
       setDebugInfo(`Error: ${error instanceof Error ? error.message : String(error)}`);
     } finally {
       setIsProcessing(false);
-      // Reset scan delay after processing completes
-      setTimeout(() => {
-        setScanDelay(500);
-      }, 2000);
-    }
-  };
-
-  const handleScan = (result: any) => {
-    if (result && !isProcessing) {
-      const scannedData = result?.text;
-      if (scannedData && (!lastScannedCode || scannedData !== lastScannedCode)) {
-        console.log("Scanned QR code value:", scannedData);
-        setQrCode(scannedData);
-        processQrCode(scannedData);
-      }
     }
   };
 
@@ -172,15 +195,8 @@ const QRScanner = () => {
           </TabsContent>
           
           <TabsContent value="camera" className="space-y-4">
-            <div className="rounded border overflow-hidden">
-              <QrReader
-                constraints={{ facingMode: 'environment' }}
-                onResult={handleScan}
-                scanDelay={scanDelay}
-                className="w-full"
-                videoStyle={{ objectFit: 'cover', width: '100%' }}
-                videoContainerStyle={{ width: '100%', height: 'auto', minHeight: '250px', maxHeight: '300px' }}
-              />
+            <div className="border rounded overflow-hidden" ref={scannerContainerRef}>
+              <div id="qr-reader" className="w-full" style={{ minHeight: '250px', maxHeight: '300px' }}></div>
             </div>
             <div className="text-center text-sm text-muted-foreground mt-2">
               <p>Point your camera at a customer's QR code</p>
