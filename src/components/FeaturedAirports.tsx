@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { useNavigate } from "react-router-dom";
@@ -10,6 +9,7 @@ import { Plane } from "lucide-react";
 import { Link } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { Airport } from "@/types/airport";
+import { safeQueryResult } from "@/types/parking";
 
 const fetchAirports = async (): Promise<Airport[]> => {
   const { data, error } = await supabase
@@ -23,7 +23,7 @@ const fetchAirports = async (): Promise<Airport[]> => {
     throw error;
   }
 
-  return data as Airport[];
+  return safeQueryResult<Airport[]>(data, error);
 };
 
 const FeaturedAirports = () => {

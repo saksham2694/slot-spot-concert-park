@@ -1,7 +1,7 @@
 
 import { useState, useEffect, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
-import { ParkingSlot, AirportReservedSpot, assertData } from "@/types/parking";
+import { ParkingSlot, AirportReservedSpot, safeQueryResult } from "@/types/parking";
 import { useToast } from "@/hooks/use-toast";
 
 export function useAirportParkingLayout(airportId: string, totalSlots: number, hourlyRate: number) {
@@ -21,7 +21,7 @@ export function useAirportParkingLayout(airportId: string, totalSlots: number, h
     
     try {
       // Fetch all reserved parking spots for this airport
-      const { data: queryData, error } = await supabase
+      const { data, error } = await supabase
         .from("airport_parking_layouts")
         .select("row_number, column_number, price")
         .eq("airport_id", airportId)
@@ -38,8 +38,8 @@ export function useAirportParkingLayout(airportId: string, totalSlots: number, h
         return;
       }
       
-      // Safely cast the data with proper type checking
-      const reservedSpots = queryData ? assertData<AirportReservedSpot[]>(queryData) : [];
+      // Safely handle the query result
+      const reservedSpots = data ? safeQueryResult<AirportReservedSpot[]>(data, null) : [];
       
       // Create a map of reserved spots for quick lookup
       const reservedSpotsMap = new Map<string, number>();

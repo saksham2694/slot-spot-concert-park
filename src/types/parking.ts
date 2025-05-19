@@ -47,11 +47,42 @@ export type AirportReservedSpot = {
   price: number;
 };
 
-// Add safe type assertion helper
+// Enhanced safe type assertion helper with better error handling
 export function assertData<T>(data: any): T {
-  if (data && !('error' in data)) {
-    return data as T;
+  if (!data) {
+    console.error('Error: No data returned from database');
+    throw new Error('No data returned from database');
   }
-  console.error('Error in data:', data);
-  throw new Error('Invalid data returned from database');
+  
+  // Handle Supabase error objects
+  if (data.error) {
+    console.error('Database error:', data.error);
+    throw new Error(`Database error: ${data.error.message || 'Unknown error'}`);
+  }
+  
+  // Handle array of objects that might contain errors
+  if (Array.isArray(data)) {
+    // Check if any item in the array is an error object
+    const errorItem = data.find(item => item && typeof item === 'object' && 'error' in item);
+    if (errorItem) {
+      console.error('Database error in array:', errorItem.error);
+      throw new Error(`Database error: ${errorItem.error || 'Unknown error'}`);
+    }
+  }
+  
+  return data as T;
+}
+
+// Helper to safely handle Supabase query results
+export function safeQueryResult<T>(data: any, error: any): T {
+  if (error) {
+    console.error("Supabase query error:", error);
+    throw new Error(`Database error: ${error.message || 'Unknown error'}`);
+  }
+  
+  if (!data) {
+    return [] as unknown as T; // Return empty array for list queries
+  }
+  
+  return data as T;
 }

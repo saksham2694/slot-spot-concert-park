@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { useNavigate } from "react-router-dom";
@@ -9,6 +8,8 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Building } from "lucide-react";
 import { Link } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
+import { University } from "@/types/university";
+import { safeQueryResult } from "@/types/parking";
 
 type University = {
   id: string;
@@ -32,7 +33,7 @@ const fetchUniversities = async (): Promise<University[]> => {
     throw error;
   }
 
-  return data as University[];
+  return safeQueryResult<University[]>(data, error);
 };
 
 const FeaturedUniversities = () => {

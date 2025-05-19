@@ -125,15 +125,6 @@ const QRScanner = () => {
     }
   };
 
-  const handleScanError = (error: any) => {
-    console.error("QR scan error:", error);
-    setScanResult({
-      success: false,
-      message: "Error scanning QR code. Please try again or use manual entry.",
-    });
-    setDebugInfo(`Scan error: ${error instanceof Error ? error.message : String(error)}`);
-  };
-
   return (
     <div className="max-w-md mx-auto">
       <div className="flex items-center gap-2 mb-6">
@@ -185,7 +176,6 @@ const QRScanner = () => {
               <QrReader
                 constraints={{ facingMode: 'environment' }}
                 onResult={handleScan}
-                onError={handleScanError}
                 scanDelay={scanDelay}
                 className="w-full"
                 videoStyle={{ objectFit: 'cover', width: '100%' }}

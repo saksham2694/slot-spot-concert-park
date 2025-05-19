@@ -1,7 +1,7 @@
 
 import { useState, useEffect, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
-import { ParkingSlot, ReservedSpot } from "@/types/parking";
+import { ParkingSlot, ReservedSpot, safeQueryResult } from "@/types/parking";
 import { useToast } from "@/hooks/use-toast";
 
 export function useParkingLayout(eventId: string, totalSlots: number, eventPrice: number) {
@@ -22,7 +22,7 @@ export function useParkingLayout(eventId: string, totalSlots: number, eventPrice
     
     try {
       // Fetch all reserved parking spots for this event
-      const { data: reservedSpots, error } = await supabase
+      const { data, error } = await supabase
         .from("parking_layouts")
         .select("row_number, column_number, price")
         .eq("event_id", eventId)
@@ -39,11 +39,13 @@ export function useParkingLayout(eventId: string, totalSlots: number, eventPrice
         return;
       }
       
+      // Safely handle the query result
+      const reservedSpots = data ? safeQueryResult<ReservedSpot[]>(data, null) : [];
       console.log("Reserved spots:", reservedSpots);
       
       // Create a map of reserved spots for quick lookup
       const reservedSpotsMap = new Map<string, number>();
-      (reservedSpots || []).forEach((spot: ReservedSpot) => {
+      reservedSpots.forEach((spot: ReservedSpot) => {
         const key = `R${spot.row_number}C${spot.column_number}`;
         reservedSpotsMap.set(key, spot.price);
       });

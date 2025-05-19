@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
@@ -12,6 +11,7 @@ import { Link } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { University } from "@/types/university";
+import { safeQueryResult } from "@/types/parking";
 
 // Function to fetch universities
 const fetchUniversities = async (): Promise<University[]> => {
@@ -25,7 +25,7 @@ const fetchUniversities = async (): Promise<University[]> => {
     throw error;
   }
 
-  return data as University[];
+  return safeQueryResult<University[]>(data, error);
 };
 
 const UniversitiesPage = () => {
