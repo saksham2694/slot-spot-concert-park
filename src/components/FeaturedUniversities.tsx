@@ -1,6 +1,7 @@
+
 import { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
-import { Heading } from "@/components/ui/typography";
+// Replacing the missing typography import with standard heading element
 import { Button } from "@/components/ui/button";
 import { supabase } from "@/integrations/supabase/client";
 import { MapPin } from "lucide-react";
@@ -45,7 +46,7 @@ const FeaturedUniversities = () => {
     <section className="py-12">
       <div className="container">
         <div className="flex justify-between items-center mb-8">
-          <Heading level={2}>Popular Universities</Heading>
+          <h2 className="text-3xl font-bold tracking-tight">Popular Universities</h2>
           <Link to="/universities">
             <Button variant="outline">View All</Button>
           </Link>

@@ -1,3 +1,4 @@
+
 import { supabase } from '@/integrations/supabase/client';
 import { BookingStatus } from '@/types/booking';
 import { safeQueryResult } from '@/lib/utils';
@@ -208,7 +209,8 @@ export async function createAirportBooking({
   }
 }
 
-export const getBookingTotalPrice = async (bookingId: string): Promise<number> {
+// Fixed the syntax error with => instead of :
+export const getBookingTotalPrice = async (bookingId: string) => {
   try {
     const { data, error } = await supabase
       .from('airport_booking_slots')
