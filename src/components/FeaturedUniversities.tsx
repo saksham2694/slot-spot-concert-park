@@ -1,10 +1,11 @@
 
 import { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
-// Replacing the missing typography import with standard heading element
 import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardFooter, CardHeader } from "@/components/ui/card"; 
+import { Badge } from "@/components/ui/badge";
 import { supabase } from "@/integrations/supabase/client";
-import { MapPin } from "lucide-react";
+import { MapPin, Building } from "lucide-react";
 import type { University as UniversityType } from "@/types/university";
 
 const FeaturedUniversities = () => {
@@ -52,30 +53,55 @@ const FeaturedUniversities = () => {
         
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
           {universities.slice(0, 3).map((university) => (
-            <Link 
-              key={university.id} 
-              to={`/universities/${university.id}`}
-              className="bg-white rounded-lg shadow-md overflow-hidden hover:shadow-lg transition-shadow"
-            >
-              <div className="h-48 overflow-hidden">
-                <img 
-                  src={university.image_url || 'https://images.unsplash.com/photo-1607237138185-eedd9c632b0b'} 
-                  alt={university.name} 
-                  className="w-full h-full object-cover"
-                />
+            <Card key={university.id} className="overflow-hidden flex flex-col">
+              <div className="h-48 relative">
+                {university.image_url ? (
+                  <img 
+                    src={university.image_url || 'https://images.unsplash.com/photo-1607237138185-eedd9c632b0b'} 
+                    alt={university.name} 
+                    className="w-full h-full object-cover"
+                  />
+                ) : (
+                  <div className="w-full h-full bg-muted flex items-center justify-center">
+                    <Building className="h-12 w-12 text-muted-foreground" />
+                  </div>
+                )}
+                <div className="absolute top-2 right-2">
+                  <Badge className="bg-primary">
+                    ₹{university.hourly_rate?.toFixed(2)}/hr
+                  </Badge>
+                </div>
               </div>
-              <div className="p-4">
-                <h3 className="text-xl font-semibold mb-2">{university.name}</h3>
-                <div className="flex items-center text-muted-foreground mb-3">
+              
+              <CardHeader className="pb-2">
+                <h3 className="text-xl font-semibold">{university.name}</h3>
+                <div className="flex items-center text-muted-foreground">
                   <MapPin className="w-4 h-4 mr-1" />
                   <span>{university.location}</span>
                 </div>
-                <div className="flex justify-between items-center">
-                  <span className="text-sm text-muted-foreground">Available Parking Spots</span>
+              </CardHeader>
+              
+              <CardContent className="pb-2">
+                <div className="flex items-center justify-between text-sm">
+                  <span className="text-muted-foreground">Available Parking Spots</span>
                   <span className="font-medium">{university.available_parking_slots}</span>
                 </div>
-              </div>
-            </Link>
+                <div className="h-2 bg-muted rounded-full mt-2">
+                  <div 
+                    className="h-full bg-primary rounded-full" 
+                    style={{ 
+                      width: `${(university.available_parking_slots / university.total_parking_slots) * 100}%` 
+                    }}
+                  />
+                </div>
+              </CardContent>
+              
+              <CardFooter className="mt-auto pt-4">
+                <Link to={`/universities/${university.id}`} className="w-full">
+                  <Button className="w-full">Book Parking</Button>
+                </Link>
+              </CardFooter>
+            </Card>
           ))}
         </div>
       </div>

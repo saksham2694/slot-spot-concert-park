@@ -70,6 +70,10 @@
     --destructive-foreground: 0 85.7% 97.3%;
  
     --ring: 308 60% 40%;
+    
+    --parking-available: 305 15% 24%;
+    --parking-reserved: 305 35% 40%;
+    --parking-selected: 308 42% 57%;
   }
 }
  
@@ -88,7 +92,7 @@
   }
 
   .parking-slot-available {
-    @apply bg-parking-available hover:bg-purple-100 border-gray-300;
+    @apply bg-parking-available hover:bg-purple-100 dark:hover:bg-purple-900 border-border;
   }
 
   .parking-slot-reserved {
@@ -96,6 +100,6 @@
   }
 
   .parking-slot-selected {
-    @apply bg-parking-selected text-white hover:bg-purple-700;
+    @apply bg-parking-selected text-white hover:bg-purple-700 dark:hover:bg-purple-600;
   }
 }

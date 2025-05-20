@@ -1,8 +1,9 @@
+
 import { supabase } from '@/integrations/supabase/client';
 import { BookingStatus } from '@/types/booking';
-import { safeQueryResult } from '@/lib/utils';
+import { safeQueryResult } from '@/types/parking';
 import { toast } from "@/components/ui/use-toast";
-import { ParkingSlot, assertData } from "@/types/parking";
+import { ParkingSlot } from "@/types/parking";
 
 interface AirportBookingInput {
   airportId: string;
@@ -42,11 +43,9 @@ export async function createAirportBooking({
   try {
     // First, check if any of the selected slots are already reserved
     for (const slot of selectedSlots) {
-      // Parse the row and column from the slot label (format: R1C1)
       const rowMatch = slot.id.match(/R(\d+)/);
       const colMatch = slot.id.match(/C(\d+)/);
       
-      // Ensure we have valid numbers for row and column
       if (!rowMatch || !colMatch) {
         console.error(`Invalid slot label format: ${slot.id}`);
         toast({
@@ -60,7 +59,6 @@ export async function createAirportBooking({
       const rowNumber = parseInt(rowMatch[1], 10);
       const columnNumber = parseInt(colMatch[1], 10);
       
-      // Check if the parsing resulted in valid numbers
       if (isNaN(rowNumber) || isNaN(columnNumber)) {
         console.error(`Failed to parse row or column from: ${slot.id}`);
         toast({
@@ -110,14 +108,13 @@ export async function createAirportBooking({
         user_id: session.session.user.id,
         start_date: startDate.toISOString(),
         end_date: endDate.toISOString(),
-        status: "confirmed", // Skip payment for now
+        status: BookingStatus.Confirmed, // Skip payment for now
         payment_amount: totalAmount,
         payment_date: new Date().toISOString(),
-        qr_code_url: `TIME2PARK-AIR-${airportId}-${Date.now()}`
+        qr_code_url: `TIME2PARK-AIRPORT-${airportId}-${Date.now()}`
       })
-      .select("id")
-      .single();
-
+      .select("id");
+      
     if (bookingError) {
       console.error("Error creating booking:", bookingError);
       toast({
@@ -128,18 +125,20 @@ export async function createAirportBooking({
       throw bookingError;
     }
 
-    const booking = assertData<{ id: string }>(bookingData);
-    const bookingId = booking.id;
+    if (!bookingData || bookingData.length === 0) {
+      throw new Error("Failed to create booking record");
+    }
+
+    const bookingId = bookingData[0].id;
     
     // Reserve each parking slot for this booking
     for (const slot of selectedSlots) {
-      // Parse the row and column from the slot label (format: R1C1)
       const rowMatch = slot.id.match(/R(\d+)/);
       const colMatch = slot.id.match(/C(\d+)/);
       
       if (!rowMatch || !colMatch) {
         console.error(`Invalid slot label format during reservation: ${slot.id}`);
-        continue; // Skip this slot but continue with others
+        continue;
       }
       
       const rowNumber = parseInt(rowMatch[1], 10);
@@ -147,7 +146,7 @@ export async function createAirportBooking({
       
       if (isNaN(rowNumber) || isNaN(columnNumber)) {
         console.error(`Failed to parse row or column during reservation from: ${slot.id}`);
-        continue; // Skip this slot but continue with others
+        continue;
       }
       
       // Create or update the parking layout for this slot
@@ -160,8 +159,7 @@ export async function createAirportBooking({
           is_reserved: true,
           price: slot.price
         })
-        .select("id")
-        .single();
+        .select("id");
         
       if (layoutError) {
         console.error("Error creating parking layout:", layoutError);
@@ -172,13 +170,17 @@ export async function createAirportBooking({
         });
         throw layoutError;
       }
+
+      if (!layoutData || layoutData.length === 0) {
+        throw new Error("Failed to create parking layout");
+      }
       
       // Create the booking_slot entry to link the booking with this layout
       const { error: slotError } = await supabase
         .from("airport_booking_slots")
         .insert({
           booking_id: bookingId,
-          parking_layout_id: layoutData.id
+          parking_layout_id: layoutData[0].id
         });
         
       if (slotError) {
@@ -192,16 +194,17 @@ export async function createAirportBooking({
       }
     }
 
-    // Update available parking slots count - Fix the type error here
-    await supabase
+    // Update available parking slots count for the airport
+    const { error: updateError } = await supabase
       .from("airports")
       .update({ 
-        available_parking_slots: await supabase.rpc('decrement', { 
-          x: selectedSlots.length, 
-          row_id: airportId 
-        })
+        available_parking_slots: Math.max(0, (await fetchAirportAvailableSlots(airportId)) - selectedSlots.length)
       })
       .eq("id", airportId);
+
+    if (updateError) {
+      console.error("Error updating available slots:", updateError);
+    }
 
     return bookingId;
   } catch (error) {
@@ -210,7 +213,26 @@ export async function createAirportBooking({
   }
 }
 
-// Fix the function syntax here using arrow function
+async function fetchAirportAvailableSlots(airportId: string): Promise<number> {
+  try {
+    const { data, error } = await supabase
+      .from("airports")
+      .select("available_parking_slots")
+      .eq("id", airportId)
+      .single();
+      
+    if (error) {
+      console.error("Error fetching available slots:", error);
+      return 0;
+    }
+    
+    return data?.available_parking_slots || 0;
+  } catch (error) {
+    console.error("Error in fetchAirportAvailableSlots:", error);
+    return 0;
+  }
+}
+
 export const getBookingTotalPrice = async (bookingId: string) => {
   try {
     const { data, error } = await supabase
@@ -222,27 +244,25 @@ export const getBookingTotalPrice = async (bookingId: string) => {
     
     const result = safeQueryResult(data);
     // Calculate the price based on the number of slots
-    return result.length * 15; // Assuming each slot costs $15
+    return result.length * 10; // Assuming each slot costs $10
   } catch (error) {
     console.error('Error getting booking total price:', error);
     return 0;
   }
 };
 
-// Fix the type error for count query
 export async function getAirportParkingCount(airportId: string): Promise<number> {
   try {
-    const { data, error, count } = await supabase
-      .from("airport_parking_spots")
-      .select("id", { count: "exact" })
-      .eq("airport_id", airportId);
+    const { data, error } = await supabase
+      .from("airport_parking_layouts")
+      .select("id", { count: "exact", head: true });
       
     if (error) {
       console.error("Error fetching airport parking count:", error);
       return 0;
     }
     
-    return count || 0; // Return count or default to 0
+    return (data as any)?.count || 0;
   } catch (error) {
     console.error("Error in getAirportParkingCount:", error);
     return 0;

@@ -38,14 +38,14 @@ const ParkingLayout = ({
   }
   
   return (
-    <div className="border rounded-lg p-6 bg-white shadow-sm">
+    <div className="border rounded-lg p-6 bg-background shadow-sm">
       <div className="mb-6">
         <h3 className="text-lg font-semibold mb-2">Select Your Parking Spot</h3>
         <ParkingSlotLegend />
       </div>
       
       <div className="relative mb-8">
-        <div className="bg-gray-200 w-full h-10 flex items-center justify-center font-semibold rounded-t-lg mb-6">
+        <div className="bg-muted w-full h-10 flex items-center justify-center font-semibold rounded-t-lg mb-6">
           ENTRANCE / EXIT
         </div>
         

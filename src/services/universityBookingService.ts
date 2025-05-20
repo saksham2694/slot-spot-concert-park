@@ -1,3 +1,4 @@
+
 import { supabase } from '@/integrations/supabase/client';
 import { BookingStatus } from '@/types/booking';
 import { safeQueryResult } from '@/lib/utils';
@@ -190,16 +191,17 @@ export async function createUniversityBooking({
       }
     }
 
-    // Update available parking slots count
-    await supabase
+    // Update available parking slots count for the university
+    const { error: updateError } = await supabase
       .from("universities")
       .update({ 
-        available_parking_slots: await supabase.rpc('decrement', { 
-          x: selectedSlots.length, 
-          row_id: universityId 
-        })
+        available_parking_slots: Math.max(0, availableSlots - selectedSlots.length)
       })
       .eq("id", universityId);
+
+    if (updateError) {
+      console.error("Error updating available slots:", updateError);
+    }
 
     return bookingId;
   } catch (error) {
@@ -228,17 +230,16 @@ export const getBookingTotalPrice = async (bookingId: string) => {
 
 export async function getUniversityParkingCount(universityId: string): Promise<number> {
   try {
-    const { data, error, count } = await supabase
-      .from("university_parking_spots")
-      .select("id", { count: "exact" })
-      .eq("university_id", universityId);
+    const { data, error } = await supabase
+      .from("university_parking_layouts")
+      .select("id", { count: "exact", head: true });
       
     if (error) {
       console.error("Error fetching university parking count:", error);
       return 0;
     }
     
-    return count || 0; // Return count or default to 0
+    return (data as any)?.count || 0;
   } catch (error) {
     console.error("Error in getUniversityParkingCount:", error);
     return 0;
