@@ -50,10 +50,8 @@ export async function processPayment(params: ProcessPaymentParams) {
       throw new Error("No payment link received");
     }
     
-    // Redirect to the payment link instead of just returning the data
-    console.log("Redirecting to payment link:", data.paymentLink);
-    window.location.href = data.paymentLink;
-    
+    // Return the payment link data
+    console.log("Payment link generated:", data.paymentLink);
     return data;
   } catch (error) {
     console.error("Payment service error:", error);

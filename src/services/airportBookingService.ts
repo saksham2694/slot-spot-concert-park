@@ -1,5 +1,6 @@
-
 import { supabase } from '@/integrations/supabase/client';
+import { BookingStatus } from '@/types/booking';
+import { safeQueryResult } from '@/lib/utils';
 import { toast } from "@/components/ui/use-toast";
 import { ParkingSlot, assertData } from "@/types/parking";
 
@@ -41,9 +42,11 @@ export async function createAirportBooking({
   try {
     // First, check if any of the selected slots are already reserved
     for (const slot of selectedSlots) {
+      // Parse the row and column from the slot label (format: R1C1)
       const rowMatch = slot.id.match(/R(\d+)/);
       const colMatch = slot.id.match(/C(\d+)/);
       
+      // Ensure we have valid numbers for row and column
       if (!rowMatch || !colMatch) {
         console.error(`Invalid slot label format: ${slot.id}`);
         toast({
@@ -57,6 +60,7 @@ export async function createAirportBooking({
       const rowNumber = parseInt(rowMatch[1], 10);
       const columnNumber = parseInt(colMatch[1], 10);
       
+      // Check if the parsing resulted in valid numbers
       if (isNaN(rowNumber) || isNaN(columnNumber)) {
         console.error(`Failed to parse row or column from: ${slot.id}`);
         toast({
@@ -129,12 +133,13 @@ export async function createAirportBooking({
     
     // Reserve each parking slot for this booking
     for (const slot of selectedSlots) {
+      // Parse the row and column from the slot label (format: R1C1)
       const rowMatch = slot.id.match(/R(\d+)/);
       const colMatch = slot.id.match(/C(\d+)/);
       
       if (!rowMatch || !colMatch) {
         console.error(`Invalid slot label format during reservation: ${slot.id}`);
-        continue;
+        continue; // Skip this slot but continue with others
       }
       
       const rowNumber = parseInt(rowMatch[1], 10);
@@ -142,7 +147,7 @@ export async function createAirportBooking({
       
       if (isNaN(rowNumber) || isNaN(columnNumber)) {
         console.error(`Failed to parse row or column during reservation from: ${slot.id}`);
-        continue;
+        continue; // Skip this slot but continue with others
       }
       
       // Create or update the parking layout for this slot
@@ -168,14 +173,12 @@ export async function createAirportBooking({
         throw layoutError;
       }
       
-      const layout = assertData<{ id: string }>(layoutData);
-      
       // Create the booking_slot entry to link the booking with this layout
       const { error: slotError } = await supabase
         .from("airport_booking_slots")
         .insert({
           booking_id: bookingId,
-          parking_layout_id: layout.id
+          parking_layout_id: layoutData.id
         });
         
       if (slotError) {
@@ -189,11 +192,11 @@ export async function createAirportBooking({
       }
     }
 
-    // Update available parking slots count
+    // Update available parking slots count - Fix the type error here
     await supabase
       .from("airports")
       .update({ 
-        available_parking_slots: supabase.rpc('decrement', { 
+        available_parking_slots: await supabase.rpc('decrement', { 
           x: selectedSlots.length, 
           row_id: airportId 
         })
@@ -207,7 +210,7 @@ export async function createAirportBooking({
   }
 }
 
-// Fixed the syntax error with => instead of :
+// Fix the function syntax here using arrow function
 export const getBookingTotalPrice = async (bookingId: string) => {
   try {
     const { data, error } = await supabase
@@ -217,8 +220,7 @@ export const getBookingTotalPrice = async (bookingId: string) => {
     
     if (error) throw error;
     
-    // Update to not use safeQueryResult
-    const result = data || [];
+    const result = safeQueryResult(data);
     // Calculate the price based on the number of slots
     return result.length * 15; // Assuming each slot costs $15
   } catch (error) {

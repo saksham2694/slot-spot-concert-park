@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import Navbar from "@/components/Navbar";
@@ -20,6 +19,7 @@ import AirportParkingLayout from "@/components/parking/AirportParkingLayout";
 import AuthPrompt from "@/components/event/AuthPrompt";
 import BookingConfirmation from "@/components/airport/BookingConfirmation";
 import { createAirportBooking } from "@/services/airportBookingService";
+import ErrorDialog from "@/components/ui/error-dialog";
 
 interface AuthPromptProps {
   open: boolean;
@@ -42,6 +42,8 @@ const AirportDetail = () => {
   const [showAuthPrompt, setShowAuthPrompt] = useState<boolean>(false);
   const [bookingId, setBookingId] = useState<string | null>(null);
   const [isBooking, setIsBooking] = useState<boolean>(false);
+  const [errorMessage, setErrorMessage] = useState<string>("");
+  const [isErrorDialogOpen, setIsErrorDialogOpen] = useState(false);
 
   const { toast } = useToast();
   const navigate = useNavigate();
@@ -407,6 +409,13 @@ const AirportDetail = () => {
           message="You need to be logged in to book a parking spot."
         />
       )}
+      
+      {/* Error Dialog */}
+      <ErrorDialog 
+        isOpen={isErrorDialogOpen} 
+        onClose={() => setIsErrorDialogOpen(false)} 
+        message={errorMessage}
+      />
     </div>
   );
 };

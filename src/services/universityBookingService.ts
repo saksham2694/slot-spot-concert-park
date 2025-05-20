@@ -1,5 +1,6 @@
-
 import { supabase } from '@/integrations/supabase/client';
+import { BookingStatus } from '@/types/booking';
+import { safeQueryResult } from '@/lib/utils';
 import { toast } from "@/components/ui/use-toast";
 import { ParkingSlot, assertData } from "@/types/parking";
 
@@ -193,7 +194,7 @@ export async function createUniversityBooking({
     await supabase
       .from("universities")
       .update({ 
-        available_parking_slots: supabase.rpc('decrement', { 
+        available_parking_slots: await supabase.rpc('decrement', { 
           x: selectedSlots.length, 
           row_id: universityId 
         })
@@ -207,7 +208,7 @@ export async function createUniversityBooking({
   }
 }
 
-// Fixed the syntax error with => instead of :
+// Fix the function syntax here using arrow function
 export const getBookingTotalPrice = async (bookingId: string) => {
   try {
     const { data, error } = await supabase
@@ -217,8 +218,7 @@ export const getBookingTotalPrice = async (bookingId: string) => {
     
     if (error) throw error;
     
-    // Update to not use safeQueryResult
-    const result = data || [];
+    const result = safeQueryResult(data);
     // Calculate the price based on the number of slots
     return result.length * 10; // Assuming each slot costs $10
   } catch (error) {

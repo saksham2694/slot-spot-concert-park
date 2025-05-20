@@ -4,7 +4,6 @@ import { useNavigate, useSearchParams } from "react-router-dom";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
 import { Button } from "@/components/ui/button";
-import { Skeleton } from "@/components/ui/skeleton";
 import { useToast } from "@/components/ui/use-toast";
 import { verifyPaymentStatus } from "@/services/paymentService";
 import { LoaderCircle, CheckCircle2, XCircle } from "lucide-react";
@@ -12,7 +11,10 @@ import { LoaderCircle, CheckCircle2, XCircle } from "lucide-react";
 const PaymentCallback = () => {
   const [searchParams] = useSearchParams();
   const bookingId = searchParams.get("bookingId");
-  const paymentStatus = searchParams.get("status"); // Get the status from URL params
+  const paymentStatus = searchParams.get("status");
+  const orderId = searchParams.get("order_id");
+  const orderToken = searchParams.get("order_token");
+  
   const [loading, setLoading] = useState(true);
   const [bookingStatus, setBookingStatus] = useState<string | null>(null);
   const navigate = useNavigate();
@@ -33,15 +35,71 @@ const PaymentCallback = () => {
       try {
         setLoading(true);
         
-        // Use the status from URL if available (from our simulated payment page)
-        if (paymentStatus === "SUCCESS") {
-          // Simulate a successful payment verification
+        // For Cashfree callbacks, we need to validate with their API
+        // For simulated payments, we use the status directly from URL
+        if (orderId && orderToken) {
+          // This would be a real Cashfree callback
+          console.log("Processing Cashfree callback", { orderId, orderToken });
+          
+          // Call payment webhook to update booking status
+          try {
+            const response = await fetch(`/api/payment-webhook`, {
+              method: "POST",
+              headers: {
+                "Content-Type": "application/json",
+              },
+              body: JSON.stringify({
+                order_id: orderId,
+                order_token: orderToken,
+                // Additional fields from Cashfree would be here
+              }),
+            });
+            
+            if (response.ok) {
+              setBookingStatus("confirmed");
+              toast({
+                title: "Payment successful",
+                description: "Your booking has been confirmed",
+              });
+            } else {
+              setBookingStatus("payment_failed");
+              toast({
+                title: "Payment failed",
+                description: "Your payment was not successful",
+                variant: "destructive",
+              });
+            }
+          } catch (webhookError) {
+            console.error("Error calling payment webhook:", webhookError);
+            setBookingStatus("payment_failed");
+          }
+        } else if (paymentStatus === "SUCCESS") {
+          // Simulated payment success
           setBookingStatus("confirmed");
           toast({
             title: "Payment successful",
             description: "Your booking has been confirmed",
           });
+          
+          // Call the payment-webhook function to update the booking status
+          try {
+            await fetch(`/api/payment-webhook`, {
+              method: "POST",
+              headers: {
+                "Content-Type": "application/json",
+              },
+              body: JSON.stringify({
+                orderId: `ORDER_${bookingId}_${Date.now()}`,
+                status: "SUCCESS",
+                referenceId: `REF_${Date.now()}`,
+                paymentMode: "SIMULATED",
+              }),
+            });
+          } catch (webhookError) {
+            console.error("Error calling payment webhook:", webhookError);
+          }
         } else if (paymentStatus === "FAILED") {
+          // Simulated payment failure
           setBookingStatus("payment_failed");
           toast({
             title: "Payment failed",
@@ -49,11 +107,10 @@ const PaymentCallback = () => {
             variant: "destructive",
           });
         } else {
-          // If no status in URL, verify with the backend
+          // No status in URL, verify with the backend
           const result = await verifyPaymentStatus(bookingId);
           setBookingStatus(result.status);
           
-          // Display appropriate toast message
           if (result.status === "confirmed") {
             toast({
               title: "Payment successful",
@@ -67,31 +124,6 @@ const PaymentCallback = () => {
             });
           }
         }
-        
-        // Update the booking status in the database via webhook simulation
-        if (paymentStatus === "SUCCESS") {
-          // Call the payment-webhook function to update the booking status
-          try {
-            await fetch(`${window.location.origin}/api/payment-webhook`, {
-              method: "POST",
-              headers: {
-                "Content-Type": "application/json",
-              },
-              body: JSON.stringify({
-                orderId: `ORDER_${bookingId}_${Date.now()}`,
-                orderAmount: "0",
-                referenceId: `REF_${Date.now()}`,
-                txStatus: paymentStatus,
-                paymentMode: "SIMULATED",
-                txTime: new Date().toISOString(),
-              }),
-            });
-          } catch (webhookError) {
-            console.error("Error calling payment webhook:", webhookError);
-            // Don't show error to user as this is just for simulation
-          }
-        }
-        
       } catch (error) {
         console.error("Error verifying payment:", error);
         toast({
@@ -116,7 +148,7 @@ const PaymentCallback = () => {
     const cleanupTimeout = setTimeout(cleanupUrlParams, 1000);
     
     return () => clearTimeout(cleanupTimeout);
-  }, [bookingId, navigate, toast, paymentStatus]);
+  }, [bookingId, navigate, toast, paymentStatus, orderId, orderToken]);
 
   return (
     <div className="min-h-screen flex flex-col">
@@ -134,7 +166,7 @@ const PaymentCallback = () => {
                 Please wait while we verify your payment status...
               </p>
             </div>
-          ) : bookingStatus === "confirmed" || paymentStatus === "SUCCESS" ? (
+          ) : bookingStatus === "confirmed" ? (
             <div className="space-y-6">
               <div className="flex justify-center">
                 <CheckCircle2 className="h-20 w-20 text-green-500" />

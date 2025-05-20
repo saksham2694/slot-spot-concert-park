@@ -17,7 +17,7 @@ interface ErrorDialogProps {
   message: string;
 }
 
-const ErrorDialog: React.FC<ErrorDialogProps> = ({ isOpen, onClose, message }) => {
+const ErrorDialog = ({ isOpen, onClose, message }: ErrorDialogProps) => {
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
       <DialogContent>

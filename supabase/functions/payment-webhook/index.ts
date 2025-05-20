@@ -5,7 +5,8 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 // Get environment variables
 const supabaseUrl = Deno.env.get("SUPABASE_URL") || "";
 const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") || "";
-const cashfreeSecretKey = Deno.env.get("CASHFREE_SECRET_KEY") || "";
+const cashfreeAppId = "972186fee8762c5c769ded3dcc681279";
+const cashfreeSecretKey = "cfsk_ma_prod_daa0460110be790162f2826c9cc5cf23_52db0ede";
 
 // Set up CORS headers
 const corsHeaders = {
@@ -30,11 +31,16 @@ serve(async (req) => {
       const payload = await req.json();
       console.log("Payment webhook received:", payload);
 
-      // Validate the webhook signature
-      // Note: In production, you should verify the webhook signature from Cashfree
+      // Validate the webhook signature for Cashfree
+      // In production, you should verify the webhook signature from Cashfree
+      // https://docs.cashfree.com/reference/pgwebhook
 
-      const { orderId, orderAmount, referenceId, txStatus, paymentMode, txTime } = payload;
-
+      // Extract relevant fields based on whether it's a test or Cashfree callback
+      const orderId = payload.orderId || payload.order_id;
+      const paymentStatus = payload.status || payload.txStatus || payload.order_status;
+      const referenceId = payload.referenceId || payload.cf_payment_id || payload.transaction_id;
+      const paymentMode = payload.paymentMode || payload.payment_method || "unknown";
+      
       if (!orderId) {
         return new Response(
           JSON.stringify({ error: "Invalid webhook payload" }),
@@ -65,8 +71,13 @@ serve(async (req) => {
       const booking = bookings[0];
       const bookingId = booking.id;
       
-      // Update booking status based on payment status
-      const status = txStatus === "SUCCESS" ? "confirmed" : "payment_failed";
+      // Determine status from payment response
+      let status;
+      if (paymentStatus === "SUCCESS" || paymentStatus === "PAID" || paymentStatus === "confirmed") {
+        status = "confirmed";
+      } else {
+        status = "payment_failed";
+      }
       
       const { error: updateError } = await supabase
         .from("bookings")
@@ -74,8 +85,7 @@ serve(async (req) => {
           status: status,
           payment_reference_id: referenceId,
           payment_mode: paymentMode,
-          payment_amount: orderAmount,
-          payment_date: txTime,
+          payment_date: new Date().toISOString(),
         })
         .eq("id", bookingId);
 

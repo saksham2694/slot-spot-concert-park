@@ -60,3 +60,13 @@ export function calculateTimeDifference(start: Date | string, end: Date | string
   
   return { hours, days };
 }
+
+// Safely parse JSON
+export function safeParseJSON<T>(jsonString: string, fallback: T): T {
+  try {
+    return JSON.parse(jsonString) as T;
+  } catch (error) {
+    console.error("Error parsing JSON:", error);
+    return fallback;
+  }
+}
