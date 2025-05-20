@@ -105,7 +105,7 @@ serve(async (req) => {
               customer_phone: customerPhone || "9999999999",
             },
             order_meta: {
-              return_url: returnUrl + "?order_id={order_id}&order_token={order_token}",
+              return_url: returnUrl + "?order_id={order_id}",
               notify_url: null,
             },
             order_note: `Payment for ${eventName}`
@@ -169,144 +169,17 @@ serve(async (req) => {
 function createSimulatedPaymentResponse(bookingId: string, amount: number, orderId: string, eventName: string, origin: string, corsHeaders: Record<string, string>) {
   console.log("Using simulated payment page as fallback");
   
-  // Create a simulated payment URL for testing
-  // This simulates a payment gateway page that will redirect back to our application
-  const simulatedPaymentPageHTML = `
-  <!DOCTYPE html>
-  <html>
-  <head>
-    <title>Simulated Payment Gateway</title>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <script>
-      // Simulate payment success after 5 seconds
-      setTimeout(function() {
-        window.location.href = "${origin}/payment-callback?bookingId=${bookingId}&status=SUCCESS";
-      }, 5000);
-    </script>
-    <style>
-      body {
-        font-family: Arial, sans-serif;
-        background-color: #f7f8f9;
-        display: flex;
-        flex-direction: column;
-        align-items: center;
-        justify-content: center;
-        height: 100vh;
-        margin: 0;
-      }
-      .container {
-        background-color: white;
-        border-radius: 8px;
-        box-shadow: 0 4px 12px rgba(0,0,0,0.1);
-        padding: 32px;
-        max-width: 480px;
-        width: 100%;
-        text-align: center;
-      }
-      h1 {
-        color: #1a73e8;
-        margin-bottom: 24px;
-      }
-      .loader {
-        border: 5px solid #f3f3f3;
-        border-top: 5px solid #1a73e8;
-        border-radius: 50%;
-        width: 50px;
-        height: 50px;
-        animation: spin 1s linear infinite;
-        margin: 24px auto;
-      }
-      @keyframes spin {
-        0% { transform: rotate(0deg); }
-        100% { transform: rotate(360deg); }
-      }
-      .details {
-        margin: 24px 0;
-        text-align: left;
-      }
-      .row {
-        display: flex;
-        justify-content: space-between;
-        margin-bottom: 8px;
-        padding-bottom: 8px;
-        border-bottom: 1px solid #eee;
-      }
-      .label {
-        color: #666;
-      }
-      .value {
-        font-weight: bold;
-      }
-      .buttons {
-        display: flex;
-        justify-content: center;
-        gap: 16px;
-        margin-top: 24px;
-      }
-      .btn {
-        padding: 12px 24px;
-        border-radius: 4px;
-        border: none;
-        cursor: pointer;
-        font-weight: bold;
-        transition: background-color 0.2s;
-      }
-      .primary {
-        background-color: #1a73e8;
-        color: white;
-      }
-      .primary:hover {
-        background-color: #0d65d9;
-      }
-      .secondary {
-        background-color: #f1f3f4;
-        color: #1a73e8;
-      }
-      .secondary:hover {
-        background-color: #e8eaed;
-      }
-    </style>
-  </head>
-  <body>
-    <div class="container">
-      <h1>Payment Processing</h1>
-      <p>Please wait while we process your payment for TIME2PARK</p>
-      
-      <div class="loader"></div>
-      
-      <div class="details">
-        <div class="row">
-          <span class="label">Amount:</span>
-          <span class="value">₹${amount.toFixed(2)}</span>
-        </div>
-        <div class="row">
-          <span class="label">Order ID:</span>
-          <span class="value">${orderId}</span>
-        </div>
-        <div class="row">
-          <span class="label">Event:</span>
-          <span class="value">${eventName}</span>
-        </div>
-      </div>
-      
-      <p>You will be automatically redirected when the payment is complete.</p>
-      
-      <div class="buttons">
-        <button class="btn primary" onclick="window.location.href='${origin}/payment-callback?bookingId=${bookingId}&status=SUCCESS'">Complete Payment</button>
-        <button class="btn secondary" onclick="window.location.href='${origin}/payment-callback?bookingId=${bookingId}&status=FAILED'">Cancel</button>
-      </div>
-    </div>
-  </body>
-  </html>
-  `;
+  // Instead of a data URL, return a direct URL to the payment callback
+  // This avoids the "Not allowed to navigate top frame to data URL" error
+  const simulatedPaymentUrl = `${origin}/payment-callback?bookingId=${bookingId}&status=SUCCESS&simulated=true`;
 
-  // Return the simulated payment page HTML
+  // Return the simulated payment URL
   return new Response(
     JSON.stringify({ 
       success: true, 
-      paymentLink: `data:text/html;charset=utf-8,${encodeURIComponent(simulatedPaymentPageHTML)}`,
-      orderId: orderId
+      paymentLink: simulatedPaymentUrl,
+      orderId: orderId,
+      simulated: true
     }),
     {
       headers: { ...corsHeaders, "Content-Type": "application/json" },

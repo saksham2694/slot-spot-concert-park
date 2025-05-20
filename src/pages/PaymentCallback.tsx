@@ -7,16 +7,19 @@ import { Button } from "@/components/ui/button";
 import { useToast } from "@/components/ui/use-toast";
 import { verifyPaymentStatus } from "@/services/paymentService";
 import { LoaderCircle, CheckCircle2, XCircle } from "lucide-react";
+import PaymentErrorDialog from "@/components/ui/payment-error-dialog";
 
 const PaymentCallback = () => {
   const [searchParams] = useSearchParams();
   const bookingId = searchParams.get("bookingId");
   const paymentStatus = searchParams.get("status");
   const orderId = searchParams.get("order_id");
-  const orderToken = searchParams.get("order_token");
+  const simulated = searchParams.get("simulated") === "true";
   
   const [loading, setLoading] = useState(true);
   const [bookingStatus, setBookingStatus] = useState<string | null>(null);
+  const [showError, setShowError] = useState(false);
+  const [errorMessage, setErrorMessage] = useState("");
   const navigate = useNavigate();
   const { toast } = useToast();
 
@@ -35,11 +38,10 @@ const PaymentCallback = () => {
       try {
         setLoading(true);
         
-        // For Cashfree callbacks, we need to validate with their API
-        // For simulated payments, we use the status directly from URL
-        if (orderId && orderToken) {
-          // This would be a real Cashfree callback
-          console.log("Processing Cashfree callback", { orderId, orderToken });
+        // For Cashfree callbacks with order_id, or simulated payments with status
+        if ((orderId || simulated) && paymentStatus) {
+          // This could be a real Cashfree callback or our simulated payment
+          console.log("Processing payment callback", { orderId, paymentStatus, simulated });
           
           // Call payment webhook to update booking status
           try {
@@ -49,9 +51,10 @@ const PaymentCallback = () => {
                 "Content-Type": "application/json",
               },
               body: JSON.stringify({
-                order_id: orderId,
-                order_token: orderToken,
-                // Additional fields from Cashfree would be here
+                orderId: orderId || `ORDER_${bookingId}_${Date.now()}`,
+                status: paymentStatus,
+                referenceId: `REF_${Date.now()}`,
+                paymentMode: simulated ? "SIMULATED" : "CASHFREE",
               }),
             });
             
@@ -72,56 +75,31 @@ const PaymentCallback = () => {
           } catch (webhookError) {
             console.error("Error calling payment webhook:", webhookError);
             setBookingStatus("payment_failed");
+            setShowError(true);
+            setErrorMessage("Failed to update payment status. Please contact support.");
           }
-        } else if (paymentStatus === "SUCCESS") {
-          // Simulated payment success
-          setBookingStatus("confirmed");
-          toast({
-            title: "Payment successful",
-            description: "Your booking has been confirmed",
-          });
-          
-          // Call the payment-webhook function to update the booking status
-          try {
-            await fetch(`/api/payment-webhook`, {
-              method: "POST",
-              headers: {
-                "Content-Type": "application/json",
-              },
-              body: JSON.stringify({
-                orderId: `ORDER_${bookingId}_${Date.now()}`,
-                status: "SUCCESS",
-                referenceId: `REF_${Date.now()}`,
-                paymentMode: "SIMULATED",
-              }),
-            });
-          } catch (webhookError) {
-            console.error("Error calling payment webhook:", webhookError);
-          }
-        } else if (paymentStatus === "FAILED") {
-          // Simulated payment failure
-          setBookingStatus("payment_failed");
-          toast({
-            title: "Payment failed",
-            description: "Your payment was not successful",
-            variant: "destructive",
-          });
         } else {
           // No status in URL, verify with the backend
-          const result = await verifyPaymentStatus(bookingId);
-          setBookingStatus(result.status);
-          
-          if (result.status === "confirmed") {
-            toast({
-              title: "Payment successful",
-              description: "Your booking has been confirmed",
-            });
-          } else if (result.status === "payment_failed") {
-            toast({
-              title: "Payment failed",
-              description: "Your payment was not successful",
-              variant: "destructive",
-            });
+          try {
+            const result = await verifyPaymentStatus(bookingId);
+            setBookingStatus(result.status);
+            
+            if (result.status === "confirmed") {
+              toast({
+                title: "Payment successful",
+                description: "Your booking has been confirmed",
+              });
+            } else if (result.status === "payment_failed") {
+              toast({
+                title: "Payment failed",
+                description: "Your payment was not successful",
+                variant: "destructive",
+              });
+            }
+          } catch (verifyError) {
+            console.error("Error verifying payment:", verifyError);
+            setShowError(true);
+            setErrorMessage("Failed to verify payment status. Please check your bookings page.");
           }
         }
       } catch (error) {
@@ -131,6 +109,8 @@ const PaymentCallback = () => {
           description: "Failed to verify payment status",
           variant: "destructive",
         });
+        setShowError(true);
+        setErrorMessage("An unexpected error occurred. Please check your bookings page or try again.");
       } finally {
         setLoading(false);
       }
@@ -148,7 +128,7 @@ const PaymentCallback = () => {
     const cleanupTimeout = setTimeout(cleanupUrlParams, 1000);
     
     return () => clearTimeout(cleanupTimeout);
-  }, [bookingId, navigate, toast, paymentStatus, orderId, orderToken]);
+  }, [bookingId, navigate, toast, paymentStatus, orderId, simulated]);
 
   return (
     <div className="min-h-screen flex flex-col">
@@ -219,6 +199,12 @@ const PaymentCallback = () => {
           )}
         </div>
       </main>
+      
+      <PaymentErrorDialog
+        isOpen={showError}
+        onClose={() => setShowError(false)}
+        message={errorMessage}
+      />
       
       <Footer />
     </div>
