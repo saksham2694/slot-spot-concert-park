@@ -11,31 +11,44 @@ import {
 import { Button } from "@/components/ui/button";
 import { AlertCircle } from "lucide-react";
 
-interface ErrorDialogProps {
+interface PaymentErrorDialogProps {
   isOpen: boolean;
   onClose: () => void;
   message: string;
+  onRetry?: () => void;
 }
 
-const ErrorDialog: React.FC<ErrorDialogProps> = ({ isOpen, onClose, message }) => {
+const PaymentErrorDialog: React.FC<PaymentErrorDialogProps> = ({ 
+  isOpen, 
+  onClose, 
+  message,
+  onRetry 
+}) => {
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
       <DialogContent>
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2 text-destructive">
             <AlertCircle className="h-5 w-5" />
-            Error
+            Payment Error
           </DialogTitle>
           <DialogDescription>
             {message}
           </DialogDescription>
         </DialogHeader>
-        <DialogFooter>
-          <Button onClick={onClose}>Close</Button>
+        <DialogFooter className="flex flex-col sm:flex-row gap-2">
+          {onRetry && (
+            <Button onClick={onRetry} variant="default">
+              Try Again
+            </Button>
+          )}
+          <Button onClick={onClose} variant="outline">
+            Close
+          </Button>
         </DialogFooter>
       </DialogContent>
     </Dialog>
   );
 };
 
-export default ErrorDialog;
+export default PaymentErrorDialog;

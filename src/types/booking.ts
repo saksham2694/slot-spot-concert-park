@@ -1,4 +1,6 @@
 
+export type BookingStatus = 'upcoming' | 'completed' | 'cancelled' | 'pending_payment' | 'payment_pending' | 'payment_failed' | 'confirmed';
+
 export interface Booking {
   id: string;
   eventId: string;
@@ -8,7 +10,7 @@ export interface Booking {
   location: string;
   parkingSpots: string[];
   totalPrice: number;
-  status: 'upcoming' | 'completed' | 'cancelled' | 'pending_payment' | 'payment_pending' | 'payment_failed';
+  status: BookingStatus;
   paymentOrderId?: string;
   paymentReferenceId?: string;
   paymentMode?: string;

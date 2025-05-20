@@ -208,7 +208,6 @@ export async function createUniversityBooking({
   }
 }
 
-// Fix the function syntax here using arrow function
 export const getBookingTotalPrice = async (bookingId: string) => {
   try {
     const { data, error } = await supabase

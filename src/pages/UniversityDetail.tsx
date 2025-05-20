@@ -411,11 +411,13 @@ const UniversityDetail = () => {
       )}
       
       {/* Error Dialog */}
-      <ErrorDialog 
-        isOpen={isErrorDialogOpen} 
-        onClose={() => setIsErrorDialogOpen(false)} 
-        message={errorMessage}
-      />
+      {error && (
+        <ErrorDialog 
+          isOpen={!!error} 
+          onClose={() => setError(null)} 
+          message={error} 
+        />
+      )}
     </div>
   );
 };

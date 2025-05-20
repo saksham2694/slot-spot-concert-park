@@ -26,7 +26,6 @@ export async function processPayment(params: ProcessPaymentParams) {
         customerName,
         customerEmail,
         customerPhone,
-        orderId,
         eventName
       }
     });

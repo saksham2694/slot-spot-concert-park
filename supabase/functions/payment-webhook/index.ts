@@ -5,8 +5,6 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 // Get environment variables
 const supabaseUrl = Deno.env.get("SUPABASE_URL") || "";
 const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") || "";
-const cashfreeAppId = "972186fee8762c5c769ded3dcc681279";
-const cashfreeSecretKey = "cfsk_ma_prod_daa0460110be790162f2826c9cc5cf23_52db0ede";
 
 // Set up CORS headers
 const corsHeaders = {
@@ -31,19 +29,34 @@ serve(async (req) => {
       const payload = await req.json();
       console.log("Payment webhook received:", payload);
 
-      // Validate the webhook signature for Cashfree
-      // In production, you should verify the webhook signature from Cashfree
-      // https://docs.cashfree.com/reference/pgwebhook
-
       // Extract relevant fields based on whether it's a test or Cashfree callback
-      const orderId = payload.orderId || payload.order_id;
-      const paymentStatus = payload.status || payload.txStatus || payload.order_status;
-      const referenceId = payload.referenceId || payload.cf_payment_id || payload.transaction_id;
-      const paymentMode = payload.paymentMode || payload.payment_method || "unknown";
+      let orderId, paymentStatus, referenceId, paymentMode;
+      
+      if (payload.orderId) {
+        // Simulated payment format
+        orderId = payload.orderId;
+        paymentStatus = payload.status;
+        referenceId = payload.referenceId || `REF_${Date.now()}`;
+        paymentMode = payload.paymentMode || "SIMULATED";
+      } else if (payload.order_id) {
+        // Cashfree callback format
+        orderId = payload.order_id;
+        paymentStatus = payload.order_status || payload.txStatus;
+        referenceId = payload.cf_payment_id || payload.transaction_id;
+        paymentMode = payload.payment_method || "CASHFREE";
+      } else {
+        return new Response(
+          JSON.stringify({ error: "Invalid webhook payload" }),
+          {
+            status: 400,
+            headers: { ...corsHeaders, "Content-Type": "application/json" },
+          }
+        );
+      }
       
       if (!orderId) {
         return new Response(
-          JSON.stringify({ error: "Invalid webhook payload" }),
+          JSON.stringify({ error: "Missing order ID in payload" }),
           {
             status: 400,
             headers: { ...corsHeaders, "Content-Type": "application/json" },
@@ -79,6 +92,7 @@ serve(async (req) => {
         status = "payment_failed";
       }
       
+      // Update the booking with payment information
       const { error: updateError } = await supabase
         .from("bookings")
         .update({
@@ -100,41 +114,8 @@ serve(async (req) => {
         );
       }
 
-      // If payment was successful, ensure parking slots are properly allocated
-      if (status === "confirmed") {
-        // No need to call decrement here, as it should be handled by the booking trigger
-        console.log(`Payment confirmed for booking ${bookingId}`);
-      } else if (status === "payment_failed") {
-        // Release the parking slots if payment failed
-        console.log(`Payment failed for booking ${bookingId}, releasing slots`);
-        
-        // Get all booking slots associated with this booking
-        const { data: bookingSlots, error: slotsError } = await supabase
-          .from("booking_slots")
-          .select("parking_layout_id")
-          .eq("booking_id", bookingId);
-          
-        if (!slotsError && bookingSlots && bookingSlots.length > 0) {
-          // Free up all the parking spots
-          for (const slot of bookingSlots) {
-            await supabase
-              .from("parking_layouts")
-              .update({ is_reserved: false })
-              .eq("id", slot.parking_layout_id);
-          }
-          
-          // Update the available slots count in the events table
-          if (booking.event_id) {
-            await supabase.rpc('increment', { 
-              x: bookingSlots.length, 
-              row_id: booking.event_id 
-            });
-          }
-        }
-      }
-
       return new Response(
-        JSON.stringify({ success: true }),
+        JSON.stringify({ success: true, status: status }),
         {
           status: 200,
           headers: { ...corsHeaders, "Content-Type": "application/json" },
