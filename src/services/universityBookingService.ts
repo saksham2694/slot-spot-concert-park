@@ -1,5 +1,6 @@
-
-import { supabase } from "@/integrations/supabase/client";
+import { supabase } from '@/integrations/supabase/client';
+import { BookingStatus } from '@/types/booking';
+import { safeQueryResult } from '@/lib/utils';
 import { toast } from "@/components/ui/use-toast";
 import { ParkingSlot, assertData } from "@/types/parking";
 
@@ -204,5 +205,23 @@ export async function createUniversityBooking({
   } catch (error) {
     console.error("Error in createUniversityBooking:", error);
     throw error;
+  }
+}
+
+export const getBookingTotalPrice = async (bookingId: string): Promise<number> {
+  try {
+    const { data, error } = await supabase
+      .from('university_booking_slots')
+      .select('parking_layout_id')
+      .eq('booking_id', bookingId);
+    
+    if (error) throw error;
+    
+    const result = safeQueryResult(data);
+    // Calculate the price based on the number of slots
+    return result.length * 10; // Assuming each slot costs $10
+  } catch (error) {
+    console.error('Error getting booking total price:', error);
+    return 0;
   }
 }

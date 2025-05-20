@@ -32,7 +32,9 @@ const AuthPrompt = () => {
             </div>
           </SheetContent>
         </Sheet>
-      ) : null}
+      ) : (
+        <AuthButton className="mx-auto" />
+      )}
     </div>
   );
 };

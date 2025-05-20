@@ -1,136 +1,84 @@
-import { useState } from "react";
-import { useQuery } from "@tanstack/react-query";
-import { useNavigate } from "react-router-dom";
-import { Card, CardContent, CardFooter, CardHeader } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
-import { Skeleton } from "@/components/ui/skeleton";
-import { Building } from "lucide-react";
+import { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
+import { Heading } from "@/components/ui/typography";
+import { Button } from "@/components/ui/button";
 import { supabase } from "@/integrations/supabase/client";
-import { University } from "@/types/university";
-import { safeQueryResult } from "@/types/parking";
-
-type University = {
-  id: string;
-  name: string;
-  location: string;
-  image_url: string | null;
-  total_parking_slots: number;
-  available_parking_slots: number;
-  hourly_rate: number;
-};
-
-const fetchUniversities = async (): Promise<University[]> => {
-  const { data, error } = await supabase
-    .from("universities")
-    .select("*")
-    .order("name", { ascending: true })
-    .limit(4);
-
-  if (error) {
-    console.error("Error fetching universities:", error);
-    throw error;
-  }
-
-  return safeQueryResult<University[]>(data, error);
-};
+import { MapPin } from "lucide-react";
+import { safeQueryResult } from "@/lib/utils";
+import type { University as UniversityType } from "@/types/university";
 
 const FeaturedUniversities = () => {
-  const navigate = useNavigate();
-  
-  const { data: universities = [], isLoading } = useQuery({
-    queryKey: ["featuredUniversities"],
-    queryFn: fetchUniversities,
-    staleTime: 5 * 60 * 1000, // 5 minutes
-  });
+  const [universities, setUniversities] = useState<UniversityType[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
+  useEffect(() => {
+    const fetchUniversities = async () => {
+      setLoading(true);
+      setError(null);
+
+      try {
+        const { data, error } = await supabase
+          .from('universities')
+          .select('*')
+          .limit(3);
+
+        if (error) {
+          console.error("Error fetching universities:", error);
+          setError(error.message);
+        } else {
+          const result = safeQueryResult(data);
+          setUniversities(result);
+        }
+      } catch (err: any) {
+        console.error("Unexpected error fetching universities:", err);
+        setError(err.message || "An unexpected error occurred");
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchUniversities();
+  }, []);
+  
   return (
     <section className="py-12">
       <div className="container">
-        <div className="flex justify-between items-center mb-6">
-          <h2 className="text-2xl font-bold">Featured Universities</h2>
-          <Button variant="outline" onClick={() => navigate("/universities")}>
-            View All
-          </Button>
+        <div className="flex justify-between items-center mb-8">
+          <Heading level={2}>Popular Universities</Heading>
+          <Link to="/universities">
+            <Button variant="outline">View All</Button>
+          </Link>
         </div>
         
-        {isLoading ? (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-            {[...Array(4)].map((_, index) => (
-              <div key={index} className="space-y-3">
-                <Skeleton className="h-48 w-full" />
-                <Skeleton className="h-6 w-3/4" />
-                <Skeleton className="h-4 w-full" />
-                <Skeleton className="h-4 w-full" />
-                <Skeleton className="h-10 w-full" />
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+          {universities.slice(0, 3).map((university) => (
+            <Link 
+              key={university.id} 
+              to={`/universities/${university.id}`}
+              className="bg-white rounded-lg shadow-md overflow-hidden hover:shadow-lg transition-shadow"
+            >
+              <div className="h-48 overflow-hidden">
+                <img 
+                  src={university.image_url || 'https://images.unsplash.com/photo-1607237138185-eedd9c632b0b'} 
+                  alt={university.name} 
+                  className="w-full h-full object-cover"
+                />
               </div>
-            ))}
-          </div>
-        ) : universities.length > 0 ? (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-            {universities.map((university) => (
-              <Card key={university.id} className="overflow-hidden flex flex-col">
-                <div className="h-48 relative">
-                  {university.image_url ? (
-                    <img 
-                      src={university.image_url} 
-                      alt={university.name} 
-                      className="w-full h-full object-cover"
-                    />
-                  ) : (
-                    <div className="w-full h-full bg-muted flex items-center justify-center">
-                      <Building className="h-12 w-12 text-muted-foreground" />
-                    </div>
-                  )}
-                  <div className="absolute top-2 right-2">
-                    <Badge className="bg-primary">
-                      ₹{university.hourly_rate.toFixed(2)}/hr
-                    </Badge>
-                  </div>
+              <div className="p-4">
+                <h3 className="text-xl font-semibold mb-2">{university.name}</h3>
+                <div className="flex items-center text-muted-foreground mb-3">
+                  <MapPin className="w-4 h-4 mr-1" />
+                  <span>{university.location}</span>
                 </div>
-                
-                <CardHeader className="pb-2">
-                  <h3 className="text-xl font-semibold">{university.name}</h3>
-                  <p className="text-muted-foreground text-sm">{university.location}</p>
-                </CardHeader>
-                
-                <CardContent className="pb-2">
-                  <div className="flex items-center justify-between text-sm">
-                    <span className="text-muted-foreground">Available Spots</span>
-                    <span className="font-medium">{university.available_parking_slots} / {university.total_parking_slots}</span>
-                  </div>
-                  <div className="h-2 bg-muted rounded-full mt-2">
-                    <div 
-                      className="h-full bg-primary rounded-full" 
-                      style={{ 
-                        width: `${(university.available_parking_slots / university.total_parking_slots) * 100}%` 
-                      }}
-                    />
-                  </div>
-                </CardContent>
-                
-                <CardFooter className="mt-auto pt-4">
-                  <Link to={`/universities/${university.id}`} className="w-full">
-                    <Button className="w-full">
-                      Book Parking
-                    </Button>
-                  </Link>
-                </CardFooter>
-              </Card>
-            ))}
-          </div>
-        ) : (
-          <div className="text-center py-12 bg-card rounded-lg shadow-sm">
-            <div className="bg-muted inline-flex p-3 rounded-full mb-4">
-              <Building className="h-6 w-6 text-muted-foreground" />
-            </div>
-            <h3 className="text-xl font-semibold mb-2">No universities available</h3>
-            <p className="text-muted-foreground mb-6">
-              Check back later for university parking options.
-            </p>
-          </div>
-        )}
+                <div className="flex justify-between items-center">
+                  <span className="text-sm text-muted-foreground">Available Parking Spots</span>
+                  <span className="font-medium">{university.available_spots}</span>
+                </div>
+              </div>
+            </Link>
+          ))}
+        </div>
       </div>
     </section>
   );

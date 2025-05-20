@@ -2,35 +2,31 @@
 import { AlertDialog, AlertDialogContent, AlertDialogDescription, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 
 interface ErrorDialogProps {
-  isOpen: boolean;
-  onClose: () => void;
+  isOpen?: boolean;
+  onClose?: () => void;
   message: string;
   title?: string;
+  open?: boolean;
+  onOpenChange?: (open: boolean) => void;
 }
 
-// Main component with isOpen prop
-export function ErrorDialog({ isOpen, onClose, message, title = "Error" }: ErrorDialogProps) {
-  return (
-    <AlertDialog open={isOpen} onOpenChange={onClose}>
-      <AlertDialogContent>
-        <AlertDialogHeader>
-          <AlertDialogTitle>{title}</AlertDialogTitle>
-          <AlertDialogDescription>{message}</AlertDialogDescription>
-        </AlertDialogHeader>
-      </AlertDialogContent>
-    </AlertDialog>
-  );
-}
+// Combined component that supports both isOpen/onClose and open/onOpenChange patterns
+export function ErrorDialog({ 
+  isOpen, 
+  onClose, 
+  message, 
+  title = "Error",
+  open,
+  onOpenChange 
+}: ErrorDialogProps) {
+  // Determine which props to use based on what was provided
+  const isDialogOpen = isOpen !== undefined ? isOpen : open;
+  const handleOpenChange = onOpenChange || (onClose ? (isOpen: boolean) => {
+    if (!isOpen) onClose();
+  } : undefined);
 
-// Alternative version with open prop for compatibility with components using open instead of isOpen
-export function ErrorDialogAlt({ open, onOpenChange, message, title = "Error" }: { 
-  open: boolean;
-  onOpenChange: (open: boolean) => void;
-  message: string;
-  title?: string;
-}) {
   return (
-    <AlertDialog open={open} onOpenChange={onOpenChange}>
+    <AlertDialog open={isDialogOpen} onOpenChange={handleOpenChange}>
       <AlertDialogContent>
         <AlertDialogHeader>
           <AlertDialogTitle>{title}</AlertDialogTitle>
