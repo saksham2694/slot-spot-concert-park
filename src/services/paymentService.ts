@@ -15,8 +15,7 @@ export async function processPayment(params: ProcessPaymentParams) {
   const { bookingId, amount, customerName, customerEmail, customerPhone, eventName } = params;
   
   try {
-    // Create a unique order ID
-    const orderId = `ORDER_${bookingId}_${Date.now()}`;
+    console.log("Calling process-payment function with params:", params);
     
     // Call the Supabase Edge Function to process the payment
     const { data, error } = await supabase.functions.invoke("process-payment", {
@@ -40,13 +39,28 @@ export async function processPayment(params: ProcessPaymentParams) {
       throw error;
     }
 
-    if (!data || !data.paymentLink) {
+    // Check for valid response data
+    if (!data) {
+      const noDataError = new Error("No response data received");
+      console.error("Payment service error:", noDataError);
       toast({
         title: "Payment Error",
-        description: "No payment link received. Please try again.",
+        description: "No response received from payment server. Please try again.",
         variant: "destructive",
       });
-      throw new Error("No payment link received");
+      throw noDataError;
+    }
+    
+    // Check for payment link
+    if (!data.paymentLink) {
+      const noLinkError = new Error("No payment link received");
+      console.error("Payment service error:", noLinkError);
+      toast({
+        title: "Payment Error",
+        description: "Failed to generate payment link. Please try again.",
+        variant: "destructive",
+      });
+      throw noLinkError;
     }
     
     // Return the payment link data

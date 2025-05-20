@@ -56,7 +56,7 @@ serve(async (req) => {
 
       // Generate a shorter order ID to avoid Cashfree's 50 character limit
       // Using the booking ID first 8 chars and a timestamp
-      const shortBookingId = bookingId.split('-')[0];
+      const shortBookingId = bookingId.substring(0, 8);
       const orderId = `ORD${shortBookingId}${Date.now().toString().slice(-6)}`;
 
       // Update booking with payment info
@@ -169,8 +169,7 @@ serve(async (req) => {
 function createSimulatedPaymentResponse(bookingId: string, amount: number, orderId: string, eventName: string, origin: string, corsHeaders: Record<string, string>) {
   console.log("Using simulated payment page as fallback");
   
-  // Instead of a data URL, return a direct URL to the payment callback
-  // This avoids the "Not allowed to navigate top frame to data URL" error
+  // Create a direct URL for the simulated payment workflow
   const simulatedPaymentUrl = `${origin}/payment-callback?bookingId=${bookingId}&status=SUCCESS&simulated=true`;
 
   // Return the simulated payment URL

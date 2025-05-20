@@ -43,6 +43,7 @@ const UniversityDetail = () => {
   const [bookingId, setBookingId] = useState<string | null>(null);
   const [isBooking, setIsBooking] = useState<boolean>(false);
   const [errorMessage, setErrorMessage] = useState<string>("");
+  const [showError, setShowError] = useState(false);
   const [isErrorDialogOpen, setIsErrorDialogOpen] = useState(false);
   
   const { toast } = useToast();
@@ -144,11 +145,8 @@ const UniversityDetail = () => {
       }
     } catch (error) {
       console.error("Error creating booking:", error);
-      toast({
-        title: "Booking Error",
-        description: "Failed to create the booking. Please try again.",
-        variant: "destructive",
-      });
+      setErrorMessage("Failed to create the booking. Please try again.");
+      setShowError(true);
     } finally {
       setIsBooking(false);
     }
@@ -411,11 +409,11 @@ const UniversityDetail = () => {
       )}
       
       {/* Error Dialog */}
-      {error && (
+      {showError && (
         <ErrorDialog 
-          isOpen={!!error} 
-          onClose={() => setError(null)} 
-          message={error} 
+          isOpen={showError} 
+          onClose={() => setShowError(false)} 
+          message={errorMessage} 
         />
       )}
     </div>

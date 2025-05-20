@@ -228,3 +228,23 @@ export const getBookingTotalPrice = async (bookingId: string) => {
     return 0;
   }
 };
+
+// Fix the type error for count query
+export async function getAirportParkingCount(airportId: string): Promise<number> {
+  try {
+    const { data, error, count } = await supabase
+      .from("airport_parking_spots")
+      .select("id", { count: "exact" })
+      .eq("airport_id", airportId);
+      
+    if (error) {
+      console.error("Error fetching airport parking count:", error);
+      return 0;
+    }
+    
+    return count || 0; // Return count or default to 0
+  } catch (error) {
+    console.error("Error in getAirportParkingCount:", error);
+    return 0;
+  }
+}
