@@ -1,7 +1,5 @@
 
 import { supabase } from '@/integrations/supabase/client';
-import { BookingStatus } from '@/types/booking';
-import { safeQueryResult } from '@/lib/utils';
 import { toast } from "@/components/ui/use-toast";
 import { ParkingSlot, assertData } from "@/types/parking";
 
@@ -219,11 +217,12 @@ export const getBookingTotalPrice = async (bookingId: string) => {
     
     if (error) throw error;
     
-    const result = safeQueryResult(data);
+    // Update to not use safeQueryResult
+    const result = data || [];
     // Calculate the price based on the number of slots
     return result.length * 15; // Assuming each slot costs $15
   } catch (error) {
     console.error('Error getting booking total price:', error);
     return 0;
   }
-}
+};

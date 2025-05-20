@@ -1,38 +1,41 @@
 
-import { AlertDialog, AlertDialogContent, AlertDialogDescription, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
+import React from "react";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+  DialogFooter,
+} from "@/components/ui/dialog";
+import { Button } from "@/components/ui/button";
+import { AlertCircle } from "lucide-react";
 
 interface ErrorDialogProps {
-  isOpen?: boolean;
-  onClose?: () => void;
+  isOpen: boolean;
+  onClose: () => void;
   message: string;
-  title?: string;
-  open?: boolean;
-  onOpenChange?: (open: boolean) => void;
 }
 
-// Combined component that supports both isOpen/onClose and open/onOpenChange patterns
-export function ErrorDialog({ 
-  isOpen, 
-  onClose, 
-  message, 
-  title = "Error",
-  open,
-  onOpenChange 
-}: ErrorDialogProps) {
-  // Determine which props to use based on what was provided
-  const isDialogOpen = isOpen !== undefined ? isOpen : open;
-  const handleOpenChange = onOpenChange || (onClose ? (isOpen: boolean) => {
-    if (!isOpen) onClose();
-  } : undefined);
-
+const ErrorDialog: React.FC<ErrorDialogProps> = ({ isOpen, onClose, message }) => {
   return (
-    <AlertDialog open={isDialogOpen} onOpenChange={handleOpenChange}>
-      <AlertDialogContent>
-        <AlertDialogHeader>
-          <AlertDialogTitle>{title}</AlertDialogTitle>
-          <AlertDialogDescription>{message}</AlertDialogDescription>
-        </AlertDialogHeader>
-      </AlertDialogContent>
-    </AlertDialog>
+    <Dialog open={isOpen} onOpenChange={onClose}>
+      <DialogContent>
+        <DialogHeader>
+          <DialogTitle className="flex items-center gap-2 text-destructive">
+            <AlertCircle className="h-5 w-5" />
+            Error
+          </DialogTitle>
+          <DialogDescription>
+            {message}
+          </DialogDescription>
+        </DialogHeader>
+        <DialogFooter>
+          <Button onClick={onClose}>Close</Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
   );
-}
+};
+
+export default ErrorDialog;

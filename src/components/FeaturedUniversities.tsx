@@ -5,7 +5,6 @@ import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { supabase } from "@/integrations/supabase/client";
 import { MapPin } from "lucide-react";
-import { safeQueryResult } from "@/lib/utils";
 import type { University as UniversityType } from "@/types/university";
 
 const FeaturedUniversities = () => {
@@ -28,8 +27,7 @@ const FeaturedUniversities = () => {
           console.error("Error fetching universities:", error);
           setError(error.message);
         } else {
-          const result = safeQueryResult(data);
-          setUniversities(result);
+          setUniversities(data || []);
         }
       } catch (err: any) {
         console.error("Unexpected error fetching universities:", err);
@@ -74,7 +72,7 @@ const FeaturedUniversities = () => {
                 </div>
                 <div className="flex justify-between items-center">
                   <span className="text-sm text-muted-foreground">Available Parking Spots</span>
-                  <span className="font-medium">{university.available_spots}</span>
+                  <span className="font-medium">{university.available_parking_slots}</span>
                 </div>
               </div>
             </Link>
