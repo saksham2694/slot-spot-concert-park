@@ -1,3 +1,4 @@
+
 import { supabase } from "@/integrations/supabase/client";
 import { ParkingSlot, UniversityReservedSpot } from "@/types/parking";
 
@@ -27,24 +28,23 @@ export async function createUniversityBooking({
   hours
 }: CreateUniversityBookingParams): Promise<string> {
   try {
-    // Get the current user
-    const { data: userData, error: userError } = await supabase.auth.getUser();
+    // First verify the user is authenticated
+    const { data: { user }, error: authError } = await supabase.auth.getUser();
     
-    if (userError || !userData.user) {
+    if (authError || !user) {
+      console.error("Authentication error:", authError);
       throw new Error("User not authenticated");
     }
-    
-    const userId = userData.user.id;
     
     // Calculate total price
     const totalPrice = selectedSlots.reduce((sum, slot) => sum + (slot.price * hours), 0);
     
-    // Create the booking record - explicitly set the user_id to the authenticated user's ID
+    // Create the booking record with the authenticated user's ID
     const { data: bookingData, error: bookingError } = await supabase
       .from("university_bookings")
       .insert({
-        user_id: userId,
         university_id: universityId,
+        user_id: user.id,
         start_date: startDate.toISOString(),
         end_date: endDate.toISOString(),
         payment_amount: totalPrice,
