@@ -18,9 +18,9 @@ import ErrorDialog from "@/components/ui/error-dialog";
 
 const EventDetail = () => {
   const { eventId } = useParams<{ eventId: string }>();
-  const [event, setEvent] = useState(null);
+  const [event, setEvent] = useState<any>(null);
   const [loading, setLoading] = useState(true);
-  const [bookingId, setBookingId] = useState(null);
+  const [bookingId, setBookingId] = useState<string | null>(null);
   const [showAuthPrompt, setShowAuthPrompt] = useState(false);
   const [isBooking, setIsBooking] = useState(false);
   const [showError, setShowError] = useState(false);
@@ -132,8 +132,8 @@ const EventDetail = () => {
           <BookingConfirmation 
             bookingId={bookingId}
             event={event}
-            parkingSpots={selectedSlots.map(slot => slot.id)}
-            totalPrice={selectedSlots.reduce((sum, spot) => sum + spot.price, 0)}
+            selectedSlots={selectedSlots}
+            qrCodeData={`TIME2PARK-EVENT-${bookingId}`}
           />
         </main>
         <Footer />
@@ -146,29 +146,39 @@ const EventDetail = () => {
       <Navbar />
       
       <main className="flex-grow">
-        <EventHero event={event} isLoading={loading} />
+        {event && <EventHero event={event} />}
         
         <div className="container py-8">
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-            <div className="md:col-span-2">
-              <EventTabs
-                event={event}
-                isLoading={loading || slotsLoading}
-                parkingSlots={slotsByRow}
-                onSlotClick={handleSlotClick}
-              />
+          {loading ? (
+            <div className="text-center py-10">Loading event details...</div>
+          ) : (
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+              <div className="md:col-span-2">
+                {event && (
+                  <EventTabs
+                    eventId={event.id}
+                    parkingTotal={event.parkingTotal || 0}
+                    parkingAvailable={event.parkingAvailable || 0}
+                    parkingPrice={event.parkingPrice || 0}
+                    onSlotSelect={(slots) => {
+                      // This function is not used directly in EventTabs
+                      // but we need to provide it for the component's props
+                    }}
+                  />
+                )}
+              </div>
+              
+              <div>
+                <BookingSummary
+                  event={event}
+                  selectedSlots={selectedSlots}
+                  isBooking={isBooking}
+                  isUserLoggedIn={!!user}
+                  onBookingClick={handleBookingClick}
+                />
+              </div>
             </div>
-            
-            <div>
-              <BookingSummary
-                event={event}
-                selectedSlots={selectedSlots}
-                isBooking={isBooking}
-                isUserLoggedIn={!!user}
-                onBookingClick={handleBookingClick}
-              />
-            </div>
-          </div>
+          )}
         </div>
       </main>
       

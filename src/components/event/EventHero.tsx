@@ -7,6 +7,10 @@ interface EventHeroProps {
 }
 
 const EventHero = ({ event }: EventHeroProps) => {
+  if (!event) {
+    return null;
+  }
+  
   return (
     <div className="relative h-80 overflow-hidden">
       <img
