@@ -7,6 +7,11 @@ const safeQueryResult = <T>(data: unknown, defaultValue: T): T => {
   return data as T;
 };
 
+// Function to generate a unique ID using Date.now() and random numbers
+const generateUniqueId = (): string => {
+  return `${Date.now()}-${Math.random().toString(36).substring(2, 15)}`;
+};
+
 interface BookingData {
   airportId: string;
   selectedSlots: ParkingSlot[];
@@ -32,11 +37,15 @@ export const createAirportBooking = async (bookingData: BookingData): Promise<st
     
     const userId = userData.user.id;
 
+    // Generate a unique booking ID
+    const bookingId = generateUniqueId();
+
     // 1. Create a new booking record
     const { data: bookingData, error: bookingError } = await supabase
       .from("airport_bookings")
       .insert([
         {
+          id: bookingId,
           airport_id: airportId,
           user_id: userId,
           start_date: startDate.toISOString(),
@@ -52,7 +61,8 @@ export const createAirportBooking = async (bookingData: BookingData): Promise<st
       throw new Error(`Failed to create booking: ${bookingError.message}`);
     }
 
-    const bookingId = bookingData.id;
+    // Get the actual booking ID from the response
+    const resultingBookingId = bookingData.id;
 
     // 2. Mark the selected parking slots as reserved
     for (const slot of selectedSlots) {
@@ -127,7 +137,7 @@ export const createAirportBooking = async (bookingData: BookingData): Promise<st
         const { error: slotBookingError } = await supabase
           .from("airport_booking_slots")
           .insert({
-            booking_id: bookingId,
+            booking_id: resultingBookingId,
             parking_layout_id: layoutId
           });
 
@@ -153,7 +163,7 @@ export const createAirportBooking = async (bookingData: BookingData): Promise<st
         .eq("id", airportId);
     }
 
-    return bookingId;
+    return resultingBookingId;
   } catch (error: any) {
     console.error("Error creating airport booking:", error.message);
     return null;

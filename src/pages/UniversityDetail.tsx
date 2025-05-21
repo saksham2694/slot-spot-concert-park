@@ -402,9 +402,9 @@ const UniversityDetail = () => {
       
       {/* Auth Prompt Dialog */}
       {showAuthPrompt && (
-        <AuthPrompt2
-          open={showAuthPrompt}
-          onOpenChange={setShowAuthPrompt}
+        <AuthPrompt
+          isOpen={showAuthPrompt}
+          onClose={() => setShowAuthPrompt(false)}
           message="You need to be logged in to book a parking spot."
         />
       )}

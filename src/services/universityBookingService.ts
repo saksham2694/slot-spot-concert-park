@@ -1,11 +1,15 @@
 
 import { supabase } from "@/integrations/supabase/client";
 import { ParkingSlot, UniversityReservedSpot } from "@/types/parking";
-import { v4 as uuidv4 } from "uuid";
 
 const safeQueryResult = <T>(data: unknown, defaultValue: T): T => {
   if (data === null || data === undefined) return defaultValue;
   return data as T;
+};
+
+// Function to generate a unique ID using Date.now() and random numbers
+const generateUniqueId = (): string => {
+  return `${Date.now()}-${Math.random().toString(36).substring(2, 15)}`;
 };
 
 interface CreateUniversityBookingParams {
@@ -47,8 +51,8 @@ export async function createUniversityBooking({
       throw new Error("Failed to fetch university details");
     }
     
-    // Create a new booking ID
-    const bookingId = uuidv4();
+    // Create a new booking ID using our custom function instead of uuid
+    const bookingId = generateUniqueId();
     
     // Create the booking record
     const { error: bookingError } = await supabase
