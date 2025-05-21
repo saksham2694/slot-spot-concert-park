@@ -92,8 +92,8 @@ const BookingsPage = () => {
     isLoading: eventBookingsLoading, 
     error: eventBookingsError 
   } = useQuery({
-    queryKey: ["eventBookings"],
-    queryFn: fetchBookingsForUser,
+    queryKey: ["eventBookings", user?.id],
+    queryFn: () => user ? fetchBookingsForUser(user.id) : Promise.resolve([]),
     enabled: !!user,
     retry: false,
   });

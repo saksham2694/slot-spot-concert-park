@@ -162,7 +162,7 @@ export const fetchBookingById = async (bookingId: string) => {
 
 export const fetchBookingsForUser = async (userId: string) => {
   try {
-    const { data: bookings, error: bookingsError } = await supabase
+    const { data, error } = await supabase
       .from("bookings")
       .select(`
         *,
@@ -183,12 +183,12 @@ export const fetchBookingsForUser = async (userId: string) => {
       .eq("user_id", userId)
       .order('created_at', { ascending: false });
 
-    if (bookingsError) {
-      console.error("Error fetching bookings:", bookingsError);
+    if (error) {
+      console.error("Error fetching bookings:", error);
       return [];
     }
 
-    return bookings;
+    return data || [];
   } catch (error) {
     console.error("Error in fetchBookingsForUser:", error);
     return [];
