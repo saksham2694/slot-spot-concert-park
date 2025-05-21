@@ -5,6 +5,7 @@ import { useAirportParkingLayout } from "@/hooks/useAirportParkingLayout";
 import ParkingSlotLegend from "./ParkingSlotLegend";
 import ParkingSlotButton from "./ParkingSlot";
 import { ParkingSlot } from "@/types/parking";
+import { useTheme } from "@/context/ThemeProvider";
 
 interface AirportParkingLayoutProps {
   airportId: string;
@@ -28,6 +29,8 @@ const AirportParkingLayout = ({
     handleSlotClick
   } = useAirportParkingLayout(airportId, totalSlots, hourlyRate);
   
+  const { theme } = useTheme();
+  
   // Update parent component whenever selected slots change
   React.useEffect(() => {
     onSlotSelect(selectedSlots);
@@ -38,14 +41,14 @@ const AirportParkingLayout = ({
   }
   
   return (
-    <div className="border rounded-lg p-6 bg-white shadow-sm">
+    <div className={`border rounded-lg p-6 ${theme === 'dark' ? 'bg-slate-800 border-slate-700' : 'bg-white'} shadow-sm`}>
       <div className="mb-6">
         <h3 className="text-lg font-semibold mb-2">Select Your Parking Spot</h3>
         <ParkingSlotLegend />
       </div>
       
       <div className="relative mb-8">
-        <div className="bg-gray-200 w-full h-10 flex items-center justify-center font-semibold rounded-t-lg mb-6">
+        <div className={`${theme === 'dark' ? 'bg-slate-700' : 'bg-gray-200'} w-full h-10 flex items-center justify-center font-semibold rounded-t-lg mb-6`}>
           ENTRANCE / EXIT
         </div>
         
@@ -66,7 +69,7 @@ const AirportParkingLayout = ({
         </div>
       </div>
       
-      <div className="bg-muted p-4 rounded-lg">
+      <div className={`${theme === 'dark' ? 'bg-slate-700' : 'bg-muted'} p-4 rounded-lg`}>
         <div className="flex items-start gap-3">
           <Info className="h-5 w-5 text-muted-foreground mt-0.5 flex-shrink-0" />
           <div className="text-sm">

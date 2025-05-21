@@ -22,16 +22,6 @@ import { createUniversityBooking } from "@/services/universityBookingService";
 import ErrorDialog from "@/components/ui/error-dialog";
 import PaymentErrorDialog from "@/components/ui/payment-error-dialog";
 
-interface AuthPromptProps {
-  open: boolean;
-  onOpenChange: (open: boolean) => void;
-  message: string;
-}
-
-const AuthPrompt2 = ({ open, onOpenChange, message }: AuthPromptProps) => {
-  return <AuthPrompt isOpen={open} onClose={() => onOpenChange(false)} message={message} />;
-};
-
 const UniversityDetail = () => {
   const { universityId } = useParams<{ universityId: string }>();
   const [university, setUniversity] = useState<University | null>(null);
@@ -405,9 +395,9 @@ const UniversityDetail = () => {
       {/* Auth Prompt Dialog */}
       {showAuthPrompt && (
         <AuthPrompt
-          isOpen={showAuthPrompt}
-          onClose={() => setShowAuthPrompt(false)}
+          isOpen={true}
           message="You need to be logged in to book a parking spot."
+          onClose={() => setShowAuthPrompt(false)}
         />
       )}
       

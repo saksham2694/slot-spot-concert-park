@@ -8,6 +8,7 @@ import {
   TooltipTrigger,
 } from "@/components/ui/tooltip";
 import { ParkingSlot } from '@/types/parking';
+import { useTheme } from '@/context/ThemeProvider';
 
 interface ParkingSlotProps {
   slot: ParkingSlot;
@@ -15,6 +16,8 @@ interface ParkingSlotProps {
 }
 
 const ParkingSlotButton = ({ slot, onClick }: ParkingSlotProps) => {
+  const { theme } = useTheme();
+  
   return (
     <TooltipProvider>
       <Tooltip>
@@ -34,7 +37,7 @@ const ParkingSlotButton = ({ slot, onClick }: ParkingSlotProps) => {
             <Car className="h-5 w-5 mr-1" />{slot.id}
           </button>
         </TooltipTrigger>
-        <TooltipContent>
+        <TooltipContent className={theme === 'dark' ? 'bg-slate-800 text-white border-slate-700' : ''}>
           <div className="text-sm">
             <p className="font-semibold">{slot.id}</p>
             <p className="flex items-center">Price: ₹{slot.price}</p>

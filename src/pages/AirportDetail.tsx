@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import Navbar from "@/components/Navbar";
@@ -391,12 +390,12 @@ const AirportDetail = () => {
       
       <Footer />
       
-      {/* Auth Prompt Dialog */}
+      {/* Auth Prompt Dialog - Fix the props passed to AuthPrompt */}
       {showAuthPrompt && (
         <AuthPrompt 
-          isOpen={showAuthPrompt}
-          onClose={() => setShowAuthPrompt(false)}
+          isOpen={true}
           message="You need to be logged in to book a parking spot."
+          onClose={() => setShowAuthPrompt(false)}
         />
       )}
       

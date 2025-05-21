@@ -1,4 +1,3 @@
-
 import { supabase } from "@/integrations/supabase/client";
 import { ParkingSlot, AirportReservedSpot } from "@/types/parking";
 
@@ -20,11 +19,11 @@ interface BookingData {
   hours: number;
 }
 
-export const createAirportBooking = async (bookingData: BookingData): Promise<string | null> => {
+export const createAirportBooking = async (bookingData: BookingData): Promise<string> => {
   const { airportId, selectedSlots, startDate, endDate, hours } = bookingData;
 
   // Calculate the total price
-  const totalPrice = selectedSlots.reduce((sum, slot) => sum + slot.price, 0);
+  const totalPrice = selectedSlots.reduce((sum, slot) => sum + (slot.price * hours), 0);
 
   try {
     // Get the current user
@@ -32,7 +31,7 @@ export const createAirportBooking = async (bookingData: BookingData): Promise<st
     
     if (userError || !userData.user) {
       console.error("User not authenticated:", userError);
-      return null;
+      throw new Error("User not authenticated");
     }
     
     const userId = userData.user.id;
@@ -41,28 +40,21 @@ export const createAirportBooking = async (bookingData: BookingData): Promise<st
     const bookingId = generateUniqueId();
 
     // 1. Create a new booking record
-    const { data: bookingData, error: bookingError } = await supabase
+    const { error: bookingError } = await supabase
       .from("airport_bookings")
-      .insert([
-        {
-          id: bookingId,
-          airport_id: airportId,
-          user_id: userId,
-          start_date: startDate.toISOString(),
-          end_date: endDate.toISOString(),
-          payment_amount: totalPrice,
-          status: "upcoming", // e.g., 'upcoming', 'completed', 'cancelled'
-        },
-      ])
-      .select("id")
-      .single();
+      .insert({
+        id: bookingId,
+        airport_id: airportId,
+        user_id: userId,
+        start_date: startDate.toISOString(),
+        end_date: endDate.toISOString(),
+        payment_amount: totalPrice,
+        status: "upcoming" // e.g., 'upcoming', 'completed', 'cancelled'
+      });
 
     if (bookingError) {
       throw new Error(`Failed to create booking: ${bookingError.message}`);
     }
-
-    // Get the actual booking ID from the response
-    const resultingBookingId = bookingData.id;
 
     // 2. Mark the selected parking slots as reserved
     for (const slot of selectedSlots) {
@@ -137,7 +129,7 @@ export const createAirportBooking = async (bookingData: BookingData): Promise<st
         const { error: slotBookingError } = await supabase
           .from("airport_booking_slots")
           .insert({
-            booking_id: resultingBookingId,
+            booking_id: bookingId,
             parking_layout_id: layoutId
           });
 
@@ -163,10 +155,10 @@ export const createAirportBooking = async (bookingData: BookingData): Promise<st
         .eq("id", airportId);
     }
 
-    return resultingBookingId;
+    return bookingId;
   } catch (error: any) {
     console.error("Error creating airport booking:", error.message);
-    return null;
+    throw error;
   }
 };
 

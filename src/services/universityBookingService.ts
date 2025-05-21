@@ -40,7 +40,7 @@ export async function createUniversityBooking({
     // Calculate total price
     const totalPrice = selectedSlots.reduce((sum, slot) => sum + (slot.price * hours), 0);
     
-    // Create a new booking ID using our custom function instead of uuid
+    // Create a new booking ID
     const bookingId = generateUniqueId();
     
     // Create the booking record
