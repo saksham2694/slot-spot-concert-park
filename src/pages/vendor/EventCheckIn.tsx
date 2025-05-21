@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { fetchEventBookingSlots, markCustomerArrived } from '@/services/vendorService';
@@ -19,7 +20,7 @@ const EventCheckIn = () => {
     
     try {
       setRefreshing(true);
-      // This should fetch ALL booking slots for the event, regardless of user
+      // This should fetch ALL booking slots for the event, regardless of status
       const data = await fetchEventBookingSlots(eventId);
       console.log("Fetched booking slots:", data);
       setBookingSlots(data);

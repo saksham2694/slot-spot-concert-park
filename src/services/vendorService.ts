@@ -1,3 +1,4 @@
+
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/components/ui/use-toast";
 
@@ -296,11 +297,32 @@ export const fetchVendorAirports = async (): Promise<VendorAirport[]> => {
 // Fetch all booking slots for a specific event
 export const fetchEventBookingSlots = async (eventId: string): Promise<BookingSlot[]> => {
   try {
-    // Use the vendor_bookings_view which includes all bookings for an event, not filtered by user
+    // Modified query to select ALL bookings without any filtering by status
+    // This uses a direct join to get all booking slots for the event
     const { data, error } = await supabase
-      .from("vendor_bookings_view")
-      .select("*")
-      .eq("event_id", eventId);
+      .from("booking_slots")
+      .select(`
+        id, 
+        booking_id,
+        customer_arrived,
+        bookings!inner(
+          id, 
+          user_id, 
+          event_id,
+          status
+        ),
+        parking_layouts!inner(
+          id,
+          row_number,
+          column_number
+        ),
+        users:bookings.user_id(
+          email,
+          first_name,
+          last_name
+        )
+      `)
+      .eq("bookings.event_id", eventId);
 
     if (error) {
       console.error("Error fetching booking slots:", error);
@@ -311,16 +333,19 @@ export const fetchEventBookingSlots = async (eventId: string): Promise<BookingSl
       return [];
     }
 
+    console.log("All booking slots fetched:", data);
+
+    // Map the data to our BookingSlot type
     return data.map(item => ({
-      id: item.booking_slot_id,
+      id: item.id,
       bookingId: item.booking_id,
-      slotId: item.slot_id,
-      rowNumber: item.row_number,
-      columnNumber: item.column_number,
-      customerName: item.customer_name,
-      customerEmail: item.customer_email,
+      slotId: `R${item.parking_layouts.row_number}C${item.parking_layouts.column_number}`,
+      rowNumber: item.parking_layouts.row_number,
+      columnNumber: item.parking_layouts.column_number,
+      customerName: item.users ? `${item.users.first_name || ''} ${item.users.last_name || ''}`.trim() : null,
+      customerEmail: item.users ? item.users.email : null,
       customerArrived: item.customer_arrived || false,
-      qrCodeUrl: item.qr_code_url
+      qrCodeUrl: null // We don't have this in the query
     }));
   } catch (error) {
     console.error("Error in fetchEventBookingSlots:", error);
