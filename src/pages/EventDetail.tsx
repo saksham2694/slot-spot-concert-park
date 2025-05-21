@@ -10,7 +10,6 @@ import { Event } from "@/types/event";
 import { fetchEventById } from "@/services/eventService";
 import { useAuth } from "@/context/AuthContext";
 import { createBooking } from "@/services/bookingService";
-import { processPayment } from "@/services/paymentService";
 import EventHero from "@/components/event/EventHero";
 import BookingSummary from "@/components/event/BookingSummary";
 import AuthPrompt from "@/components/event/AuthPrompt";
@@ -28,9 +27,8 @@ const EventDetail = () => {
   const [bookingComplete, setBookingComplete] = useState(false);
   const [bookingId, setBookingId] = useState<string | null>(null);
   const [refreshTrigger, setRefreshTrigger] = useState(0);
-  const [paymentProcessing, setPaymentProcessing] = useState(false);
-  const [paymentError, setPaymentError] = useState<string | null>(null);
-  const [showPaymentError, setShowPaymentError] = useState(false);
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const [showErrorDialog, setShowErrorDialog] = useState(false);
   
   const { toast } = useToast();
   const navigate = useNavigate();
@@ -81,48 +79,6 @@ const EventDetail = () => {
     setSelectedSlots(slots);
   }, []);
 
-  const retryPayment = useCallback(async () => {
-    setShowPaymentError(false);
-    if (bookingId) {
-      await handlePayment(bookingId);
-    } else {
-      handleBooking();
-    }
-  }, [bookingId]);
-
-  const handlePayment = async (newBookingId: string) => {
-    if (!user || !event) return;
-    
-    try {
-      setPaymentProcessing(true);
-      
-      // Calculate total amount
-      const totalAmount = selectedSlots.reduce((sum, slot) => sum + slot.price, 0);
-      
-      const paymentResponse = await processPayment({
-        bookingId: newBookingId,
-        amount: totalAmount,
-        customerName: user.user_metadata?.full_name || `${user.user_metadata?.first_name || ''} ${user.user_metadata?.last_name || ''}`.trim() || 'Customer',
-        customerEmail: user.email,
-        customerPhone: user.user_metadata?.phone || '',
-        eventName: event.title || 'Event'
-      });
-      
-      if (paymentResponse.paymentLink) {
-        // Redirect to payment page
-        window.location.href = paymentResponse.paymentLink;
-        return;
-      } else {
-        throw new Error("No payment link received");
-      }
-    } catch (error) {
-      console.error("Payment processing error:", error);
-      setPaymentError("Failed to process payment. Please try again.");
-      setShowPaymentError(true);
-      setPaymentProcessing(false);
-    }
-  };
-
   const handleBooking = async () => {
     if (!user) {
       toast({
@@ -160,55 +116,22 @@ const EventDetail = () => {
       
       if (newBookingId) {
         setBookingId(newBookingId);
-        await handlePayment(newBookingId);
+        setBookingComplete(true);
+        toast({
+          title: "Booking Confirmed",
+          description: "Your parking spot has been successfully reserved.",
+        });
       } else {
         throw new Error("Failed to create booking");
       }
     } catch (error) {
       console.error("Error creating booking:", error);
-      setPaymentError("Failed to create your booking. Please try again.");
-      setShowPaymentError(true);
+      setErrorMessage("Failed to complete your booking. Please try again.");
+      setShowErrorDialog(true);
+    } finally {
       setIsBooking(false);
     }
   };
-
-  // Check URL parameters for payment callback
-  useEffect(() => {
-    const urlParams = new URLSearchParams(window.location.search);
-    const paymentBookingId = urlParams.get('bookingId');
-    const paymentStatus = urlParams.get('status');
-    
-    if (paymentBookingId) {
-      setBookingId(paymentBookingId);
-      
-      if (paymentStatus === 'SUCCESS') {
-        setBookingComplete(true);
-        setIsBooking(false);
-        setPaymentProcessing(false);
-        
-        toast({
-          title: "Payment successful",
-          description: "Your booking has been confirmed.",
-        });
-        
-        // Clean up URL parameters
-        const newUrl = window.location.pathname;
-        window.history.replaceState({}, document.title, newUrl);
-        
-        setRefreshTrigger(prev => prev + 1);
-      } else if (paymentStatus === 'FAILED') {
-        toast({
-          title: "Payment failed",
-          description: "Your payment was not successful. Please try again.",
-          variant: "destructive",
-        });
-        
-        // Clean up URL parameters
-        const newUrl = window.location.pathname;
-        window.history.replaceState({}, document.title, newUrl);
-      }
-    }
-  }, []);
 
   const qrCodeData = `TIME2PARK-${eventId}-${selectedSlots.map(s => s.id).join('-')}-${bookingId || Date.now()}`;
 
@@ -264,7 +187,7 @@ const EventDetail = () => {
                     <BookingSummary
                       event={event}
                       selectedSlots={selectedSlots}
-                      isBooking={isBooking || paymentProcessing}
+                      isBooking={isBooking}
                       isUserLoggedIn={!!user}
                       onBookingClick={handleBooking}
                     />
@@ -287,10 +210,9 @@ const EventDetail = () => {
       </main>
       
       <PaymentErrorDialog
-        isOpen={showPaymentError}
-        onClose={() => setShowPaymentError(false)}
-        message={paymentError || "An error occurred during the payment process."}
-        onRetry={retryPayment}
+        isOpen={showErrorDialog}
+        onClose={() => setShowErrorDialog(false)}
+        message={errorMessage || "An error occurred during the booking process."}
       />
       
       <Footer />

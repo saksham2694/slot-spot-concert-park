@@ -86,7 +86,7 @@ const BookingSummary = ({
         onClick={onBookingClick} 
         disabled={!isUserLoggedIn || selectedSlots.length === 0 || isBooking}
       >
-        {isBooking ? "Processing..." : `Pay ₹${totalPrice.toFixed(2)}`}
+        {isBooking ? "Processing..." : `Complete Booking`}
       </Button>
       
       <div className="mt-4 flex items-start gap-2 text-xs text-muted-foreground">

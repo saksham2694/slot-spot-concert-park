@@ -110,14 +110,20 @@ export async function createBooking(bookingInput: BookingData): Promise<string |
       }
     }
     
-    // Create a booking record with initial status as 'pending_payment'
+    // Calculate total amount for the booking
+    const totalAmount = bookingInput.parkingSlots.reduce((sum, slot) => sum + slot.price, 0);
+    
+    // Create a booking record with status as 'confirmed' immediately
     const { data: booking, error: bookingError } = await supabase
       .from("bookings")
       .insert({
         user_id: session.session.user.id,
         event_id: bookingInput.eventId,
-        status: "payment_pending", // Changed from 'confirmed' to 'pending_payment'
-        qr_code_url: `TIME2PARK-${bookingInput.eventId}-${Date.now()}`
+        status: "confirmed", // Set as confirmed immediately
+        qr_code_url: `TIME2PARK-${bookingInput.eventId}-${Date.now()}`,
+        payment_amount: totalAmount,
+        payment_date: new Date().toISOString(),
+        payment_mode: "DIRECT"
       })
       .select("id")
       .single();
@@ -195,8 +201,21 @@ export async function createBooking(bookingInput: BookingData): Promise<string |
       }
     }
 
-    // The available parking slots will be updated after successful payment
-    // Update happens in the payment-webhook edge function
+    // Update available parking slots count
+    const { error: decrementError } = await supabase.rpc('decrement', { 
+      x: bookingInput.parkingSlots.length, 
+      row_id: bookingInput.eventId 
+    });
+    
+    if (decrementError) {
+      console.error("Error updating available slots:", decrementError);
+      // Don't throw here, booking is still valid
+    }
+
+    toast({
+      title: "Booking Confirmed",
+      description: "Your parking has been successfully reserved.",
+    });
 
     return bookingId;
   } catch (error) {

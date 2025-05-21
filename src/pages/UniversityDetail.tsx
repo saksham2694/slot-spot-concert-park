@@ -20,6 +20,7 @@ import AuthPrompt from "@/components/event/AuthPrompt";
 import BookingConfirmation from "@/components/university/BookingConfirmation";
 import { createUniversityBooking } from "@/services/universityBookingService";
 import ErrorDialog from "@/components/ui/error-dialog";
+import PaymentErrorDialog from "@/components/ui/payment-error-dialog";
 
 interface AuthPromptProps {
   open: boolean;
@@ -413,7 +414,7 @@ const UniversityDetail = () => {
         <ErrorDialog 
           isOpen={showError} 
           onClose={() => setShowError(false)} 
-          message={errorMessage} 
+          message={errorMessage || "An error occurred during the booking process."}
         />
       )}
     </div>

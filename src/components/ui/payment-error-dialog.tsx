@@ -18,19 +18,19 @@ interface PaymentErrorDialogProps {
   onRetry?: () => void;
 }
 
-const PaymentErrorDialog: React.FC<PaymentErrorDialogProps> = ({ 
+const PaymentErrorDialog = ({ 
   isOpen, 
   onClose, 
   message,
   onRetry 
-}) => {
+}: PaymentErrorDialogProps) => {
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
       <DialogContent>
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2 text-destructive">
             <AlertCircle className="h-5 w-5" />
-            Payment Error
+            Error
           </DialogTitle>
           <DialogDescription>
             {message}
