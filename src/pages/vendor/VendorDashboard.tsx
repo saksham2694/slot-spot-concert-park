@@ -4,27 +4,79 @@ import { Link } from "react-router-dom";
 import { fetchVendorEvents, type VendorEvent } from "@/services/vendorService";
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Loader2, Calendar, Users, CheckCircle } from "lucide-react";
+import { Loader2, Calendar, Users, CheckCircle, RefreshCw } from "lucide-react";
+import { useToast } from "@/hooks/use-toast";
 
 const VendorDashboard = () => {
   const [events, setEvents] = useState<VendorEvent[]>([]);
   const [isLoading, setIsLoading] = useState<boolean>(true);
+  const [isRefreshing, setIsRefreshing] = useState<boolean>(false);
+  const { toast } = useToast();
 
-  useEffect(() => {
-    const loadEvents = async () => {
+  const loadEvents = async (showLoading = true, showToast = false) => {
+    if (showLoading) {
       setIsLoading(true);
-      try {
-        const vendorEvents = await fetchVendorEvents();
-        setEvents(vendorEvents);
-      } catch (error) {
-        console.error("Error loading events:", error);
-      } finally {
-        setIsLoading(false);
+    } else {
+      setIsRefreshing(true);
+    }
+    
+    try {
+      const vendorEvents = await fetchVendorEvents();
+      setEvents(vendorEvents);
+      
+      if (showToast) {
+        toast({
+          title: "Data refreshed",
+          description: "Booking information has been updated.",
+        });
+      }
+    } catch (error) {
+      console.error("Error loading events:", error);
+      if (showToast) {
+        toast({
+          title: "Refresh failed",
+          description: "Could not update booking information.",
+          variant: "destructive",
+        });
+      }
+    } finally {
+      setIsLoading(false);
+      setIsRefreshing(false);
+    }
+  };
+
+  // Initial data loading
+  useEffect(() => {
+    loadEvents();
+  }, []);
+
+  // Set up auto-refresh every minute
+  useEffect(() => {
+    const interval = setInterval(() => {
+      loadEvents(false, false);
+    }, 60000); // Refresh every minute
+
+    return () => clearInterval(interval);
+  }, []);
+
+  // Refresh when the component becomes visible again
+  useEffect(() => {
+    const handleVisibilityChange = () => {
+      if (!document.hidden) {
+        loadEvents(false, false);
       }
     };
 
-    loadEvents();
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+    
+    return () => {
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
+    };
   }, []);
+
+  const handleManualRefresh = () => {
+    loadEvents(false, true);
+  };
 
   if (isLoading) {
     return (
@@ -47,9 +99,21 @@ const VendorDashboard = () => {
     <div>
       <div className="flex justify-between items-center mb-6">
         <h2 className="text-2xl font-semibold">Manage Events</h2>
-        <Link to="/vendor/scan-qr">
-          <Button>Scan QR Code</Button>
-        </Link>
+        <div className="flex gap-2">
+          <Button 
+            variant="outline" 
+            size="icon"
+            onClick={handleManualRefresh}
+            disabled={isRefreshing}
+            title="Refresh data"
+          >
+            <RefreshCw className={`h-4 w-4 ${isRefreshing ? 'animate-spin' : ''}`} />
+            <span className="sr-only">Refresh</span>
+          </Button>
+          <Link to="/vendor/scan-qr">
+            <Button>Scan QR Code</Button>
+          </Link>
+        </div>
       </div>
 
       <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">

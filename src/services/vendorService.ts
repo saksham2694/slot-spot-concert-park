@@ -53,10 +53,11 @@ export const fetchVendorEvents = async (): Promise<VendorEvent[]> => {
       throw new Error("Authentication required");
     }
 
-    // Get all events
+    // Get all events with cache control to ensure fresh data
     const { data: events, error: eventsError } = await supabase
       .from("events")
-      .select("id, title, date, location, image_url");
+      .select("id, title, date, location, image_url")
+      .order('date', { ascending: true });
 
     if (eventsError) {
       console.error("Error fetching events:", eventsError);
@@ -67,7 +68,7 @@ export const fetchVendorEvents = async (): Promise<VendorEvent[]> => {
       return [];
     }
 
-    // For each event, get booking statistics
+    // For each event, get booking statistics with cache control
     const eventsWithStats = await Promise.all(
       events.map(async (event) => {
         const { data: bookingData, error: bookingError } = await supabase

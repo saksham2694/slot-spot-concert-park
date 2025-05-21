@@ -1,224 +1,190 @@
 
-import { useEffect, useState } from "react";
-import { useParams, Link } from "react-router-dom";
-import { fetchEventBookingSlots, markCustomerArrived, type BookingSlot } from "@/services/vendorService";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { 
-  Table, 
-  TableBody, 
-  TableCell, 
-  TableHead, 
-  TableHeader, 
-  TableRow 
-} from "@/components/ui/table";
-import { 
-  Tooltip,
-  TooltipContent,
-  TooltipProvider,
-  TooltipTrigger,
-} from "@/components/ui/tooltip";
-import { Badge } from "@/components/ui/badge";
-import { Loader2, Search, ArrowLeft, Check, QrCode, Info } from "lucide-react";
+import { useState, useEffect } from 'react';
+import { useParams } from 'react-router-dom';
+import { fetchEventBookingSlots, markCustomerArrived } from '@/services/vendorService';
+import { CheckCircle, UserX, RefreshCw } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { Card, CardHeader, CardContent, CardFooter } from '@/components/ui/card';
+import { BookingSlot } from '@/services/vendorService';
+import { useToast } from '@/hooks/use-toast';
 
 const EventCheckIn = () => {
   const { eventId } = useParams<{ eventId: string }>();
   const [bookingSlots, setBookingSlots] = useState<BookingSlot[]>([]);
-  const [filteredSlots, setFilteredSlots] = useState<BookingSlot[]>([]);
-  const [isLoading, setIsLoading] = useState<boolean>(true);
-  const [searchQuery, setSearchQuery] = useState<string>("");
-  const [isProcessing, setIsProcessing] = useState<{ [key: string]: boolean }>({});
+  const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
+  const { toast } = useToast();
 
-  useEffect(() => {
+  const fetchBookings = async (showToast = false) => {
     if (!eventId) return;
-
-    const loadEventBookings = async () => {
-      setIsLoading(true);
-      try {
-        const slots = await fetchEventBookingSlots(eventId);
-        setBookingSlots(slots);
-        setFilteredSlots(slots);
-      } catch (error) {
-        console.error("Error loading event bookings:", error);
-      } finally {
-        setIsLoading(false);
-      }
-    };
-
-    loadEventBookings();
-  }, [eventId]);
-
-  useEffect(() => {
-    if (searchQuery.trim() === "") {
-      setFilteredSlots(bookingSlots);
-      return;
-    }
-
-    const query = searchQuery.toLowerCase();
-    const filtered = bookingSlots.filter(
-      (slot) =>
-        slot.slotId.toLowerCase().includes(query) ||
-        (slot.customerName?.toLowerCase() || "").includes(query) ||
-        (slot.customerEmail?.toLowerCase() || "").includes(query)
-    );
-    setFilteredSlots(filtered);
-  }, [searchQuery, bookingSlots]);
-
-  const handleMarkArrived = async (bookingSlotId: string) => {
-    setIsProcessing((prev) => ({ ...prev, [bookingSlotId]: true }));
     
     try {
-      const success = await markCustomerArrived(bookingSlotId);
+      setRefreshing(true);
+      const data = await fetchEventBookingSlots(eventId);
+      setBookingSlots(data);
       
-      if (success) {
-        // Update the local state to reflect the change
-        setBookingSlots(
-          bookingSlots.map((slot) =>
-            slot.id === bookingSlotId ? { ...slot, customerArrived: true } : slot
-          )
-        );
-        // Also update filtered slots if necessary
-        setFilteredSlots(
-          filteredSlots.map((slot) =>
-            slot.id === bookingSlotId ? { ...slot, customerArrived: true } : slot
-          )
-        );
+      if (showToast) {
+        toast({
+          title: "Data refreshed",
+          description: "Booking information has been updated.",
+        });
+      }
+    } catch (error) {
+      console.error('Error fetching bookings:', error);
+      if (showToast) {
+        toast({
+          title: "Refresh failed",
+          description: "Could not update booking information.",
+          variant: "destructive",
+        });
       }
     } finally {
-      setIsProcessing((prev) => ({ ...prev, [bookingSlotId]: false }));
+      setLoading(false);
+      setRefreshing(false);
     }
   };
 
-  if (isLoading) {
+  useEffect(() => {
+    fetchBookings();
+    
+    // Set up auto-refresh every 30 seconds
+    const interval = setInterval(() => {
+      fetchBookings();
+    }, 30000);
+    
+    return () => clearInterval(interval);
+  }, [eventId]);
+
+  // Refresh when the component becomes visible again
+  useEffect(() => {
+    const handleVisibilityChange = () => {
+      if (!document.hidden) {
+        fetchBookings();
+      }
+    };
+
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+    
+    return () => {
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
+    };
+  }, [eventId]);
+
+  const handleCheckIn = async (slotId: string) => {
+    try {
+      await markCustomerArrived(slotId);
+      
+      // Update local state to reflect the change
+      setBookingSlots(prevSlots =>
+        prevSlots.map(slot =>
+          slot.id === slotId ? { ...slot, customerArrived: true } : slot
+        )
+      );
+    } catch (error) {
+      console.error('Error marking customer as arrived:', error);
+    }
+  };
+
+  const handleRefresh = () => {
+    fetchBookings(true);
+  };
+
+  if (loading) {
+    return <div className="text-center py-10">Loading booking details...</div>;
+  }
+
+  if (bookingSlots.length === 0) {
     return (
-      <div className="flex justify-center items-center h-64">
-        <Loader2 className="h-8 w-8 animate-spin text-primary" />
+      <div className="text-center py-10">
+        <h2 className="text-xl font-semibold mb-2">No Bookings Found</h2>
+        <p className="text-muted-foreground mb-4">There are no bookings for this event yet.</p>
+        <Button onClick={handleRefresh} variant="outline" className="flex items-center gap-2">
+          <RefreshCw className={`h-4 w-4 ${refreshing ? 'animate-spin' : ''}`} />
+          Refresh
+        </Button>
       </div>
     );
   }
 
+  // Group bookings by slot ID (row and column)
+  const bookingsBySlot = bookingSlots.reduce((acc, slot) => {
+    const key = `R${slot.rowNumber}C${slot.columnNumber}`;
+    if (!acc[key]) {
+      acc[key] = [];
+    }
+    acc[key].push(slot);
+    return acc;
+  }, {} as Record<string, BookingSlot[]>);
+
   return (
     <div>
-      <div className="flex items-center gap-2 mb-6">
-        <Link to="/vendor">
-          <Button variant="outline" size="icon" className="h-8 w-8">
-            <ArrowLeft className="h-4 w-4" />
-          </Button>
-        </Link>
-        <h2 className="text-2xl font-semibold">Event Check-ins</h2>
+      <div className="flex justify-between items-center mb-6">
+        <h2 className="text-2xl font-semibold">Check-In Management</h2>
+        <Button 
+          onClick={handleRefresh} 
+          variant="outline" 
+          disabled={refreshing} 
+          className="flex items-center gap-2"
+        >
+          <RefreshCw className={`h-4 w-4 ${refreshing ? 'animate-spin' : ''}`} />
+          Refresh
+        </Button>
       </div>
-
-      <div className="flex justify-between items-center gap-4 mb-6">
-        <div className="relative flex-1">
-          <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground h-4 w-4" />
-          <Input
-            placeholder="Search by slot ID, customer name or email..."
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            className="pl-10"
-          />
-        </div>
-        <Link to="/vendor/scan-qr">
-          <Button className="whitespace-nowrap">
-            <QrCode className="mr-2 h-4 w-4" />
-            Scan QR Code
-          </Button>
-        </Link>
-      </div>
-
-      <div className="rounded-md border">
-        <Table>
-          <TableHeader>
-            <TableRow>
-              <TableHead>Slot ID</TableHead>
-              <TableHead>Customer</TableHead>
-              <TableHead className="text-center">Status</TableHead>
-              <TableHead className="text-right">Action</TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {filteredSlots.length === 0 ? (
-              <TableRow>
-                <TableCell colSpan={4} className="text-center py-8">
-                  {searchQuery
-                    ? "No bookings match your search"
-                    : "No bookings found for this event"}
-                </TableCell>
-              </TableRow>
-            ) : (
-              filteredSlots.map((slot) => (
-                <TableRow key={slot.id}>
-                  <TableCell>{slot.slotId}</TableCell>
-                  <TableCell>
-                    <div className="flex flex-col">
-                      <span>{slot.customerName || "Unknown"}</span>
-                      {slot.customerEmail && (
-                        <span className="text-xs text-muted-foreground">
-                          {slot.customerEmail}
-                        </span>
-                      )}
-                    </div>
-                  </TableCell>
-                  <TableCell className="text-center">
-                    {slot.customerArrived ? (
-                      <Badge variant="outline" className="bg-green-500/10 text-green-600 hover:bg-green-500/10 hover:text-green-600">
-                        Arrived
-                      </Badge>
-                    ) : (
-                      <Badge variant="outline" className="bg-amber-500/10 text-amber-600 hover:bg-amber-500/10 hover:text-amber-600">
-                        Expected
-                      </Badge>
-                    )}
-                  </TableCell>
-                  <TableCell className="text-right">
-                    <TooltipProvider>
-                      <Tooltip>
-                        <TooltipTrigger asChild>
-                          <div>
-                            <Button
-                              size="sm"
-                              variant="ghost"
-                              disabled={slot.customerArrived || isProcessing[slot.id]}
-                              onClick={() => handleMarkArrived(slot.id)}
-                              className="h-8 px-2"
-                            >
-                              {isProcessing[slot.id] ? (
-                                <Loader2 className="h-4 w-4 animate-spin" />
-                              ) : slot.customerArrived ? (
-                                <Check className="h-4 w-4 text-green-500" />
-                              ) : (
-                                <span className="flex items-center gap-1">
-                                  <Check className="h-4 w-4" /> Mark Arrived
-                                </span>
-                              )}
-                            </Button>
-                          </div>
-                        </TooltipTrigger>
-                        {slot.customerArrived && (
-                          <TooltipContent side="left">
-                            <div className="flex items-center gap-2">
-                              <Info className="h-4 w-4" />
-                              <span>Customer already checked in</span>
-                            </div>
-                          </TooltipContent>
-                        )}
-                      </Tooltip>
-                    </TooltipProvider>
-                  </TableCell>
-                </TableRow>
-              ))
-            )}
-          </TableBody>
-        </Table>
-      </div>
-
-      <div className="mt-4 text-sm text-muted-foreground">
-        {filteredSlots.length > 0 && (
-          <p>
-            {filteredSlots.filter((s) => s.customerArrived).length} of{" "}
-            {filteredSlots.length} customers have arrived
-          </p>
-        )}
+      
+      <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+        {Object.entries(bookingsBySlot).map(([slotId, slots]) => (
+          <Card key={slotId} className="overflow-hidden">
+            <CardHeader className="pb-2">
+              <h3 className="text-xl font-semibold">Parking Slot {slotId}</h3>
+            </CardHeader>
+            
+            <CardContent className="space-y-4">
+              {slots.map((slot) => (
+                <div key={slot.id} className="border p-3 rounded-md">
+                  {slot.customerName && (
+                    <p className="font-medium">{slot.customerName}</p>
+                  )}
+                  {slot.customerEmail && (
+                    <p className="text-sm text-muted-foreground">{slot.customerEmail}</p>
+                  )}
+                  <div className="mt-2 flex items-center">
+                    <div
+                      className={`w-3 h-3 rounded-full mr-2 ${
+                        slot.customerArrived ? 'bg-green-500' : 'bg-amber-500'
+                      }`}
+                    ></div>
+                    <span className="text-sm">
+                      {slot.customerArrived ? 'Arrived' : 'Not arrived yet'}
+                    </span>
+                  </div>
+                </div>
+              ))}
+            </CardContent>
+            
+            <CardFooter>
+              {slots.some(slot => !slot.customerArrived) ? (
+                <Button
+                  onClick={() => {
+                    const notArrivedSlot = slots.find(slot => !slot.customerArrived);
+                    if (notArrivedSlot) {
+                      handleCheckIn(notArrivedSlot.id);
+                    }
+                  }}
+                  className="w-full"
+                  variant="outline"
+                >
+                  <CheckCircle className="mr-2 h-4 w-4" />
+                  Mark as Arrived
+                </Button>
+              ) : (
+                <Button variant="ghost" className="w-full" disabled>
+                  <CheckCircle className="mr-2 h-4 w-4 text-green-500" />
+                  All Customers Arrived
+                </Button>
+              )}
+            </CardFooter>
+          </Card>
+        ))}
       </div>
     </div>
   );
