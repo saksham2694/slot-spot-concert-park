@@ -184,15 +184,9 @@ const EventCheckIn = () => {
               <h3 className="text-xl font-semibold">Parking Slot {slotId}</h3>
             </CardHeader>
             
-            <CardContent className="space-y-4">
+            <CardContent>
               {slots.map((slot) => (
                 <div key={slot.id} className="border p-3 rounded-md">
-                  {slot.customerName && (
-                    <p className="font-medium">{slot.customerName}</p>
-                  )}
-                  {slot.customerEmail && (
-                    <p className="text-sm text-muted-foreground">{slot.customerEmail}</p>
-                  )}
                   <div className="mt-2 flex items-center">
                     <div
                       className={`w-3 h-3 rounded-full mr-2 ${
