@@ -42,26 +42,54 @@ export const createBooking = async (
       const rowNumber = parseInt(rowMatch[1]);
       const columnNumber = parseInt(colMatch[1]);
       
-      // First, get the parking layout ID using the row and column numbers
-      const { data: layoutData, error: layoutError } = await supabase
+      // Check if parking layout exists, if not create it
+      let parkingLayoutId;
+      
+      // First try to get the existing layout
+      const { data: existingLayout, error: layoutQueryError } = await supabase
         .from("parking_layouts")
         .select("id")
         .eq("event_id", eventId)
         .eq("row_number", rowNumber)
         .eq("column_number", columnNumber)
-        .single();
+        .maybeSingle(); // Use maybeSingle instead of single to avoid errors when no rows are found
       
-      if (layoutError) {
-        console.error("Error finding parking layout:", layoutError);
-        throw new Error("Failed to find parking layout");
+      if (layoutQueryError) {
+        console.error("Error querying parking layout:", layoutQueryError);
+        throw new Error("Failed to query parking layout");
       }
       
-      // Now create the booking slot with the actual parking_layout_id
+      // If layout doesn't exist, create it
+      if (!existingLayout) {
+        console.log(`Creating new parking layout for R${rowNumber}C${columnNumber}`);
+        const { data: newLayout, error: createLayoutError } = await supabase
+          .from("parking_layouts")
+          .insert({
+            event_id: eventId,
+            row_number: rowNumber,
+            column_number: columnNumber,
+            price: slot.price,
+            is_reserved: false
+          })
+          .select("id")
+          .single();
+        
+        if (createLayoutError) {
+          console.error("Error creating parking layout:", createLayoutError);
+          throw new Error("Failed to create parking layout");
+        }
+        
+        parkingLayoutId = newLayout.id;
+      } else {
+        parkingLayoutId = existingLayout.id;
+      }
+      
+      // Create the booking slot with the parking layout ID
       const { error: slotError } = await supabase
         .from("booking_slots")
         .insert({
           booking_id: bookingId,
-          parking_layout_id: layoutData.id,
+          parking_layout_id: parkingLayoutId,
         });
 
       if (slotError) {
