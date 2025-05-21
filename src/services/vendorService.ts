@@ -1,4 +1,3 @@
-
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/components/ui/use-toast";
 
@@ -297,6 +296,7 @@ export const fetchVendorAirports = async (): Promise<VendorAirport[]> => {
 // Fetch all booking slots for a specific event
 export const fetchEventBookingSlots = async (eventId: string): Promise<BookingSlot[]> => {
   try {
+    // Use the vendor_bookings_view which includes all bookings for an event, not filtered by user
     const { data, error } = await supabase
       .from("vendor_bookings_view")
       .select("*")

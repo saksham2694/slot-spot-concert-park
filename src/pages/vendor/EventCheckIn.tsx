@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { useParams } from 'react-router-dom';
 import { fetchEventBookingSlots, markCustomerArrived } from '@/services/vendorService';
@@ -20,7 +19,9 @@ const EventCheckIn = () => {
     
     try {
       setRefreshing(true);
+      // This should fetch ALL booking slots for the event, regardless of user
       const data = await fetchEventBookingSlots(eventId);
+      console.log("Fetched booking slots:", data);
       setBookingSlots(data);
       
       if (showToast) {
@@ -47,10 +48,10 @@ const EventCheckIn = () => {
   useEffect(() => {
     fetchBookings();
     
-    // Set up auto-refresh every 30 seconds
+    // Set up auto-refresh every 15 seconds to ensure latest bookings are shown
     const interval = setInterval(() => {
       fetchBookings();
-    }, 30000);
+    }, 15000);
     
     return () => clearInterval(interval);
   }, [eventId]);

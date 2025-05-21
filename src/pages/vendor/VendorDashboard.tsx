@@ -1,4 +1,3 @@
-
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { fetchVendorEvents, type VendorEvent } from "@/services/vendorService";
@@ -21,7 +20,9 @@ const VendorDashboard = () => {
     }
     
     try {
+      // This should fetch fresh data for all vendor events
       const vendorEvents = await fetchVendorEvents();
+      console.log("Fetched vendor events:", vendorEvents);
       setEvents(vendorEvents);
       
       if (showToast) {
@@ -50,11 +51,11 @@ const VendorDashboard = () => {
     loadEvents();
   }, []);
 
-  // Set up auto-refresh every minute
+  // Set up auto-refresh every 30 seconds
   useEffect(() => {
     const interval = setInterval(() => {
       loadEvents(false, false);
-    }, 60000); // Refresh every minute
+    }, 30000); // Refresh every 30 seconds
 
     return () => clearInterval(interval);
   }, []);
