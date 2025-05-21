@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
-import { useParams } from 'react-router-dom';
+import { useParams, Link } from 'react-router-dom';
 import { fetchEventBookingSlots, markCustomerArrived } from '@/services/vendorService';
-import { CheckCircle, UserX, RefreshCw } from 'lucide-react';
+import { CheckCircle, UserX, RefreshCw, ArrowLeft } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardHeader, CardContent, CardFooter } from '@/components/ui/card';
 import { BookingSlot } from '@/services/vendorService';
@@ -97,6 +97,14 @@ const EventCheckIn = () => {
   if (bookingSlots.length === 0) {
     return (
       <div className="text-center py-10">
+        <div className="flex justify-start mb-6">
+          <Link to="/vendor">
+            <Button variant="outline" size="sm" className="flex items-center gap-2">
+              <ArrowLeft className="h-4 w-4" />
+              Back to Dashboard
+            </Button>
+          </Link>
+        </div>
         <h2 className="text-xl font-semibold mb-2">No Bookings Found</h2>
         <p className="text-muted-foreground mb-4">There are no bookings for this event yet.</p>
         <Button onClick={handleRefresh} variant="outline" className="flex items-center gap-2">
@@ -120,7 +128,15 @@ const EventCheckIn = () => {
   return (
     <div>
       <div className="flex justify-between items-center mb-6">
-        <h2 className="text-2xl font-semibold">Check-In Management</h2>
+        <div className="flex items-center gap-4">
+          <Link to="/vendor">
+            <Button variant="outline" size="sm" className="flex items-center gap-2">
+              <ArrowLeft className="h-4 w-4" />
+              Back to Dashboard
+            </Button>
+          </Link>
+          <h2 className="text-2xl font-semibold">Check-In Management</h2>
+        </div>
         <Button 
           onClick={handleRefresh} 
           variant="outline" 

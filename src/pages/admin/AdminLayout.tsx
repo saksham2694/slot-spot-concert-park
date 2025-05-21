@@ -11,7 +11,8 @@ import {
   Users,
   Loader2,
   Building,
-  Plane
+  Plane,
+  ExternalLink
 } from "lucide-react";
 
 const AdminLayout = () => {
@@ -103,43 +104,49 @@ const AdminLayout = () => {
 
   return (
     <div className="container mx-auto p-4 md:p-6">
-      <div className="mb-8">
-        <h1 className="text-3xl font-bold mb-4">Admin Dashboard</h1>
-        <Tabs defaultValue={getActiveTab()} className="w-full">
-          <TabsList className="mb-6 flex flex-wrap">
-            <Link to="/admin">
-              <TabsTrigger value="dashboard" className="flex items-center gap-2">
-                <LayoutDashboard className="h-4 w-4" />
-                Dashboard
-              </TabsTrigger>
-            </Link>
-            <Link to="/admin/create-event">
-              <TabsTrigger value="create-event" className="flex items-center gap-2">
-                <CalendarPlus className="h-4 w-4" />
-                Create Event
-              </TabsTrigger>
-            </Link>
-            <Link to="/admin/universities">
-              <TabsTrigger value="universities" className="flex items-center gap-2">
-                <Building className="h-4 w-4" />
-                Universities
-              </TabsTrigger>
-            </Link>
-            <Link to="/admin/airports">
-              <TabsTrigger value="airports" className="flex items-center gap-2">
-                <Plane className="h-4 w-4" />
-                Airports
-              </TabsTrigger>
-            </Link>
-            <Link to="/admin/users">
-              <TabsTrigger value="users" className="flex items-center gap-2">
-                <Users className="h-4 w-4" />
-                User Management
-              </TabsTrigger>
-            </Link>
-          </TabsList>
-        </Tabs>
+      <div className="mb-4 flex justify-between items-center">
+        <h1 className="text-3xl font-bold">Admin Dashboard</h1>
+        <Link to="/">
+          <Button variant="outline" className="flex items-center gap-2">
+            <ExternalLink className="h-4 w-4" />
+            Back to Main Site
+          </Button>
+        </Link>
       </div>
+      <Tabs defaultValue={getActiveTab()} className="w-full mb-6">
+        <TabsList className="flex flex-wrap">
+          <Link to="/admin">
+            <TabsTrigger value="dashboard" className="flex items-center gap-2">
+              <LayoutDashboard className="h-4 w-4" />
+              Dashboard
+            </TabsTrigger>
+          </Link>
+          <Link to="/admin/create-event">
+            <TabsTrigger value="create-event" className="flex items-center gap-2">
+              <CalendarPlus className="h-4 w-4" />
+              Create Event
+            </TabsTrigger>
+          </Link>
+          <Link to="/admin/universities">
+            <TabsTrigger value="universities" className="flex items-center gap-2">
+              <Building className="h-4 w-4" />
+              Universities
+            </TabsTrigger>
+          </Link>
+          <Link to="/admin/airports">
+            <TabsTrigger value="airports" className="flex items-center gap-2">
+              <Plane className="h-4 w-4" />
+              Airports
+            </TabsTrigger>
+          </Link>
+          <Link to="/admin/users">
+            <TabsTrigger value="users" className="flex items-center gap-2">
+              <Users className="h-4 w-4" />
+              User Management
+            </TabsTrigger>
+          </Link>
+        </TabsList>
+      </Tabs>
       <div className="bg-card rounded-lg shadow-sm border p-4 md:p-6">
         <Outlet />
       </div>

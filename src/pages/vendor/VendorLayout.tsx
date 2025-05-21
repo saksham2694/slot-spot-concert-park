@@ -1,9 +1,10 @@
 
 import { useEffect, useState } from "react";
-import { Outlet, useNavigate } from "react-router-dom";
+import { Outlet, useNavigate, Link } from "react-router-dom";
 import { useAuth } from "@/context/AuthContext";
 import { useToast } from "@/components/ui/use-toast";
-import { Loader2 } from "lucide-react";
+import { Loader2, ExternalLink } from "lucide-react";
+import { Button } from "@/components/ui/button";
 
 const VendorLayout = () => {
   const navigate = useNavigate();
@@ -68,8 +69,14 @@ const VendorLayout = () => {
 
   return (
     <div className="container mx-auto p-4 md:p-6">
-      <div className="mb-8">
-        <h1 className="text-3xl font-bold mb-4">Vendor Dashboard</h1>
+      <div className="mb-8 flex justify-between items-center">
+        <h1 className="text-3xl font-bold">Vendor Dashboard</h1>
+        <Link to="/">
+          <Button variant="outline" className="flex items-center gap-2">
+            <ExternalLink className="h-4 w-4" />
+            Back to Main Site
+          </Button>
+        </Link>
       </div>
       <div className="bg-card rounded-lg shadow-sm border p-4 md:p-6">
         <Outlet />

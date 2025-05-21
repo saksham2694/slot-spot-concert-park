@@ -1,6 +1,6 @@
 
 import { useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, Link } from "react-router-dom";
 import { z } from "zod";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -83,14 +83,15 @@ const AdminCreateEvent = () => {
 
   return (
     <div>
-      <Button 
-        variant="ghost" 
-        className="mb-4" 
-        onClick={() => navigate("/admin")}
-      >
-        <ArrowLeft className="mr-2 h-4 w-4" />
-        Back to Dashboard
-      </Button>
+      <Link to="/admin"> 
+        <Button 
+          variant="outline" 
+          className="mb-4 flex items-center gap-2" 
+        >
+          <ArrowLeft className="h-4 w-4" />
+          Back to Dashboard
+        </Button>
+      </Link>
       
       <h2 className="text-2xl font-semibold mb-6">Create New Event</h2>
       
