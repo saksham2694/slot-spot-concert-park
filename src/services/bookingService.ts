@@ -16,7 +16,7 @@ export const createBooking = async (
       .insert({
         event_id: eventId,
         user_id: userId,
-        total_price: totalPrice,
+        payment_amount: totalPrice, // Changed from total_price to payment_amount
         status: "pending_payment", // Initial status
       })
       .select('id')
