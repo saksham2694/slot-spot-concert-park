@@ -20,7 +20,7 @@ const EventCheckIn = () => {
     
     try {
       setRefreshing(true);
-      // This should fetch ALL booking slots for the event, regardless of status
+      // Fetch ALL booking slots for the event
       const data = await fetchEventBookingSlots(eventId);
       console.log("Fetched booking slots:", data);
       setBookingSlots(data);

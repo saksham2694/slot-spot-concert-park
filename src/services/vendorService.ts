@@ -297,29 +297,22 @@ export const fetchVendorAirports = async (): Promise<VendorAirport[]> => {
 // Fetch all booking slots for a specific event
 export const fetchEventBookingSlots = async (eventId: string): Promise<BookingSlot[]> => {
   try {
-    // Modified query to select ALL bookings without any filtering by status
-    // This uses a direct join to get all booking slots for the event
+    // Simplified query to get all booking slots without filtering by payment status
     const { data, error } = await supabase
       .from("booking_slots")
       .select(`
         id, 
         booking_id,
         customer_arrived,
-        bookings!inner(
+        bookings(
           id, 
-          user_id, 
-          event_id,
-          status
+          user_id,
+          event_id
         ),
-        parking_layouts!inner(
+        parking_layouts(
           id,
           row_number,
           column_number
-        ),
-        users:bookings.user_id(
-          email,
-          first_name,
-          last_name
         )
       `)
       .eq("bookings.event_id", eventId);
@@ -335,18 +328,44 @@ export const fetchEventBookingSlots = async (eventId: string): Promise<BookingSl
 
     console.log("All booking slots fetched:", data);
 
+    // Get the user information in a separate query
+    const userIds = data
+      .map(slot => slot.bookings?.user_id)
+      .filter(id => id !== null && id !== undefined) as string[];
+    
+    let usersMap: Record<string, { email: string, first_name: string | null, last_name: string | null }> = {};
+
+    if (userIds.length > 0) {
+      const { data: users } = await supabase
+        .from("users")
+        .select("id, email, first_name, last_name")
+        .in("id", userIds);
+
+      if (users) {
+        usersMap = users.reduce((acc, user) => {
+          acc[user.id] = user;
+          return acc;
+        }, {} as Record<string, any>);
+      }
+    }
+
     // Map the data to our BookingSlot type
-    return data.map(item => ({
-      id: item.id,
-      bookingId: item.booking_id,
-      slotId: `R${item.parking_layouts.row_number}C${item.parking_layouts.column_number}`,
-      rowNumber: item.parking_layouts.row_number,
-      columnNumber: item.parking_layouts.column_number,
-      customerName: item.users ? `${item.users.first_name || ''} ${item.users.last_name || ''}`.trim() : null,
-      customerEmail: item.users ? item.users.email : null,
-      customerArrived: item.customer_arrived || false,
-      qrCodeUrl: null // We don't have this in the query
-    }));
+    return data.map(item => {
+      const userId = item.bookings?.user_id;
+      const user = userId ? usersMap[userId] : null;
+      
+      return {
+        id: item.id,
+        bookingId: item.booking_id,
+        slotId: `R${item.parking_layouts?.row_number || 0}C${item.parking_layouts?.column_number || 0}`,
+        rowNumber: item.parking_layouts?.row_number || 0,
+        columnNumber: item.parking_layouts?.column_number || 0,
+        customerName: user ? `${user.first_name || ''} ${user.last_name || ''}`.trim() : null,
+        customerEmail: user ? user.email : null,
+        customerArrived: item.customer_arrived || false,
+        qrCodeUrl: null // We don't need this anymore
+      };
+    });
   } catch (error) {
     console.error("Error in fetchEventBookingSlots:", error);
     toast({
