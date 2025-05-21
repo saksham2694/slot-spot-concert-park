@@ -39,7 +39,7 @@ export async function createUniversityBooking({
     // Calculate total price
     const totalPrice = selectedSlots.reduce((sum, slot) => sum + (slot.price * hours), 0);
     
-    // Create the booking record - let Supabase generate the UUID
+    // Create the booking record - explicitly set the user_id to the authenticated user's ID
     const { data: bookingData, error: bookingError } = await supabase
       .from("university_bookings")
       .insert({
@@ -55,7 +55,7 @@ export async function createUniversityBooking({
     
     if (bookingError || !bookingData) {
       console.error("Error creating booking:", bookingError);
-      throw new Error("Failed to create booking");
+      throw new Error(`Failed to create booking: ${bookingError?.message || "Unknown error"}`);
     }
     
     const bookingId = bookingData.id;
