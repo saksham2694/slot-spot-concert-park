@@ -51,18 +51,23 @@ const ParkingLayout = ({
         </div>
         
         <ScrollArea className="h-[350px] w-full">
-          <div className="space-y-2 px-4">
+          <div className="space-y-4 px-4">
             {Object.keys(slotsByRow).map((rowNum) => (
-              <div key={rowNum} className="flex flex-wrap justify-center gap-2 mb-2">
-                {slotsByRow[Number(rowNum)]
-                  .sort((a, b) => a.column - b.column)
-                  .map((slot) => (
-                    <ParkingSlotButton 
-                      key={slot.id} 
-                      slot={slot} 
-                      onClick={handleSlotClick} 
-                    />
-                  ))}
+              <div key={rowNum} className="mb-4">
+                <div className="text-sm text-muted-foreground mb-1">Row {rowNum}</div>
+                <ScrollArea orientation="horizontal" className="w-full">
+                  <div className="flex justify-start gap-2 pb-2 min-w-max">
+                    {slotsByRow[Number(rowNum)]
+                      .sort((a, b) => a.column - b.column)
+                      .map((slot) => (
+                        <ParkingSlotButton 
+                          key={slot.id} 
+                          slot={slot} 
+                          onClick={handleSlotClick} 
+                        />
+                      ))}
+                  </div>
+                </ScrollArea>
               </div>
             ))}
           </div>
