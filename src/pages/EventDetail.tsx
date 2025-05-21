@@ -25,6 +25,7 @@ const EventDetail = () => {
   const [isBooking, setIsBooking] = useState(false);
   const [showError, setShowError] = useState(false);
   const [errorMessage, setErrorMessage] = useState("");
+  const [selectedSlots, setSelectedSlots] = useState<ParkingSlot[]>([]);
   const { toast } = useToast();
   const { user, isLoading: authLoading } = useAuth();
   const navigate = useNavigate();
@@ -70,18 +71,11 @@ const EventDetail = () => {
     getEventDetails();
   }, [eventId, navigate, toast]);
 
-  // Initialize parking layout
-  const { 
-    parkingSlots, 
-    selectedSlots, 
-    slotsByRow, 
-    isLoading: slotsLoading,
-    handleSlotClick
-  } = useParkingLayout(
-    eventId || '', 
-    event?.parkingTotal || 0,
-    event?.parkingPrice || 0
-  );
+  // Handle slot selection from the parking layout
+  const handleSlotSelect = (slots: ParkingSlot[]) => {
+    console.log("Selected slots updated:", slots);
+    setSelectedSlots(slots);
+  };
 
   // Handle booking click
   const handleBookingClick = async () => {
@@ -104,7 +98,7 @@ const EventDetail = () => {
     try {
       setIsBooking(true);
       const createdBookingId = await createBooking(
-        eventId,
+        eventId!,
         user.id,
         selectedSlots
       );
@@ -160,10 +154,7 @@ const EventDetail = () => {
                     parkingTotal={event.parkingTotal || 0}
                     parkingAvailable={event.parkingAvailable || 0}
                     parkingPrice={event.parkingPrice || 0}
-                    onSlotSelect={(slots) => {
-                      // This function is not used directly in EventTabs
-                      // but we need to provide it for the component's props
-                    }}
+                    onSlotSelect={handleSlotSelect}
                   />
                 )}
               </div>

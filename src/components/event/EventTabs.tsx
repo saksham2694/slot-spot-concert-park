@@ -1,14 +1,6 @@
-
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import ParkingLayout from "@/components/ParkingLayout";
-
-interface ParkingSlot {
-  id: string;
-  state: string;
-  row: number;
-  column: number;
-  price: number;
-}
+import { ParkingSlot } from "@/types/parking";
 
 interface EventTabsProps {
   eventId: string;
