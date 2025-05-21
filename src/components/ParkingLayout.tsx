@@ -12,7 +12,7 @@ interface ParkingLayoutProps {
   totalSlots: number;
   availableSlots: number;
   eventPrice: number;
-  onSlotSelect: (selectedSlots: ParkingSlot[]) => void;
+  onSlotSelect: (selectedSlots: ParkingSlot[], refreshLayout?: (() => Promise<void>)) => void;
 }
 
 const ParkingLayout = ({ 
@@ -26,13 +26,14 @@ const ParkingLayout = ({
     selectedSlots,
     slotsByRow,
     isLoading,
-    handleSlotClick
+    handleSlotClick,
+    refreshLayout
   } = useParkingLayout(eventId, totalSlots, eventPrice);
   
   // Update parent component whenever selected slots change
   React.useEffect(() => {
-    onSlotSelect(selectedSlots);
-  }, [selectedSlots, onSlotSelect]);
+    onSlotSelect(selectedSlots, refreshLayout);
+  }, [selectedSlots, onSlotSelect, refreshLayout]);
   
   if (isLoading) {
     return <div className="py-8 text-center">Loading parking layout...</div>;

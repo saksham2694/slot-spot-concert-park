@@ -1,3 +1,4 @@
+
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import ParkingLayout from "@/components/ParkingLayout";
 import { ParkingSlot } from "@/types/parking";
@@ -7,7 +8,7 @@ interface EventTabsProps {
   parkingTotal: number;
   parkingAvailable: number;
   parkingPrice: number;
-  onSlotSelect: (slots: ParkingSlot[]) => void;
+  onSlotSelect: (slots: ParkingSlot[], refreshLayout?: (() => Promise<void>)) => void;
 }
 
 const EventTabs = ({ 

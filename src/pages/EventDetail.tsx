@@ -29,6 +29,9 @@ const EventDetail = () => {
   const { toast } = useToast();
   const { user, isLoading: authLoading } = useAuth();
   const navigate = useNavigate();
+  
+  // Create a ref to the useParkingLayout hook's refreshLayout function
+  const [refreshLayoutFn, setRefreshLayoutFn] = useState<(() => Promise<void>) | null>(null);
 
   useEffect(() => {
     const getEventDetails = async () => {
@@ -72,9 +75,12 @@ const EventDetail = () => {
   }, [eventId, navigate, toast]);
 
   // Handle slot selection from the parking layout
-  const handleSlotSelect = (slots: ParkingSlot[]) => {
+  const handleSlotSelect = (slots: ParkingSlot[], refreshLayout?: (() => Promise<void>)) => {
     console.log("Selected slots updated:", slots);
     setSelectedSlots(slots);
+    if (refreshLayout) {
+      setRefreshLayoutFn(() => refreshLayout);
+    }
   };
 
   // Handle booking click
@@ -105,6 +111,11 @@ const EventDetail = () => {
       
       if (createdBookingId) {
         setBookingId(createdBookingId);
+        
+        // Refresh the parking layout to show newly reserved spots
+        if (refreshLayoutFn) {
+          await refreshLayoutFn();
+        }
       } else {
         throw new Error("Failed to create booking. No booking ID returned.");
       }

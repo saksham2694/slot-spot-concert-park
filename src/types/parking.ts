@@ -13,6 +13,7 @@ export interface ReservedSpot {
   row_number: number;
   column_number: number;
   price: number;
+  is_reserved: boolean;
 }
 
 // Add new types for university and airport parking layouts
