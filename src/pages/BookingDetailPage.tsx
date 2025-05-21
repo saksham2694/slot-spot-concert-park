@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from "react";
 import { useParams, useNavigate, Link } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
@@ -38,6 +37,7 @@ const BookingDetailPage = () => {
   const { toast } = useToast();
   const { user, isLoading: authLoading } = useAuth();
   const [qrDialogOpen, setQrDialogOpen] = useState(false);
+  const [showAuthPrompt, setShowAuthPrompt] = useState<boolean>(false);
 
   // Fetch booking details
   const { 
@@ -138,7 +138,11 @@ const BookingDetailPage = () => {
         <Navbar />
         <main className="flex-grow container py-12">
           <h1 className="text-3xl font-bold mb-8">Booking Details</h1>
-          <AuthPrompt />
+          <AuthPrompt
+            isOpen={true}
+            onClose={() => setShowAuthPrompt(false)}
+            message="You need to be logged in to view this booking."
+          />
         </main>
         <Footer />
       </div>

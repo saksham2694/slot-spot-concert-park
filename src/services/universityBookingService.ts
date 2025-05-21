@@ -1,4 +1,3 @@
-
 import { supabase } from "@/integrations/supabase/client";
 import { ParkingSlot, UniversityReservedSpot } from "@/types/parking";
 
@@ -40,26 +39,26 @@ export async function createUniversityBooking({
     // Calculate total price
     const totalPrice = selectedSlots.reduce((sum, slot) => sum + (slot.price * hours), 0);
     
-    // Create a new booking ID
-    const bookingId = generateUniqueId();
-    
-    // Create the booking record
-    const { error: bookingError } = await supabase
+    // Create the booking record - let Supabase generate the UUID
+    const { data: bookingData, error: bookingError } = await supabase
       .from("university_bookings")
       .insert({
-        id: bookingId,
         user_id: userId,
         university_id: universityId,
         start_date: startDate.toISOString(),
         end_date: endDate.toISOString(),
         payment_amount: totalPrice,
         status: "upcoming"
-      });
+      })
+      .select('id')
+      .single();
     
-    if (bookingError) {
+    if (bookingError || !bookingData) {
       console.error("Error creating booking:", bookingError);
       throw new Error("Failed to create booking");
     }
+    
+    const bookingId = bookingData.id;
     
     // Mark the selected slots as reserved in the university_parking_layouts table
     for (const slot of selectedSlots) {

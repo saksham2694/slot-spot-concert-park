@@ -6,12 +6,7 @@ const safeQueryResult = <T>(data: unknown, defaultValue: T): T => {
   return data as T;
 };
 
-// Function to generate a unique ID using Date.now() and random numbers
-const generateUniqueId = (): string => {
-  return `${Date.now()}-${Math.random().toString(36).substring(2, 15)}`;
-};
-
-interface BookingData {
+interface CreateAirportBookingParams {
   airportId: string;
   selectedSlots: ParkingSlot[];
   startDate: Date;
@@ -19,59 +14,112 @@ interface BookingData {
   hours: number;
 }
 
-export const createAirportBooking = async (bookingData: BookingData): Promise<string> => {
-  const { airportId, selectedSlots, startDate, endDate, hours } = bookingData;
-
-  // Calculate the total price
-  const totalPrice = selectedSlots.reduce((sum, slot) => sum + (slot.price * hours), 0);
-
+export async function createAirportBooking({
+  airportId,
+  selectedSlots,
+  startDate,
+  endDate,
+  hours
+}: CreateAirportBookingParams): Promise<string> {
   try {
     // Get the current user
     const { data: userData, error: userError } = await supabase.auth.getUser();
     
     if (userError || !userData.user) {
-      console.error("User not authenticated:", userError);
       throw new Error("User not authenticated");
     }
     
     const userId = userData.user.id;
-
-    // Generate a unique booking ID
-    const bookingId = generateUniqueId();
-
-    // 1. Create a new booking record
-    const { error: bookingError } = await supabase
+    
+    // Calculate total price
+    const totalPrice = selectedSlots.reduce((sum, slot) => sum + (slot.price * hours), 0);
+    
+    // Create the booking record - let Supabase generate the UUID
+    const { data: bookingData, error: bookingError } = await supabase
       .from("airport_bookings")
       .insert({
-        id: bookingId,
-        airport_id: airportId,
         user_id: userId,
+        airport_id: airportId,
         start_date: startDate.toISOString(),
         end_date: endDate.toISOString(),
         payment_amount: totalPrice,
-        status: "upcoming" // e.g., 'upcoming', 'completed', 'cancelled'
-      });
-
-    if (bookingError) {
-      throw new Error(`Failed to create booking: ${bookingError.message}`);
+        status: "upcoming"
+      })
+      .select('id')
+      .single();
+    
+    if (bookingError || !bookingData) {
+      console.error("Error creating booking:", bookingError);
+      throw new Error("Failed to create booking");
     }
-
-    // 2. Mark the selected parking slots as reserved
+    
+    const bookingId = bookingData.id;
+    
+    // Mark the selected slots as reserved in the airport_parking_layouts table
     for (const slot of selectedSlots) {
+      const slotId = slot.id;
+      const price = slot.price;
+      
       // Extract row and column from slot ID (format: R1C2)
-      const rowMatch = slot.id.match(/R(\d+)/);
-      const colMatch = slot.id.match(/C(\d+)/);
+      const rowMatch = slotId.match(/R(\d+)/);
+      const colMatch = slotId.match(/C(\d+)/);
       
       if (!rowMatch || !colMatch) {
-        console.error(`Invalid slot ID format: ${slot.id}`);
+        console.error(`Invalid slot ID format: ${slotId}`);
         continue;
       }
       
       const rowNumber = parseInt(rowMatch[1]);
       const colNumber = parseInt(colMatch[1]);
-
-      // a. Update or insert into the parking layout to mark the slot as reserved
+      
+      // Check if the slot already exists
       const { data: existingSlot, error: checkError } = await supabase
+        .from("airport_parking_layouts")
+        .select("*")
+        .eq("airport_id", airportId)
+        .eq("row_number", rowNumber)
+        .eq("column_number", colNumber)
+        .single();
+      
+      if (checkError && checkError.code !== "PGRST116") { // PGRST116 is "no rows returned" which is fine
+        console.error("Error checking slot existence:", checkError);
+        continue;
+      }
+      
+      if (existingSlot) {
+        // Update existing slot
+        const { error: updateError } = await supabase
+          .from("airport_parking_layouts")
+          .update({
+            is_reserved: true,
+            price
+          })
+          .eq("airport_id", airportId)
+          .eq("row_number", rowNumber)
+          .eq("column_number", colNumber);
+        
+        if (updateError) {
+          console.error("Error updating slot:", updateError);
+        }
+      } else {
+        // Insert new slot
+        const { error: updateError } = await supabase
+          .from("airport_parking_layouts")
+          .insert({
+            airport_id: airportId,
+            row_number: rowNumber,
+            column_number: colNumber,
+            is_reserved: true,
+            price
+          });
+        
+        if (updateError) {
+          console.error("Error inserting slot:", updateError);
+        }
+      }
+
+      // Create a record in the airport_booking_slots table to link the booking with the slot
+      const { data: layoutData, error: layoutError } = await supabase
         .from("airport_parking_layouts")
         .select("id")
         .eq("airport_id", airportId)
@@ -79,58 +127,12 @@ export const createAirportBooking = async (bookingData: BookingData): Promise<st
         .eq("column_number", colNumber)
         .single();
 
-      let layoutId;
-      
-      if (checkError && checkError.code !== "PGRST116") { // PGRST116 is "no rows returned" which is fine
-        console.error("Error checking slot existence:", checkError);
-        continue;
-      }
-
-      if (existingSlot) {
-        // Update existing slot
-        const { error: updateError } = await supabase
-          .from("airport_parking_layouts")
-          .update({
-            is_reserved: true,
-            price: slot.price
-          })
-          .eq("id", existingSlot.id);
-
-        if (updateError) {
-          console.error("Error updating parking layout:", updateError);
-          continue;
-        }
-        
-        layoutId = existingSlot.id;
-      } else {
-        // Insert new slot
-        const { data: newLayout, error: insertError } = await supabase
-          .from("airport_parking_layouts")
-          .insert({
-            airport_id: airportId,
-            row_number: rowNumber,
-            column_number: colNumber,
-            is_reserved: true,
-            price: slot.price
-          })
-          .select("id")
-          .single();
-
-        if (insertError) {
-          console.error("Error inserting parking layout:", insertError);
-          continue;
-        }
-        
-        layoutId = newLayout.id;
-      }
-
-      // b. Create a record for the specific parking slot in the booking
-      if (layoutId) {
+      if (!layoutError && layoutData) {
         const { error: slotBookingError } = await supabase
           .from("airport_booking_slots")
           .insert({
             booking_id: bookingId,
-            parking_layout_id: layoutId
+            parking_layout_id: layoutData.id
           });
 
         if (slotBookingError) {
@@ -138,29 +140,29 @@ export const createAirportBooking = async (bookingData: BookingData): Promise<st
         }
       }
     }
-
-    // Update the airport's available parking slots
-    const { data: airportData, error: airportError } = await supabase
+    
+    // Update the airport's available parking slots count
+    const { data: airportUpdateData, error: airportUpdateError } = await supabase
       .from("airports")
       .select("available_parking_slots")
       .eq("id", airportId)
       .single();
     
-    if (!airportError && airportData) {
-      const newAvailableSlots = Math.max(0, airportData.available_parking_slots - selectedSlots.length);
+    if (!airportUpdateError && airportUpdateData) {
+      const newAvailableSlots = Math.max(0, airportUpdateData.available_parking_slots - selectedSlots.length);
       
       await supabase
         .from("airports")
         .update({ available_parking_slots: newAvailableSlots })
         .eq("id", airportId);
     }
-
+    
     return bookingId;
-  } catch (error: any) {
-    console.error("Error creating airport booking:", error.message);
+  } catch (error) {
+    console.error("Error in createAirportBooking:", error);
     throw error;
   }
-};
+}
 
 export const fetchAirportBookingById = async (bookingId: string) => {
   try {

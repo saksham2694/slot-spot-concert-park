@@ -18,18 +18,31 @@ interface ParkingSlotProps {
 const ParkingSlotButton = ({ slot, onClick }: ParkingSlotProps) => {
   const { theme } = useTheme();
   
+  const getSlotClass = () => {
+    const baseClass = "flex items-center justify-center p-2 rounded-md font-medium transition-colors";
+    const darkModeClass = theme === 'dark' ? "text-white" : "";
+    
+    if (slot.state === "available") {
+      return `${baseClass} ${darkModeClass} ${theme === 'dark' 
+        ? 'bg-slate-700 hover:bg-slate-600' 
+        : 'bg-blue-100 hover:bg-blue-200'}`;
+    } else if (slot.state === "reserved") {
+      return `${baseClass} ${darkModeClass} ${theme === 'dark' 
+        ? 'bg-red-900 cursor-not-allowed opacity-70' 
+        : 'bg-red-200 cursor-not-allowed opacity-70'}`;
+    } else { // selected
+      return `${baseClass} ${darkModeClass} ${theme === 'dark' 
+        ? 'bg-green-800 hover:bg-green-700' 
+        : 'bg-green-200 hover:bg-green-300'}`;
+    }
+  };
+  
   return (
     <TooltipProvider>
       <Tooltip>
         <TooltipTrigger asChild>
           <button
-            className={`parking-slot ${
-              slot.state === "available"
-                ? "parking-slot-available"
-                : slot.state === "reserved"
-                ? "parking-slot-reserved"
-                : "parking-slot-selected"
-            }`}
+            className={getSlotClass()}
             onClick={() => onClick(slot)}
             disabled={slot.state === "reserved"}
             aria-label={`Parking slot ${slot.id}`}

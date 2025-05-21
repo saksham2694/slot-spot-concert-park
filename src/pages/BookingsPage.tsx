@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import Navbar from "@/components/Navbar";
@@ -85,6 +84,7 @@ const BookingsPage = () => {
   const { user, isLoading: authLoading } = useAuth();
   const [selectedQRCode, setSelectedQRCode] = useState<string | null>(null);
   const [qrDialogOpen, setQrDialogOpen] = useState(false);
+  const [showAuthPrompt, setShowAuthPrompt] = useState<boolean>(false);
 
   // Fetch event bookings
   const { 
@@ -597,7 +597,11 @@ const BookingsPage = () => {
         <Navbar />
         <main className="flex-grow container py-12">
           <h1 className="text-3xl font-bold mb-8">My Bookings</h1>
-          <AuthPrompt />
+          <AuthPrompt
+            isOpen={true}
+            onClose={() => setShowAuthPrompt(false)}
+            message="You need to be logged in to view your bookings."
+          />
         </main>
         <Footer />
       </div>
@@ -699,6 +703,15 @@ const BookingsPage = () => {
           </div>
         </DialogContent>
       </Dialog>
+
+      {/* Auth Prompt Dialog */}
+      {showAuthPrompt && (
+        <AuthPrompt
+          isOpen={true}
+          onClose={() => setShowAuthPrompt(false)}
+          message="You need to be logged in to view your bookings."
+        />
+      )}
     </div>
   );
 };
