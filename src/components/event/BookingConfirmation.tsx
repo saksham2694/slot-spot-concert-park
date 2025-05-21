@@ -56,9 +56,9 @@ const BookingConfirmation = ({
   };
 
   return (
-    <div className="max-w-2xl mx-auto bg-white rounded-lg shadow-lg p-8 text-center">
-      <div className="w-20 h-20 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-6">
-        <Ticket className="h-10 w-10 text-green-600" />
+    <div className="max-w-2xl mx-auto bg-card rounded-lg shadow-lg p-8 text-center">
+      <div className="w-20 h-20 bg-green-100 dark:bg-green-900 rounded-full flex items-center justify-center mx-auto mb-6">
+        <Ticket className="h-10 w-10 text-green-600 dark:text-green-300" />
       </div>
       <h2 className="text-2xl font-bold mb-4">Booking Confirmed!</h2>
       <p className="text-muted-foreground mb-6">
@@ -80,7 +80,7 @@ const BookingConfirmation = ({
         
         <div className="mt-3 text-sm px-4 py-2 bg-muted rounded-md">
           <div className="flex items-center gap-2">
-            <Info className="h-4 w-4 text-blue-500" />
+            <Info className="h-4 w-4 text-blue-500 dark:text-blue-400" />
             <p>
               Present this QR code at the venue for check-in
             </p>

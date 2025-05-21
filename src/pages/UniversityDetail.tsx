@@ -131,12 +131,12 @@ const UniversityDetail = () => {
 
     try {
       setIsBooking(true);
-      const endDate = addHours(date, hours);
+      const endDate = addHours(date as Date, hours);
       
       const newBookingId = await createUniversityBooking({
         universityId: university.id,
         selectedSlots,
-        startDate: date,
+        startDate: date as Date, // Type assertion to fix type error
         endDate,
         hours
       });
@@ -166,7 +166,7 @@ const UniversityDetail = () => {
             universityName={university.name}
             location={university.location}
             startDate={date ? format(date, "PPP 'at' p") : ''}
-            endDate={date ? format(addHours(date, hours), "PPP 'at' p") : ''}
+            endDate={date ? format(addHours(date as Date, hours), "PPP 'at' p") : ''}
             totalPrice={totalPrice}
             totalHours={hours}
             parkingSpots={selectedSlots.map(slot => slot.id)}
