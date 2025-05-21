@@ -1,3 +1,4 @@
+
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { fetchVendorEvents, type VendorEvent } from "@/services/vendorService";
@@ -5,6 +6,7 @@ import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/componen
 import { Button } from "@/components/ui/button";
 import { Loader2, Calendar, Users, CheckCircle, RefreshCw } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import { Progress } from "@/components/ui/progress";
 
 const VendorDashboard = () => {
   const [events, setEvents] = useState<VendorEvent[]>([]);
@@ -28,7 +30,7 @@ const VendorDashboard = () => {
       if (showToast) {
         toast({
           title: "Data refreshed",
-          description: "Booking information has been updated.",
+          description: "Event information has been updated.",
         });
       }
     } catch (error) {
@@ -36,7 +38,7 @@ const VendorDashboard = () => {
       if (showToast) {
         toast({
           title: "Refresh failed",
-          description: "Could not update booking information.",
+          description: "Could not update event information.",
           variant: "destructive",
         });
       }
@@ -145,14 +147,10 @@ const VendorDashboard = () => {
                   {event.arrivedCustomers} / {event.totalBookings} customers arrived
                 </span>
               </div>
-              <div className="h-2 bg-muted rounded-full mt-2">
-                <div 
-                  className="h-full bg-primary rounded-full" 
-                  style={{ 
-                    width: `${event.totalBookings ? (event.arrivedCustomers / event.totalBookings) * 100 : 0}%` 
-                  }}
-                />
-              </div>
+              <Progress 
+                value={event.totalBookings ? (event.arrivedCustomers / event.totalBookings) * 100 : 0} 
+                className="h-2" 
+              />
             </CardContent>
             
             <CardFooter>

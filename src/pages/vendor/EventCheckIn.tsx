@@ -5,6 +5,8 @@ import { fetchEventBookingSlots, markCustomerArrived } from '@/services/vendorSe
 import { CheckCircle, UserX, RefreshCw, ArrowLeft } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardHeader, CardContent, CardFooter } from '@/components/ui/card';
+import { Badge } from '@/components/ui/badge';
+import { Progress } from '@/components/ui/progress';
 import { BookingSlot } from '@/services/vendorService';
 import { useToast } from '@/hooks/use-toast';
 
@@ -13,6 +15,7 @@ const EventCheckIn = () => {
   const [bookingSlots, setBookingSlots] = useState<BookingSlot[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
+  const [eventTitle, setEventTitle] = useState<string>('');
   const { toast } = useToast();
 
   const fetchBookings = async (showToast = false) => {
@@ -82,6 +85,11 @@ const EventCheckIn = () => {
           slot.id === slotId ? { ...slot, customerArrived: true } : slot
         )
       );
+      
+      // Refresh data to ensure we have the latest state
+      setTimeout(() => {
+        fetchBookings();
+      }, 1000);
     } catch (error) {
       console.error('Error marking customer as arrived:', error);
     }
@@ -116,6 +124,11 @@ const EventCheckIn = () => {
     );
   }
 
+  // Calculate statistics
+  const totalSlots = bookingSlots.length;
+  const arrivedCustomers = bookingSlots.filter(slot => slot.customerArrived).length;
+  const arrivalPercentage = totalSlots > 0 ? (arrivedCustomers / totalSlots) * 100 : 0;
+
   // Group bookings by slot ID (row and column)
   const bookingsBySlot = bookingSlots.reduce((acc, slot) => {
     const key = `R${slot.rowNumber}C${slot.columnNumber}`;
@@ -127,7 +140,7 @@ const EventCheckIn = () => {
   }, {} as Record<string, BookingSlot[]>);
 
   return (
-    <div>
+    <div className="space-y-6">
       <div className="flex justify-between items-center mb-6">
         <div className="flex items-center gap-4">
           <Link to="/vendor">
@@ -147,6 +160,21 @@ const EventCheckIn = () => {
           <RefreshCw className={`h-4 w-4 ${refreshing ? 'animate-spin' : ''}`} />
           Refresh
         </Button>
+      </div>
+      
+      <div className="bg-card rounded-lg border p-6 mb-6">
+        <div className="flex justify-between items-center mb-4">
+          <div>
+            <h3 className="text-xl font-medium mb-1">Check-in Progress</h3>
+            <p className="text-muted-foreground">
+              {arrivedCustomers} of {totalSlots} customers have arrived ({Math.round(arrivalPercentage)}%)
+            </p>
+          </div>
+          <Badge variant={arrivedCustomers === totalSlots ? "default" : "secondary"}>
+            {arrivedCustomers === totalSlots ? "Complete" : "In Progress"}
+          </Badge>
+        </div>
+        <Progress value={arrivalPercentage} className="h-2" />
       </div>
       
       <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">

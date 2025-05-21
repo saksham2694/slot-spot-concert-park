@@ -71,10 +71,15 @@ export const fetchVendorEvents = async (): Promise<VendorEvent[]> => {
     // For each event, get booking statistics with cache control
     const eventsWithStats = await Promise.all(
       events.map(async (event) => {
+        // Query booking slots directly with the event_id filter
         const { data: bookingData, error: bookingError } = await supabase
-          .from("vendor_bookings_view")
-          .select("booking_slot_id, customer_arrived")
-          .eq("event_id", event.id);
+          .from("booking_slots")
+          .select(`
+            id,
+            customer_arrived,
+            bookings!inner(event_id)
+          `)
+          .eq("bookings.event_id", event.id);
 
         if (bookingError) {
           console.error(`Error fetching bookings for event ${event.id}:`, bookingError);
@@ -102,7 +107,7 @@ export const fetchVendorEvents = async (): Promise<VendorEvent[]> => {
         }
 
         const totalBookings = bookingData.length || 0;
-        const arrivedCustomers = bookingData.filter(b => b.customer_arrived)?.length || 0;
+        const arrivedCustomers = bookingData.filter(b => b.customer_arrived).length || 0;
 
         return {
           id: event.id,
@@ -297,14 +302,14 @@ export const fetchVendorAirports = async (): Promise<VendorAirport[]> => {
 // Fetch all booking slots for a specific event
 export const fetchEventBookingSlots = async (eventId: string): Promise<BookingSlot[]> => {
   try {
-    // Simplified query to get all booking slots without filtering by payment status
+    // Use an inner join to ensure we only get booking slots for this specific event
     const { data, error } = await supabase
       .from("booking_slots")
       .select(`
         id, 
         booking_id,
         customer_arrived,
-        bookings(
+        bookings!inner(
           id, 
           user_id,
           event_id
