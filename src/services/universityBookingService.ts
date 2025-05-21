@@ -40,17 +40,6 @@ export async function createUniversityBooking({
     // Calculate total price
     const totalPrice = selectedSlots.reduce((sum, slot) => sum + (slot.price * hours), 0);
     
-    // Get university details
-    const { data: universityData, error: universityError } = await supabase
-      .from("universities")
-      .select("name, location")
-      .eq("id", universityId)
-      .single();
-    
-    if (universityError || !universityData) {
-      throw new Error("Failed to fetch university details");
-    }
-    
     // Create a new booking ID using our custom function instead of uuid
     const bookingId = generateUniqueId();
     
@@ -298,5 +287,26 @@ export async function cancelUniversityBooking(bookingId: string) {
   } catch (error) {
     console.error("Error cancelling university booking:", error);
     throw error;
+  }
+}
+
+export async function getReservedUniversityParkingSpots(universityId: string) {
+  try {
+    const { data, error } = await supabase
+      .from("university_parking_layouts")
+      .select("row_number, column_number, price")
+      .eq("university_id", universityId)
+      .eq("is_reserved", true);
+
+    if (error) {
+      console.error("Error fetching reserved spots:", error);
+      return [];
+    }
+
+    const reservedSpots = data ? safeQueryResult<UniversityReservedSpot[]>(data, []) : [];
+    return reservedSpots;
+  } catch (error) {
+    console.error("Error fetching reserved parking spots:", error);
+    return [];
   }
 }

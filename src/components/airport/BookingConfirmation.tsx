@@ -4,6 +4,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Download, Check } from "lucide-react";
 import { useNavigate } from "react-router-dom";
+import { useTheme } from "@/context/ThemeProvider";
 
 interface BookingConfirmationProps {
   bookingId: string;
@@ -27,12 +28,13 @@ const BookingConfirmation = ({
   parkingSpots,
 }: BookingConfirmationProps) => {
   const navigate = useNavigate();
+  const { theme } = useTheme();
 
   return (
     <div className="w-full max-w-2xl mx-auto">
       <div className="flex items-center justify-center flex-col mb-6">
-        <div className="bg-green-100 dark:bg-green-900 rounded-full p-4 mb-4">
-          <Check className="h-8 w-8 text-green-600 dark:text-green-300" />
+        <div className={`${theme === 'dark' ? 'bg-green-900' : 'bg-green-100'} rounded-full p-4 mb-4`}>
+          <Check className={`h-8 w-8 ${theme === 'dark' ? 'text-green-300' : 'text-green-600'}`} />
         </div>
         <h1 className="text-2xl md:text-3xl font-bold text-center">
           Booking Confirmed!
@@ -42,7 +44,7 @@ const BookingConfirmation = ({
         </p>
       </div>
 
-      <Card>
+      <Card className={theme === 'dark' ? 'border-slate-800' : ''}>
         <CardContent className="p-6">
           <div className="space-y-4">
             <div className="flex justify-between border-b pb-3">

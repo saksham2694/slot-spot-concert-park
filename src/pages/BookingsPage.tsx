@@ -15,9 +15,11 @@ import {
   TableRow 
 } from "@/components/ui/table";
 import { useToast } from "@/hooks/use-toast";
-import { Calendar, Clock, Download, ExternalLink, MapPin, QrCode } from "lucide-react";
+import { Calendar, Clock, Download, ExternalLink, MapPin, QrCode, Building, Plane } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
 import { fetchUserBookings } from "@/services/bookingService";
+import { fetchUniversityBookings } from "@/services/universityBookingService";
+import { fetchAirportBookingsForUser } from "@/services/airportBookingService";
 import { useAuth } from "@/context/AuthContext";
 import { downloadBookingPDF, showQRCode } from "@/services/pdfService";
 import {
@@ -32,7 +34,7 @@ import { Event } from "@/types/event";
 import { ParkingSlot } from "@/types/parking";
 import AuthPrompt from "@/components/event/AuthPrompt";
 
-interface Booking {
+interface EventBooking {
   id: string;
   eventId: string;
   eventName: string;
@@ -42,38 +44,198 @@ interface Booking {
   parkingSpots: string[];
   totalPrice: number;
   status: "upcoming" | "completed";
+  type: "event";
 }
+
+interface UniversityBooking {
+  id: string;
+  universityId: string;
+  universityName: string;
+  bookingDate: string;
+  startTime: string;
+  endTime: string;
+  location: string;
+  parkingSpots: string[];
+  totalPrice: number;
+  status: "upcoming" | "completed";
+  type: "university";
+}
+
+interface AirportBooking {
+  id: string;
+  airportId: string;
+  airportName: string;
+  bookingDate: string;
+  startTime: string;
+  endTime: string;
+  location: string;
+  parkingSpots: string[];
+  totalPrice: number;
+  status: "upcoming" | "completed";
+  type: "airport";
+}
+
+type Booking = EventBooking | UniversityBooking | AirportBooking;
 
 const BookingsPage = () => {
   const [activeTab, setActiveTab] = useState<string>("upcoming");
+  const [activeCategory, setActiveCategory] = useState<string>("all");
   const { toast } = useToast();
   const navigate = useNavigate();
   const { user, isLoading: authLoading } = useAuth();
   const [selectedQRCode, setSelectedQRCode] = useState<string | null>(null);
   const [qrDialogOpen, setQrDialogOpen] = useState(false);
 
-  // Only fetch bookings when we have a confirmed user
-  const { data: allBookings = [], isLoading: bookingsLoading, error } = useQuery({
-    queryKey: ["bookings"],
+  // Fetch event bookings
+  const { 
+    data: eventBookings = [], 
+    isLoading: eventBookingsLoading, 
+    error: eventBookingsError 
+  } = useQuery({
+    queryKey: ["eventBookings"],
     queryFn: fetchUserBookings,
-    enabled: !!user, // Only run query when user is authenticated
-    retry: false, // Don't retry if the query fails
+    enabled: !!user,
+    retry: false,
   });
 
-  // If there's an error fetching bookings, show a toast
+  // Fetch university bookings
+  const { 
+    data: universityBookingsData = [], 
+    isLoading: universityBookingsLoading, 
+    error: universityBookingsError 
+  } = useQuery({
+    queryKey: ["universityBookings"],
+    queryFn: () => user ? fetchUniversityBookings(user.id) : Promise.resolve([]),
+    enabled: !!user,
+    retry: false,
+  });
+
+  // Fetch airport bookings
+  const { 
+    data: airportBookingsData = [], 
+    isLoading: airportBookingsLoading, 
+    error: airportBookingsError 
+  } = useQuery({
+    queryKey: ["airportBookings"],
+    queryFn: () => user ? fetchAirportBookingsForUser(user.id) : Promise.resolve([]),
+    enabled: !!user,
+    retry: false,
+  });
+
+  // Check for errors
   useEffect(() => {
-    if (error) {
-      console.error("Error fetching bookings:", error);
+    const errors = [eventBookingsError, universityBookingsError, airportBookingsError].filter(Boolean);
+    if (errors.length) {
+      console.error("Error fetching bookings:", errors);
       toast({
         title: "Error",
-        description: "Failed to load your bookings. Please try again.",
+        description: "Failed to load some of your bookings. Please try again.",
         variant: "destructive",
       });
     }
-  }, [error, toast]);
+  }, [eventBookingsError, universityBookingsError, airportBookingsError, toast]);
 
-  // Transform and categorize the fetched bookings
-  const bookings = allBookings.reduce<Record<string, Booking[]>>((acc, booking) => {
+  // Transform university bookings to common format
+  const universityBookings = universityBookingsData.map(booking => {
+    const startDate = new Date(booking.start_date);
+    const endDate = new Date(booking.end_date);
+    const now = new Date();
+
+    let status: "upcoming" | "completed" = "upcoming";
+    if (booking.status === "cancelled") {
+      return null; // Skip cancelled bookings
+    } else if (endDate < now) {
+      status = "completed";
+    }
+
+    // Format dates
+    const formattedDate = startDate.toLocaleDateString("en-US", {
+      year: "numeric",
+      month: "long",
+      day: "numeric",
+    });
+
+    const startTime = startDate.toLocaleTimeString("en-US", {
+      hour: "numeric",
+      minute: "2-digit",
+      hour12: true,
+    });
+
+    const endTime = endDate.toLocaleTimeString("en-US", {
+      hour: "numeric",
+      minute: "2-digit",
+      hour12: true,
+    });
+
+    // Extract parking spots (assuming we store them in a way we can retrieve)
+    const parkingSpots = [];
+
+    return {
+      id: booking.id,
+      universityId: booking.university_id,
+      universityName: booking.university_name || "University",
+      bookingDate: formattedDate,
+      startTime,
+      endTime,
+      location: booking.location || "",
+      parkingSpots: booking.parking_spots || [],
+      totalPrice: booking.payment_amount || 0,
+      status,
+      type: "university" as const
+    };
+  }).filter(Boolean) as UniversityBooking[];
+
+  // Transform airport bookings to common format
+  const airportBookings = airportBookingsData.map(booking => {
+    const startDate = new Date(booking.start_date);
+    const endDate = new Date(booking.end_date);
+    const now = new Date();
+
+    let status: "upcoming" | "completed" = "upcoming";
+    if (booking.status === "cancelled") {
+      return null; // Skip cancelled bookings
+    } else if (endDate < now) {
+      status = "completed";
+    }
+
+    // Format dates
+    const formattedDate = startDate.toLocaleDateString("en-US", {
+      year: "numeric",
+      month: "long",
+      day: "numeric",
+    });
+
+    const startTime = startDate.toLocaleTimeString("en-US", {
+      hour: "numeric",
+      minute: "2-digit",
+      hour12: true,
+    });
+
+    const endTime = endDate.toLocaleTimeString("en-US", {
+      hour: "numeric",
+      minute: "2-digit",
+      hour12: true,
+    });
+
+    const parkingSpots = booking.parkingSpots || [];
+
+    return {
+      id: booking.id,
+      airportId: booking.airport_id,
+      airportName: booking.airport_name || "Airport",
+      bookingDate: formattedDate,
+      startTime,
+      endTime,
+      location: booking.location || "",
+      parkingSpots: parkingSpots,
+      totalPrice: booking.payment_amount || 0,
+      status,
+      type: "airport" as const
+    };
+  }).filter(Boolean) as AirportBooking[];
+
+  // Transform event bookings
+  const transformedEventBookings = eventBookings.reduce<EventBooking[]>((acc, booking) => {
     if (!booking.events) return acc;
     
     const eventDate = new Date(booking.events.date);
@@ -113,7 +275,7 @@ const BookingsPage = () => {
       total + (slot.parking_layouts.price || 0), 0
     ) || 0;
 
-    const transformedBooking: Booking = {
+    const transformedBooking: EventBooking = {
       id: booking.id,
       eventId: booking.event_id || "",
       eventName: booking.events.title,
@@ -126,17 +288,49 @@ const BookingsPage = () => {
       location: booking.events.location,
       parkingSpots,
       totalPrice,
-      status
+      status,
+      type: "event"
     };
 
-    // Add the booking to the appropriate category
-    if (!acc[status]) {
-      acc[status] = [];
-    }
-    acc[status].push(transformedBooking);
-    
+    acc.push(transformedBooking);
     return acc;
-  }, { upcoming: [], completed: [] });
+  }, []);
+
+  // Combine all bookings
+  const allBookings: Booking[] = [
+    ...transformedEventBookings,
+    ...universityBookings,
+    ...airportBookings
+  ];
+
+  // Filter bookings by status and category
+  const filteredBookings = allBookings.filter(booking => {
+    if (activeCategory === 'all') {
+      return booking.status === activeTab;
+    } else {
+      return booking.status === activeTab && booking.type === activeCategory;
+    }
+  });
+
+  // Group bookings by type
+  const bookingsByType = {
+    all: {
+      upcoming: allBookings.filter(b => b.status === 'upcoming'),
+      completed: allBookings.filter(b => b.status === 'completed')
+    },
+    event: {
+      upcoming: transformedEventBookings.filter(b => b.status === 'upcoming'),
+      completed: transformedEventBookings.filter(b => b.status === 'completed')
+    },
+    university: {
+      upcoming: universityBookings.filter(b => b.status === 'upcoming'),
+      completed: universityBookings.filter(b => b.status === 'completed')
+    },
+    airport: {
+      upcoming: airportBookings.filter(b => b.status === 'upcoming'),
+      completed: airportBookings.filter(b => b.status === 'completed')
+    }
+  };
 
   const handleShowQR = (bookingId: string) => {
     // Generate QR code data
@@ -146,18 +340,46 @@ const BookingsPage = () => {
   };
 
   const handleDownloadTicket = (booking: Booking) => {
-    // Create mock event and slot data for the PDF generator
-    const mockEvent: Event = {
-      id: booking.eventId,
-      title: booking.eventName,
-      date: booking.eventDate,
-      time: booking.eventTime,
-      location: booking.location,
-      image: "", // Adding required properties with default values
-      parkingAvailable: 0,
-      parkingTotal: 0,
-      parkingPrice: booking.totalPrice / booking.parkingSpots.length
-    };
+    let mockEvent: Event;
+    
+    // Create appropriate mock event data based on booking type
+    if (booking.type === "event") {
+      mockEvent = {
+        id: booking.eventId,
+        title: booking.eventName,
+        date: booking.eventDate,
+        time: booking.eventTime,
+        location: booking.location,
+        image: "",
+        parkingAvailable: 0,
+        parkingTotal: 0,
+        parkingPrice: booking.totalPrice / booking.parkingSpots.length
+      };
+    } else if (booking.type === "university") {
+      mockEvent = {
+        id: booking.universityId,
+        title: booking.universityName,
+        date: booking.bookingDate,
+        time: `${booking.startTime} - ${booking.endTime}`,
+        location: booking.location,
+        image: "",
+        parkingAvailable: 0,
+        parkingTotal: 0,
+        parkingPrice: booking.totalPrice / booking.parkingSpots.length
+      };
+    } else {
+      mockEvent = {
+        id: booking.airportId,
+        title: booking.airportName,
+        date: booking.bookingDate,
+        time: `${booking.startTime} - ${booking.endTime}`,
+        location: booking.location,
+        image: "",
+        parkingAvailable: 0,
+        parkingTotal: 0,
+        parkingPrice: booking.totalPrice / booking.parkingSpots.length
+      };
+    }
     
     // Create mock slots
     const mockSlots: ParkingSlot[] = booking.parkingSpots.map((spotId, index) => ({
@@ -187,19 +409,35 @@ const BookingsPage = () => {
       });
   };
 
+  const isLoading = eventBookingsLoading || universityBookingsLoading || airportBookingsLoading;
+
   const BookingsList = ({ items, type }: { items: Booking[], type: string }) => {
     if (items.length === 0) {
       return (
         <div className="text-center py-12">
           <p className="text-muted-foreground mb-4">
             {type === "upcoming" 
-              ? "You don't have any upcoming bookings." 
-              : "You don't have any completed bookings."}
+              ? `You don't have any upcoming ${activeCategory !== 'all' ? activeCategory : ''} bookings.` 
+              : `You don't have any completed ${activeCategory !== 'all' ? activeCategory : ''} bookings.`}
           </p>
           {type === "upcoming" && (
-            <Link to="/events">
-              <Button>Find Events</Button>
-            </Link>
+            <div className="space-x-4">
+              {(activeCategory === 'all' || activeCategory === 'event') && (
+                <Link to="/events">
+                  <Button className="mr-2">Find Events</Button>
+                </Link>
+              )}
+              {(activeCategory === 'all' || activeCategory === 'university') && (
+                <Link to="/universities">
+                  <Button className="mr-2" variant="outline">Find Universities</Button>
+                </Link>
+              )}
+              {(activeCategory === 'all' || activeCategory === 'airport') && (
+                <Link to="/airports">
+                  <Button variant="outline">Find Airports</Button>
+                </Link>
+              )}
+            </div>
           )}
         </div>
       );
@@ -210,7 +448,11 @@ const BookingsPage = () => {
         <TableHeader>
           <TableRow>
             <TableHead>Booking ID</TableHead>
-            <TableHead>Event</TableHead>
+            <TableHead>
+              {activeCategory === 'all' ? 'Name' : 
+               activeCategory === 'event' ? 'Event' : 
+               activeCategory === 'university' ? 'University' : 'Airport'}
+            </TableHead>
             <TableHead className="hidden md:table-cell">Date & Time</TableHead>
             <TableHead className="hidden md:table-cell">Location</TableHead>
             <TableHead>Spots</TableHead>
@@ -219,85 +461,113 @@ const BookingsPage = () => {
           </TableRow>
         </TableHeader>
         <TableBody>
-          {items.map((booking) => (
-            <TableRow key={booking.id}>
-              <TableCell className="font-medium">{booking.id.substring(0, 8)}</TableCell>
-              <TableCell>
-                <div>
-                  <p className="font-medium line-clamp-1">{booking.eventName}</p>
-                  <div className="md:hidden text-xs text-muted-foreground mt-1">
-                    <div className="flex items-center">
-                      <Calendar className="h-3 w-3 mr-1" />
-                      {booking.eventDate}
-                    </div>
-                    <div className="flex items-center">
-                      <Clock className="h-3 w-3 mr-1" />
-                      {booking.eventTime}
+          {items.map((booking) => {
+            // Determine booking name and location based on type
+            let name = "";
+            let date = "";
+            let time = "";
+            let location = "";
+            let icon = <Calendar className="h-4 w-4 mr-2 text-muted-foreground" />;
+            
+            if (booking.type === "event") {
+              name = booking.eventName;
+              date = booking.eventDate;
+              time = booking.eventTime;
+              location = booking.location;
+            } else if (booking.type === "university") {
+              name = booking.universityName;
+              date = booking.bookingDate;
+              time = `${booking.startTime} - ${booking.endTime}`;
+              location = booking.location;
+              icon = <Building className="h-4 w-4 mr-2 text-muted-foreground" />;
+            } else {
+              name = booking.airportName;
+              date = booking.bookingDate;
+              time = `${booking.startTime} - ${booking.endTime}`;
+              location = booking.location;
+              icon = <Plane className="h-4 w-4 mr-2 text-muted-foreground" />;
+            }
+
+            return (
+              <TableRow key={`${booking.type}-${booking.id}`}>
+                <TableCell className="font-medium">{booking.id.substring(0, 8)}</TableCell>
+                <TableCell>
+                  <div>
+                    <p className="font-medium line-clamp-1">{name}</p>
+                    <div className="md:hidden text-xs text-muted-foreground mt-1">
+                      <div className="flex items-center">
+                        <Calendar className="h-3 w-3 mr-1" />
+                        {date}
+                      </div>
+                      <div className="flex items-center">
+                        <Clock className="h-3 w-3 mr-1" />
+                        {time}
+                      </div>
                     </div>
                   </div>
-                </div>
-              </TableCell>
-              <TableCell className="hidden md:table-cell">
-                <div className="flex flex-col">
+                </TableCell>
+                <TableCell className="hidden md:table-cell">
+                  <div className="flex flex-col">
+                    <div className="flex items-center">
+                      {icon}
+                      {date}
+                    </div>
+                    <div className="flex items-center mt-1">
+                      <Clock className="h-4 w-4 mr-2 text-muted-foreground" />
+                      {time}
+                    </div>
+                  </div>
+                </TableCell>
+                <TableCell className="hidden md:table-cell">
                   <div className="flex items-center">
-                    <Calendar className="h-4 w-4 mr-2 text-muted-foreground" />
-                    {booking.eventDate}
+                    <MapPin className="h-4 w-4 mr-2 text-muted-foreground" />
+                    <span className="line-clamp-1">{location}</span>
                   </div>
-                  <div className="flex items-center mt-1">
-                    <Clock className="h-4 w-4 mr-2 text-muted-foreground" />
-                    {booking.eventTime}
-                  </div>
-                </div>
-              </TableCell>
-              <TableCell className="hidden md:table-cell">
-                <div className="flex items-center">
-                  <MapPin className="h-4 w-4 mr-2 text-muted-foreground" />
-                  <span className="line-clamp-1">{booking.location}</span>
-                </div>
-              </TableCell>
-              <TableCell>
-                {booking.parkingSpots.length > 0 ? 
-                  booking.parkingSpots.length > 1 ? 
-                    `${booking.parkingSpots.length} spots` : 
-                    booking.parkingSpots[0] 
-                  : "No spots"}
-              </TableCell>
-              <TableCell>₹{booking.totalPrice.toFixed(2)}</TableCell>
-              <TableCell className="text-right">
-                <div className="flex justify-end items-center gap-2">
-                  {type === "upcoming" && (
-                    <>
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        onClick={() => handleShowQR(booking.id)}
-                        title="Show QR Code"
-                      >
-                        <QrCode className="h-4 w-4" />
-                      </Button>
-                    </>
-                  )}
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    onClick={() => handleDownloadTicket(booking)}
-                    title="Download Ticket"
-                  >
-                    <Download className="h-4 w-4" />
-                  </Button>
-                  <Link to={`/bookings/${booking.id}`}>
+                </TableCell>
+                <TableCell>
+                  {booking.parkingSpots.length > 0 ? 
+                    booking.parkingSpots.length > 1 ? 
+                      `${booking.parkingSpots.length} spots` : 
+                      booking.parkingSpots[0] 
+                    : "No spots"}
+                </TableCell>
+                <TableCell>₹{booking.totalPrice.toFixed(2)}</TableCell>
+                <TableCell className="text-right">
+                  <div className="flex justify-end items-center gap-2">
+                    {type === "upcoming" && (
+                      <>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          onClick={() => handleShowQR(booking.id)}
+                          title="Show QR Code"
+                        >
+                          <QrCode className="h-4 w-4" />
+                        </Button>
+                      </>
+                    )}
                     <Button
                       variant="ghost"
                       size="icon"
-                      title="View Booking Details"
+                      onClick={() => handleDownloadTicket(booking)}
+                      title="Download Ticket"
                     >
-                      <ExternalLink className="h-4 w-4" />
+                      <Download className="h-4 w-4" />
                     </Button>
-                  </Link>
-                </div>
-              </TableCell>
-            </TableRow>
-          ))}
+                    <Link to={`/bookings/${booking.id}`}>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        title="View Booking Details"
+                      >
+                        <ExternalLink className="h-4 w-4" />
+                      </Button>
+                    </Link>
+                  </div>
+                </TableCell>
+              </TableRow>
+            );
+          })}
         </TableBody>
       </Table>
     );
@@ -342,30 +612,50 @@ const BookingsPage = () => {
         <div className="container py-12">
           <h1 className="text-3xl font-bold mb-8">My Bookings</h1>
           
-          {bookingsLoading ? (
+          {isLoading ? (
             <div className="space-y-4">
               <Skeleton className="h-10 w-full" />
               <Skeleton className="h-64 w-full" />
             </div>
           ) : (
-            <Tabs defaultValue="upcoming" value={activeTab} onValueChange={setActiveTab}>
-              <TabsList className="w-full md:w-auto mb-6">
-                <TabsTrigger value="upcoming">
-                  Upcoming ({bookings.upcoming?.length || 0})
-                </TabsTrigger>
-                <TabsTrigger value="completed">
-                  Completed ({bookings.completed?.length || 0})
-                </TabsTrigger>
-              </TabsList>
+            <>
+              <div className="flex flex-col space-y-4 sm:flex-row sm:space-x-4 sm:space-y-0 mb-6">
+                <Tabs defaultValue="upcoming" value={activeTab} onValueChange={setActiveTab} className="w-full">
+                  <TabsList>
+                    <TabsTrigger value="upcoming">
+                      Upcoming ({bookingsByType[activeCategory].upcoming.length})
+                    </TabsTrigger>
+                    <TabsTrigger value="completed">
+                      Completed ({bookingsByType[activeCategory].completed.length})
+                    </TabsTrigger>
+                  </TabsList>
+                </Tabs>
+                
+                <Tabs defaultValue="all" value={activeCategory} onValueChange={setActiveCategory} className="w-full sm:max-w-md">
+                  <TabsList>
+                    <TabsTrigger value="all">
+                      All
+                    </TabsTrigger>
+                    <TabsTrigger value="event">
+                      Events
+                    </TabsTrigger>
+                    <TabsTrigger value="university">
+                      Universities
+                    </TabsTrigger>
+                    <TabsTrigger value="airport">
+                      Airports
+                    </TabsTrigger>
+                  </TabsList>
+                </Tabs>
+              </div>
               
-              <TabsContent value="upcoming" className="border rounded-lg p-4">
-                <BookingsList items={bookings.upcoming || []} type="upcoming" />
-              </TabsContent>
-              
-              <TabsContent value="completed" className="border rounded-lg p-4">
-                <BookingsList items={bookings.completed || []} type="completed" />
-              </TabsContent>
-            </Tabs>
+              <div className="border rounded-lg p-4">
+                <BookingsList 
+                  items={filteredBookings}
+                  type={activeTab}
+                />
+              </div>
+            </>
           )}
         </div>
       </main>

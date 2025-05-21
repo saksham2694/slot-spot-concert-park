@@ -136,13 +136,15 @@ const UniversityDetail = () => {
       const newBookingId = await createUniversityBooking({
         universityId: university.id,
         selectedSlots,
-        startDate: date as Date, // Type assertion to fix type error
+        startDate: date as Date,
         endDate,
         hours
       });
       
       if (newBookingId) {
         setBookingId(newBookingId);
+      } else {
+        throw new Error("Failed to create booking. No booking ID returned.");
       }
     } catch (error) {
       console.error("Error creating booking:", error);

@@ -6,9 +6,9 @@ import { Download, Check } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { useTheme } from "@/context/ThemeProvider";
 
-interface BookingConfirmationProps {
+interface AirportBookingConfirmationViewProps {
   bookingId: string;
-  universityName: string;
+  airportName: string;
   location: string;
   startDate: string;
   endDate: string;
@@ -17,16 +17,16 @@ interface BookingConfirmationProps {
   parkingSpots: string[];
 }
 
-const BookingConfirmation = ({
+const AirportBookingConfirmationView = ({
   bookingId,
-  universityName,
+  airportName,
   location,
   startDate,
   endDate,
   totalPrice,
   totalHours,
   parkingSpots,
-}: BookingConfirmationProps) => {
+}: AirportBookingConfirmationViewProps) => {
   const navigate = useNavigate();
   const { theme } = useTheme();
 
@@ -40,7 +40,7 @@ const BookingConfirmation = ({
           Booking Confirmed!
         </h1>
         <p className="text-muted-foreground text-center mt-2">
-          Your university parking has been successfully booked.
+          Your airport parking has been successfully booked.
         </p>
       </div>
 
@@ -53,8 +53,8 @@ const BookingConfirmation = ({
             </div>
 
             <div className="flex justify-between border-b pb-3">
-              <h3 className="font-semibold">University</h3>
-              <span>{universityName}</span>
+              <h3 className="font-semibold">Airport</h3>
+              <span>{airportName}</span>
             </div>
 
             <div className="flex justify-between border-b pb-3">
@@ -107,4 +107,4 @@ const BookingConfirmation = ({
   );
 };
 
-export default BookingConfirmation;
+export default AirportBookingConfirmationView;

@@ -239,7 +239,57 @@ export const fetchAirportBookingsForUser = async (userId: string) => {
       return [];
     }
 
-    return bookings || [];
+    // For each booking, fetch the associated parking spots
+    const enhancedBookings = [];
+    
+    for (const booking of bookings || []) {
+      const { data: slotsData, error: slotsError } = await supabase
+        .from("airport_booking_slots")
+        .select("parking_layout_id")
+        .eq("booking_id", booking.id);
+        
+      if (slotsError) {
+        console.error(`Error fetching slots for booking ${booking.id}:`, slotsError);
+        continue;
+      }
+      
+      const parkingSpots = [];
+      
+      // Get airport name and location
+      const { data: airportData, error: airportError } = await supabase
+        .from("airports")
+        .select("name, location")
+        .eq("id", booking.airport_id)
+        .single();
+        
+      if (airportError) {
+        console.error(`Error fetching airport for booking ${booking.id}:`, airportError);
+      }
+      
+      // Fetch slot details
+      if (slotsData && slotsData.length > 0) {
+        for (const item of slotsData) {
+          const { data: layoutData, error: layoutError } = await supabase
+            .from("airport_parking_layouts")
+            .select("row_number, column_number")
+            .eq("id", item.parking_layout_id)
+            .single();
+            
+          if (!layoutError && layoutData) {
+            parkingSpots.push(`R${layoutData.row_number}C${layoutData.column_number}`);
+          }
+        }
+      }
+      
+      enhancedBookings.push({
+        ...booking,
+        parkingSpots,
+        airport_name: airportData?.name || "Unknown Airport",
+        location: airportData?.location || "Unknown Location"
+      });
+    }
+
+    return enhancedBookings;
   } catch (error) {
     console.error("Error in fetchAirportBookingsForUser:", error);
     return [];
