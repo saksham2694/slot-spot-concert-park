@@ -31,11 +31,37 @@ export const createBooking = async (
 
     // Create booking slots records
     for (const slot of selectedSlots) {
+      // Parse the row and column from the slot ID (format: R1C3)
+      const rowMatch = slot.id.match(/R(\d+)/);
+      const colMatch = slot.id.match(/C(\d+)/);
+      
+      if (!rowMatch || !colMatch) {
+        throw new Error(`Invalid slot ID format: ${slot.id}`);
+      }
+      
+      const rowNumber = parseInt(rowMatch[1]);
+      const columnNumber = parseInt(colMatch[1]);
+      
+      // First, get the parking layout ID using the row and column numbers
+      const { data: layoutData, error: layoutError } = await supabase
+        .from("parking_layouts")
+        .select("id")
+        .eq("event_id", eventId)
+        .eq("row_number", rowNumber)
+        .eq("column_number", columnNumber)
+        .single();
+      
+      if (layoutError) {
+        console.error("Error finding parking layout:", layoutError);
+        throw new Error("Failed to find parking layout");
+      }
+      
+      // Now create the booking slot with the actual parking_layout_id
       const { error: slotError } = await supabase
         .from("booking_slots")
         .insert({
           booking_id: bookingId,
-          parking_layout_id: slot.id,
+          parking_layout_id: layoutData.id,
         });
 
       if (slotError) {
