@@ -1,5 +1,5 @@
 
-export type BookingStatus = 'upcoming' | 'completed' | 'cancelled' | 'pending_payment' | 'payment_pending' | 'payment_failed' | 'confirmed';
+export type BookingStatus = 'upcoming' | 'completed' | 'cancelled' | 'pending_payment' | 'payment_pending' | 'payment_failed' | 'confirmed' | 'pending';
 
 export interface Booking {
   id: string;
@@ -22,9 +22,17 @@ export interface Booking {
   payment_mode?: string;
   payment_amount?: number;
   payment_date?: string;
+  booking_date?: string | null;
   events?: {
     title?: string;
     date?: string;
     location?: string;
   };
+  booking_slots?: Array<{
+    parking_layouts: {
+      row_number: number;
+      column_number: number;
+      price: number;
+    }
+  }>;
 }

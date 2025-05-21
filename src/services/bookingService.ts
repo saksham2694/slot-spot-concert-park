@@ -52,7 +52,7 @@ export const createBooking = async (
         .eq("event_id", eventId)
         .eq("row_number", rowNumber)
         .eq("column_number", columnNumber)
-        .maybeSingle(); // Use maybeSingle instead of single to avoid errors when no rows are found
+        .maybeSingle();
       
       if (layoutQueryError) {
         console.error("Error querying parking layout:", layoutQueryError);
@@ -95,6 +95,17 @@ export const createBooking = async (
       if (slotError) {
         console.error("Error creating booking slot:", slotError);
         throw new Error("Failed to create booking slot");
+      }
+      
+      // Update the parking layout to mark it as reserved
+      const { error: updateLayoutError } = await supabase
+        .from("parking_layouts")
+        .update({ is_reserved: true })
+        .eq("id", parkingLayoutId);
+        
+      if (updateLayoutError) {
+        console.error("Error updating parking layout:", updateLayoutError);
+        throw new Error("Failed to mark parking layout as reserved");
       }
     }
 
@@ -235,7 +246,7 @@ export const fetchBookingsForUser = async (userId: string) => {
         )
       `)
       .eq("user_id", userId)
-      .order('created_at', { ascending: false });
+      .order('booking_date', { ascending: false });
 
     if (error) {
       console.error("Error fetching bookings:", error);

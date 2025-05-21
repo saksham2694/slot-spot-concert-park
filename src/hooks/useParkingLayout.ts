@@ -24,9 +24,8 @@ export function useParkingLayout(eventId: string, totalSlots: number, eventPrice
       // Fetch all reserved parking spots for this event
       const { data, error } = await supabase
         .from("parking_layouts")
-        .select("row_number, column_number, price")
-        .eq("event_id", eventId)
-        .eq("is_reserved", true);
+        .select("row_number, column_number, price, is_reserved")
+        .eq("event_id", eventId);
         
       if (error) {
         console.error("Error fetching reserved spots:", error);
@@ -40,14 +39,16 @@ export function useParkingLayout(eventId: string, totalSlots: number, eventPrice
       }
       
       // Safely handle the query result
-      const reservedSpots = data ? safeQueryResult<ReservedSpot[]>(data, null) : [];
-      console.log("Reserved spots:", reservedSpots);
+      const layoutSpots = data ? safeQueryResult<ReservedSpot[]>(data, null) : [];
+      console.log("Reserved spots:", layoutSpots.filter(spot => spot.is_reserved));
       
       // Create a map of reserved spots for quick lookup
       const reservedSpotsMap = new Map<string, number>();
-      reservedSpots.forEach((spot: ReservedSpot) => {
-        const key = `R${spot.row_number}C${spot.column_number}`;
-        reservedSpotsMap.set(key, spot.price);
+      layoutSpots.forEach((spot: ReservedSpot) => {
+        if (spot.is_reserved) {
+          const key = `R${spot.row_number}C${spot.column_number}`;
+          reservedSpotsMap.set(key, spot.price);
+        }
       });
       
       // Calculate reasonable grid dimensions based on total slots
@@ -63,10 +64,13 @@ export function useParkingLayout(eventId: string, totalSlots: number, eventPrice
           const slotId = `R${row + 1}C${col + 1}`;
           const isReserved = reservedSpotsMap.has(slotId);
           
-          // Use the price from reserved spot if available, otherwise use the event price
-          const price = isReserved 
-            ? reservedSpotsMap.get(slotId)! 
-            : eventPrice;
+          // Find if this position already has a parking layout
+          const existingLayout = layoutSpots.find(
+            spot => spot.row_number === row + 1 && spot.column_number === col + 1
+          );
+          
+          // Use the price from layout if available, otherwise use the event price
+          const price = existingLayout ? existingLayout.price : eventPrice;
           
           result.push({
             id: slotId,
