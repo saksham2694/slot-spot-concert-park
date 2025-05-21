@@ -55,7 +55,7 @@ const ParkingLayout = ({
             {Object.keys(slotsByRow).map((rowNum) => (
               <div key={rowNum} className="mb-4">
                 <div className="text-sm text-muted-foreground mb-1">Row {rowNum}</div>
-                <ScrollArea orientation="horizontal" className="w-full">
+                <div className="overflow-auto">
                   <div className="flex justify-start gap-2 pb-2 min-w-max">
                     {slotsByRow[Number(rowNum)]
                       .sort((a, b) => a.column - b.column)
@@ -67,7 +67,7 @@ const ParkingLayout = ({
                         />
                       ))}
                   </div>
-                </ScrollArea>
+                </div>
               </div>
             ))}
           </div>
