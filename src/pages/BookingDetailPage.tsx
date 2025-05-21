@@ -1,7 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { useParams, useNavigate, Link } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
-import { format } from "date-fns";
 import { Calendar, Clock, Download, MapPin, QrCode, ChevronLeft, Ticket } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -75,24 +74,24 @@ const BookingDetailPage = () => {
 
     // Create mock event and slot data for the PDF generator
     const mockEvent: Event = {
-      id: booking.eventId,
-      title: booking.eventName,
-      date: booking.eventDate,
-      time: booking.eventTime,
-      location: booking.location,
+      id: booking.eventId || booking.event_id,
+      title: booking.eventName || (booking.events?.title || "Unknown Event"),
+      date: booking.eventDate || "Unknown Date",
+      time: booking.eventTime || "Unknown Time",
+      location: booking.location || (booking.events?.location || "Unknown Location"),
       image: "", 
       parkingAvailable: 0,
       parkingTotal: 0,
-      parkingPrice: booking.totalPrice / booking.parkingSpots.length
+      parkingPrice: (booking.totalPrice || booking.payment_amount || 0) / (booking.parkingSpots?.length || 1)
     };
     
     // Create mock slots
-    const mockSlots: ParkingSlot[] = booking.parkingSpots.map((spotId, index) => ({
+    const mockSlots: ParkingSlot[] = (booking.parkingSpots || []).map((spotId, index) => ({
       id: spotId,
       state: "reserved",
       row: parseInt(spotId.charAt(1)),
       column: parseInt(spotId.charAt(3)),
-      price: booking.totalPrice / booking.parkingSpots.length
+      price: (booking.totalPrice || booking.payment_amount || 0) / (booking.parkingSpots?.length || 1)
     }));
     
     const qrCodeData = `TIME2PARK-BOOKING-${booking.id}`;
@@ -181,27 +180,27 @@ const BookingDetailPage = () => {
           <div className="grid md:grid-cols-3 gap-6">
             <Card className="md:col-span-2">
               <CardHeader>
-                <CardTitle>{booking.eventName}</CardTitle>
+                <CardTitle>{booking.eventName || (booking.events?.title || "Unknown Event")}</CardTitle>
                 <CardDescription>Booking ID: {booking.id.substring(0, 8)}</CardDescription>
               </CardHeader>
               <CardContent className="space-y-4">
                 <div className="flex items-center">
                   <Calendar className="h-5 w-5 mr-3 text-muted-foreground" />
-                  <span>{booking.eventDate}</span>
+                  <span>{booking.eventDate || "Unknown Date"}</span>
                 </div>
                 <div className="flex items-center">
                   <Clock className="h-5 w-5 mr-3 text-muted-foreground" />
-                  <span>{booking.eventTime}</span>
+                  <span>{booking.eventTime || "Unknown Time"}</span>
                 </div>
                 <div className="flex items-center">
                   <MapPin className="h-5 w-5 mr-3 text-muted-foreground" />
-                  <span>{booking.location}</span>
+                  <span>{booking.location || (booking.events?.location || "Unknown Location")}</span>
                 </div>
                 
                 <div className="mt-6">
                   <h3 className="text-lg font-medium mb-3">Your Parking Spots</h3>
                   <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3">
-                    {booking.parkingSpots.map((spot) => (
+                    {(booking.parkingSpots || []).map((spot) => (
                       <div 
                         key={spot} 
                         className="bg-primary/10 border border-primary/20 rounded-md p-3 text-center"
@@ -216,7 +215,7 @@ const BookingDetailPage = () => {
                 <div className="pt-4 border-t mt-6">
                   <div className="flex justify-between items-center">
                     <span className="font-medium">Total Price:</span>
-                    <span className="text-lg font-bold">₹{booking.totalPrice.toFixed(2)}</span>
+                    <span className="text-lg font-bold">₹{(booking.totalPrice || booking.payment_amount || 0).toFixed(2)}</span>
                   </div>
                   <div className="flex justify-between items-center mt-2">
                     <span className="font-medium">Status:</span>
@@ -252,7 +251,7 @@ const BookingDetailPage = () => {
                   <Download className="mr-2 h-4 w-4" />
                   Download Ticket
                 </Button>
-                <Link to={`/events/${booking.eventId}`}>
+                <Link to={`/events/${booking.eventId || booking.event_id}`}>
                   <Button
                     variant="outline"
                     className="w-full justify-start"

@@ -16,7 +16,7 @@ import {
 import { useToast } from "@/hooks/use-toast";
 import { Calendar, Clock, Download, ExternalLink, MapPin, QrCode, Building, Plane } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
-import { fetchUserBookings } from "@/services/bookingService";
+import { fetchBookingsForUser } from "@/services/bookingService";
 import { fetchUniversityBookings } from "@/services/universityBookingService";
 import { fetchAirportBookingsForUser } from "@/services/airportBookingService";
 import { useAuth } from "@/context/AuthContext";
@@ -93,7 +93,7 @@ const BookingsPage = () => {
     error: eventBookingsError 
   } = useQuery({
     queryKey: ["eventBookings"],
-    queryFn: fetchUserBookings,
+    queryFn: fetchBookingsForUser,
     enabled: !!user,
     retry: false,
   });

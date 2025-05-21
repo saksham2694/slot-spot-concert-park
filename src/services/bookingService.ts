@@ -1,3 +1,4 @@
+
 import { supabase } from "@/integrations/supabase/client";
 
 export const createBooking = async (
@@ -34,8 +35,7 @@ export const createBooking = async (
         .from("booking_slots")
         .insert({
           booking_id: bookingId,
-          slot_id: slot.id,
-          price: slot.price,
+          parking_layout_id: slot.id,
         });
 
       if (slotError) {
@@ -79,7 +79,14 @@ export const fetchBookingById = async (bookingId: string) => {
   try {
     const { data: booking, error: bookingError } = await supabase
       .from("bookings")
-      .select("*")
+      .select(`
+        *,
+        events (
+          title,
+          date,
+          location
+        )
+      `)
       .eq("id", bookingId)
       .single();
 
@@ -95,7 +102,14 @@ export const fetchBookingById = async (bookingId: string) => {
 
     const { data: slotsData, error: slotsError } = await supabase
       .from("booking_slots")
-      .select("slot_id")
+      .select(`
+        *,
+        parking_layouts (
+          row_number,
+          column_number,
+          price
+        )
+      `)
       .eq("booking_id", bookingId);
 
     if (slotsError) {
@@ -103,9 +117,42 @@ export const fetchBookingById = async (bookingId: string) => {
       return null;
     }
 
+    // Format the booking data to match what's expected by components
+    const eventDate = booking.events ? new Date(booking.events.date) : null;
+    const formattedDate = eventDate ? eventDate.toLocaleDateString("en-US", {
+      year: "numeric",
+      month: "long",
+      day: "numeric",
+    }) : "";
+    
+    const formattedTime = eventDate ? eventDate.toLocaleTimeString("en-US", {
+      hour: "numeric",
+      minute: "2-digit",
+      hour12: true,
+    }) : "";
+
+    // Extract parking spots from slots
+    const parkingSpots = slotsData ? slotsData.map((slot) => {
+      if (slot.parking_layouts) {
+        return `R${slot.parking_layouts.row_number}C${slot.parking_layouts.column_number}`;
+      }
+      return "";
+    }).filter(Boolean) : [];
+
+    // Calculate total price from slots
+    const totalPrice = slotsData ? slotsData.reduce((sum, slot) => {
+      return sum + (slot.parking_layouts?.price || 0);
+    }, 0) : 0;
+
     return {
       ...booking,
-      parkingSpots: slotsData ? slotsData.map((slot: any) => slot.slot_id) : [],
+      parkingSpots,
+      eventId: booking.event_id,
+      eventName: booking.events?.title || 'Unknown Event',
+      eventDate: formattedDate,
+      eventTime: formattedTime,
+      location: booking.events?.location || 'Unknown Location',
+      totalPrice: booking.payment_amount || totalPrice,
     };
   } catch (error) {
     console.error("Error in fetchBookingById:", error);
@@ -123,6 +170,14 @@ export const fetchBookingsForUser = async (userId: string) => {
           title,
           date,
           location
+        ),
+        booking_slots (
+          *,
+          parking_layouts (
+            row_number,
+            column_number,
+            price
+          )
         )
       `)
       .eq("user_id", userId)
@@ -133,30 +188,7 @@ export const fetchBookingsForUser = async (userId: string) => {
       return [];
     }
 
-    return bookings.map(booking => ({
-      id: booking.id,
-      eventId: booking.event_id,
-      eventName: booking.events?.title || 'Unknown Event',
-      eventDate: new Date(booking.events?.date).toLocaleDateString("en-US", {
-        year: "numeric",
-        month: "long",
-        day: "numeric",
-      }),
-      eventTime: new Date(booking.events?.date).toLocaleTimeString("en-US", {
-        hour: "numeric",
-        minute: "2-digit",
-        hour12: true,
-      }),
-      location: booking.events?.location || 'Unknown Location',
-      parkingSpots: [], // Initialize as empty, will be populated later
-      totalPrice: booking.total_price,
-      status: booking.status,
-      paymentOrderId: booking.payment_order_id,
-      paymentReferenceId: booking.payment_reference_id,
-      paymentMode: booking.payment_mode,
-      paymentAmount: booking.payment_amount,
-      paymentDate: booking.payment_date
-    }));
+    return bookings;
   } catch (error) {
     console.error("Error in fetchBookingsForUser:", error);
     return [];
