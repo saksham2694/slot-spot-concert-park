@@ -21,7 +21,7 @@ export function useParkingLayout(eventId: string, totalSlots: number, eventPrice
     setIsLoading(true);
     
     try {
-      // Fetch all parking layouts for this event
+      // Fetch all parking layouts for this event with explicit is_reserved filter
       const { data, error } = await supabase
         .from("parking_layouts")
         .select("row_number, column_number, price, is_reserved")
@@ -38,8 +38,9 @@ export function useParkingLayout(eventId: string, totalSlots: number, eventPrice
         return;
       }
       
-      // Safely handle the query result
+      // Safely handle the query result and log for debugging
       const layoutSpots = data ? safeQueryResult<ReservedSpot[]>(data, null) : [];
+      console.log("All parking layouts:", layoutSpots);
       console.log("Reserved spots:", layoutSpots.filter(spot => spot.is_reserved));
       
       // Create a map of reserved spots for quick lookup

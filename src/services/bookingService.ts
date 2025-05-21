@@ -28,6 +28,7 @@ export const createBooking = async (
     }
 
     const bookingId = bookingData.id;
+    console.log("Created booking with ID:", bookingId);
 
     // Create booking slots records
     for (const slot of selectedSlots) {
@@ -69,7 +70,7 @@ export const createBooking = async (
             row_number: rowNumber,
             column_number: columnNumber,
             price: slot.price,
-            is_reserved: false
+            is_reserved: true // Immediately mark as reserved
           })
           .select("id")
           .single();
@@ -82,6 +83,17 @@ export const createBooking = async (
         parkingLayoutId = newLayout.id;
       } else {
         parkingLayoutId = existingLayout.id;
+        
+        // Important: Update the parking layout to mark it as reserved
+        const { error: updateLayoutError } = await supabase
+          .from("parking_layouts")
+          .update({ is_reserved: true })
+          .eq("id", parkingLayoutId);
+          
+        if (updateLayoutError) {
+          console.error("Error updating parking layout:", updateLayoutError);
+          throw new Error("Failed to mark parking layout as reserved");
+        }
       }
       
       // Create the booking slot with the parking layout ID
@@ -95,17 +107,6 @@ export const createBooking = async (
       if (slotError) {
         console.error("Error creating booking slot:", slotError);
         throw new Error("Failed to create booking slot");
-      }
-      
-      // Update the parking layout to mark it as reserved
-      const { error: updateLayoutError } = await supabase
-        .from("parking_layouts")
-        .update({ is_reserved: true })
-        .eq("id", parkingLayoutId);
-        
-      if (updateLayoutError) {
-        console.error("Error updating parking layout:", updateLayoutError);
-        throw new Error("Failed to mark parking layout as reserved");
       }
     }
 
