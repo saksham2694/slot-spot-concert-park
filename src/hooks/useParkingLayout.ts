@@ -21,7 +21,7 @@ export function useParkingLayout(eventId: string, totalSlots: number, eventPrice
     setIsLoading(true);
     
     try {
-      // Fetch all parking layouts for this event with explicit is_reserved filter
+      // Always fetch ALL parking layouts for this event regardless of reservation status
       const { data, error } = await supabase
         .from("parking_layouts")
         .select("row_number, column_number, price, is_reserved")
@@ -91,6 +91,11 @@ export function useParkingLayout(eventId: string, totalSlots: number, eventPrice
       setSelectedSlots([]);
     } catch (err) {
       console.error("Error in fetchReservedSpotsAndGenerateLayout:", err);
+      toast({
+        title: "Error",
+        description: "Failed to load parking layout. Please try again.",
+        variant: "destructive",
+      });
     } finally {
       setIsLoading(false);
     }

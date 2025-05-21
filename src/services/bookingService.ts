@@ -30,7 +30,7 @@ export const createBooking = async (
     const bookingId = bookingData.id;
     console.log("Created booking with ID:", bookingId);
 
-    // Create booking slots records
+    // Create booking slots records and mark slots as reserved
     for (const slot of selectedSlots) {
       // Parse the row and column from the slot ID (format: R1C3)
       const rowMatch = slot.id.match(/R(\d+)/);
@@ -43,10 +43,31 @@ export const createBooking = async (
       const rowNumber = parseInt(rowMatch[1]);
       const columnNumber = parseInt(colMatch[1]);
       
+      // First check if this slot is already reserved
+      const { data: existingReservedSlot, error: checkReservedError } = await supabase
+        .from("parking_layouts")
+        .select("id, is_reserved")
+        .eq("event_id", eventId)
+        .eq("row_number", rowNumber)
+        .eq("column_number", columnNumber)
+        .eq("is_reserved", true)
+        .maybeSingle();
+        
+      if (checkReservedError) {
+        console.error("Error checking if slot is reserved:", checkReservedError);
+        throw new Error("Failed to check if slot is reserved");
+      }
+      
+      // If slot is already reserved, throw an error
+      if (existingReservedSlot) {
+        console.error("Slot is already reserved:", slot.id);
+        throw new Error(`Slot ${slot.id} is already reserved. Please select another slot.`);
+      }
+      
       // Check if parking layout exists, if not create it
       let parkingLayoutId;
       
-      // First try to get the existing layout
+      // Try to get the existing layout
       const { data: existingLayout, error: layoutQueryError } = await supabase
         .from("parking_layouts")
         .select("id")
