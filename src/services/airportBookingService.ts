@@ -1,3 +1,4 @@
+
 import { supabase } from "@/integrations/supabase/client";
 import { ParkingSlot, AirportReservedSpot } from "@/types/parking";
 
@@ -21,16 +22,26 @@ export const createAirportBooking = async (bookingData: BookingData): Promise<st
   const totalPrice = selectedSlots.reduce((sum, slot) => sum + slot.price, 0);
 
   try {
+    // Get the current user
+    const { data: userData, error: userError } = await supabase.auth.getUser();
+    
+    if (userError || !userData.user) {
+      console.error("User not authenticated:", userError);
+      return null;
+    }
+    
+    const userId = userData.user.id;
+
     // 1. Create a new booking record
     const { data: bookingData, error: bookingError } = await supabase
       .from("airport_bookings")
       .insert([
         {
           airport_id: airportId,
+          user_id: userId,
           start_date: startDate.toISOString(),
           end_date: endDate.toISOString(),
-          total_price: totalPrice,
-          hours: hours,
+          payment_amount: totalPrice,
           status: "upcoming", // e.g., 'upcoming', 'completed', 'cancelled'
         },
       ])
@@ -45,35 +56,101 @@ export const createAirportBooking = async (bookingData: BookingData): Promise<st
 
     // 2. Mark the selected parking slots as reserved
     for (const slot of selectedSlots) {
-      // a. Update the parking layout to mark the slot as reserved
-      const { error: updateError } = await supabase
-        .from("airport_parking_layouts")
-        .insert({
-          airport_id: airportId,
-          row_number: parseInt(slot.id.substring(1, 2)), // Extract row from slot ID
-          column_number: parseInt(slot.id.substring(3, 4)), // Extract column from slot ID
-          is_reserved: true,
-          price: slot.price
-        });
+      // Extract row and column from slot ID (format: R1C2)
+      const rowMatch = slot.id.match(/R(\d+)/);
+      const colMatch = slot.id.match(/C(\d+)/);
+      
+      if (!rowMatch || !colMatch) {
+        console.error(`Invalid slot ID format: ${slot.id}`);
+        continue;
+      }
+      
+      const rowNumber = parseInt(rowMatch[1]);
+      const colNumber = parseInt(colMatch[1]);
 
-      if (updateError) {
-        throw new Error(`Failed to update parking layout: ${updateError.message}`);
+      // a. Update or insert into the parking layout to mark the slot as reserved
+      const { data: existingSlot, error: checkError } = await supabase
+        .from("airport_parking_layouts")
+        .select("id")
+        .eq("airport_id", airportId)
+        .eq("row_number", rowNumber)
+        .eq("column_number", colNumber)
+        .single();
+
+      let layoutId;
+      
+      if (checkError && checkError.code !== "PGRST116") { // PGRST116 is "no rows returned" which is fine
+        console.error("Error checking slot existence:", checkError);
+        continue;
+      }
+
+      if (existingSlot) {
+        // Update existing slot
+        const { error: updateError } = await supabase
+          .from("airport_parking_layouts")
+          .update({
+            is_reserved: true,
+            price: slot.price
+          })
+          .eq("id", existingSlot.id);
+
+        if (updateError) {
+          console.error("Error updating parking layout:", updateError);
+          continue;
+        }
+        
+        layoutId = existingSlot.id;
+      } else {
+        // Insert new slot
+        const { data: newLayout, error: insertError } = await supabase
+          .from("airport_parking_layouts")
+          .insert({
+            airport_id: airportId,
+            row_number: rowNumber,
+            column_number: colNumber,
+            is_reserved: true,
+            price: slot.price
+          })
+          .select("id")
+          .single();
+
+        if (insertError) {
+          console.error("Error inserting parking layout:", insertError);
+          continue;
+        }
+        
+        layoutId = newLayout.id;
       }
 
       // b. Create a record for the specific parking slot in the booking
-      const { error: slotBookingError } = await supabase
-        .from("airport_booking_slots")
-        .insert([
-          {
+      if (layoutId) {
+        const { error: slotBookingError } = await supabase
+          .from("airport_booking_slots")
+          .insert({
             booking_id: bookingId,
-            slot_id: slot.id,
-            price: slot.price,
-          },
-        ]);
+            parking_layout_id: layoutId
+          });
 
-      if (slotBookingError) {
-        throw new Error(`Failed to create booking slot: ${slotBookingError.message}`);
+        if (slotBookingError) {
+          console.error("Error creating booking slot:", slotBookingError);
+        }
       }
+    }
+
+    // Update the airport's available parking slots
+    const { data: airportData, error: airportError } = await supabase
+      .from("airports")
+      .select("available_parking_slots")
+      .eq("id", airportId)
+      .single();
+    
+    if (!airportError && airportData) {
+      const newAvailableSlots = Math.max(0, airportData.available_parking_slots - selectedSlots.length);
+      
+      await supabase
+        .from("airports")
+        .update({ available_parking_slots: newAvailableSlots })
+        .eq("id", airportId);
     }
 
     return bookingId;
@@ -103,7 +180,7 @@ export const fetchAirportBookingById = async (bookingId: string) => {
 
     const { data: slotsData, error: slotsError } = await supabase
       .from("airport_booking_slots")
-      .select("slot_id")
+      .select("parking_layout_id")
       .eq("booking_id", bookingId);
 
     if (slotsError) {
@@ -111,7 +188,23 @@ export const fetchAirportBookingById = async (bookingId: string) => {
       return null;
     }
 
-    const parkingSpots = slotsData ? slotsData.map((slot) => slot.slot_id) : [];
+    // Get the actual slot IDs from the layouts
+    const parkingSpots = [];
+    
+    if (slotsData && slotsData.length > 0) {
+      for (const item of slotsData) {
+        const { data: layoutData, error: layoutError } = await supabase
+          .from("airport_parking_layouts")
+          .select("row_number, column_number")
+          .eq("id", item.parking_layout_id)
+          .single();
+          
+        if (!layoutError && layoutData) {
+          // Reconstruct the slot ID in the format R1C2
+          parkingSpots.push(`R${layoutData.row_number}C${layoutData.column_number}`);
+        }
+      }
+    }
 
     return {
       ...booking,
@@ -125,29 +218,11 @@ export const fetchAirportBookingById = async (bookingId: string) => {
 
 export const fetchAirportBookingsForUser = async (userId: string) => {
   try {
-    // Fetch the airport IDs associated with the user
-    const { data: userAirports, error: userAirportsError } = await supabase
-      .from("user_airports")
-      .select("airport_id")
-      .eq("user_id", userId);
-
-    if (userAirportsError) {
-      console.error("Error fetching user airports:", userAirportsError);
-      return [];
-    }
-
-    if (!userAirports || userAirports.length === 0) {
-      console.log("No airports associated with the user.");
-      return [];
-    }
-
-    const airportIds = userAirports.map((ua) => ua.airport_id);
-
-    // Fetch bookings for those airports
+    // Fetch bookings directly for the user
     const { data: bookings, error: bookingsError } = await supabase
       .from("airport_bookings")
       .select("*")
-      .in("airport_id", airportIds);
+      .eq("user_id", userId);
 
     if (bookingsError) {
       console.error("Error fetching bookings:", bookingsError);

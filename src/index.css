@@ -38,7 +38,7 @@
     
     --parking-available: 305 15% 94%;
     --parking-reserved: 305 50% 50%;
-    --parking-selected: 142 76% 36%; /* Changed to a green color for better distinction */
+    --parking-selected: 142 76% 36%; /* Green color for selected slots */
   }
  
   .dark {
@@ -73,7 +73,7 @@
     
     --parking-available: 305 15% 24%;
     --parking-reserved: 305 35% 40%;
-    --parking-selected: 142 70% 45%; /* Changed to a bright green in dark mode */
+    --parking-selected: 142 70% 45%; /* Brighter green in dark mode */
   }
 }
  
@@ -100,6 +100,6 @@
   }
 
   .parking-slot-selected {
-    @apply bg-parking-selected text-white hover:bg-green-600 dark:hover:bg-green-500;
+    @apply bg-green-500 text-white hover:bg-green-600 dark:bg-green-600 dark:hover:bg-green-500;
   }
 }

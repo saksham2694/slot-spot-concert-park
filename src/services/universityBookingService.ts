@@ -1,8 +1,8 @@
+
 import { supabase } from "@/integrations/supabase/client";
 import { ParkingSlot, UniversityReservedSpot } from "@/types/parking";
 import { v4 as uuidv4 } from "uuid";
 
-// Add this function at the top level of the file if it doesn't exist
 const safeQueryResult = <T>(data: unknown, defaultValue: T): T => {
   if (data === null || data === undefined) return defaultValue;
   return data as T;
@@ -57,15 +57,10 @@ export async function createUniversityBooking({
         id: bookingId,
         user_id: userId,
         university_id: universityId,
-        university_name: universityData.name,
-        location: universityData.location,
-        start_time: startDate.toISOString(),
-        end_time: endDate.toISOString(),
-        duration_hours: hours,
-        total_price: totalPrice,
-        parking_spots: selectedSlots.map(slot => slot.id),
-        status: "upcoming",
-        created_at: new Date().toISOString()
+        start_date: startDate.toISOString(),
+        end_date: endDate.toISOString(),
+        payment_amount: totalPrice,
+        status: "upcoming"
       });
     
     if (bookingError) {
@@ -110,9 +105,7 @@ export async function createUniversityBooking({
           .from("university_parking_layouts")
           .update({
             is_reserved: true,
-            price,
-            booking_id: bookingId,
-            reserved_until: endDate.toISOString()
+            price
           })
           .eq("university_id", universityId)
           .eq("row_number", rowNumber)
@@ -130,13 +123,33 @@ export async function createUniversityBooking({
             row_number: rowNumber,
             column_number: colNumber,
             is_reserved: true,
-            price,
-            booking_id: bookingId,
-            reserved_until: endDate.toISOString()
+            price
           });
         
         if (updateError) {
           console.error("Error inserting slot:", updateError);
+        }
+      }
+
+      // Create a record in the university_booking_slots table to link the booking with the slot
+      const { data: layoutData, error: layoutError } = await supabase
+        .from("university_parking_layouts")
+        .select("id")
+        .eq("university_id", universityId)
+        .eq("row_number", rowNumber)
+        .eq("column_number", colNumber)
+        .single();
+
+      if (!layoutError && layoutData) {
+        const { error: slotBookingError } = await supabase
+          .from("university_booking_slots")
+          .insert({
+            booking_id: bookingId,
+            parking_layout_id: layoutData.id
+          });
+
+        if (slotBookingError) {
+          console.error("Error creating booking slot:", slotBookingError);
         }
       }
     }
@@ -204,18 +217,7 @@ export async function fetchUniversityBookingById(bookingId: string) {
 
 export async function cancelUniversityBooking(bookingId: string) {
   try {
-    // Get booking details first
-    const { data: bookingData, error: bookingError } = await supabase
-      .from("university_bookings")
-      .select("university_id, parking_spots")
-      .eq("id", bookingId)
-      .single();
-    
-    if (bookingError || !bookingData) {
-      throw new Error("Failed to fetch booking details");
-    }
-    
-    // Update booking status
+    // Update booking status first
     const { error: updateError } = await supabase
       .from("university_bookings")
       .update({ status: "cancelled" })
@@ -224,31 +226,38 @@ export async function cancelUniversityBooking(bookingId: string) {
     if (updateError) {
       throw updateError;
     }
+
+    // Get the booking slots
+    const { data: bookingSlots, error: slotsError } = await supabase
+      .from("university_booking_slots")
+      .select("parking_layout_id")
+      .eq("booking_id", bookingId);
     
-    // Free up the reserved slots
-    for (const slotId of bookingData.parking_spots) {
-      // Extract row and column from slot ID (format: R1C2)
-      const rowMatch = slotId.match(/R(\d+)/);
-      const colMatch = slotId.match(/C(\d+)/);
+    if (slotsError) {
+      console.error("Error getting booking slots:", slotsError);
+      throw slotsError;
+    }
+
+    // For each slot, get the layout info and free up the slot
+    for (const slot of bookingSlots || []) {
+      const { data: layoutData, error: layoutError } = await supabase
+        .from("university_parking_layouts")
+        .select("university_id, row_number, column_number")
+        .eq("id", slot.parking_layout_id)
+        .single();
       
-      if (!rowMatch || !colMatch) {
-        console.error(`Invalid slot ID format: ${slotId}`);
+      if (layoutError) {
+        console.error("Error getting layout data:", layoutError);
         continue;
       }
-      
-      const rowNumber = parseInt(rowMatch[1]);
-      const colNumber = parseInt(colMatch[1]);
-      
+
+      // Update the slot to be no longer reserved
       const { error: slotError } = await supabase
         .from("university_parking_layouts")
         .update({
-          is_reserved: false,
-          booking_id: null,
-          reserved_until: null
+          is_reserved: false
         })
-        .eq("university_id", bookingData.university_id)
-        .eq("row_number", rowNumber)
-        .eq("column_number", colNumber);
+        .eq("id", slot.parking_layout_id);
       
       if (slotError) {
         console.error("Error updating slot:", slotError);
@@ -256,19 +265,29 @@ export async function cancelUniversityBooking(bookingId: string) {
     }
     
     // Update the university's available parking slots count
-    const { data: universityData, error: universityError } = await supabase
-      .from("universities")
-      .select("available_parking_slots")
-      .eq("id", bookingData.university_id)
-      .single();
-    
-    if (!universityError && universityData) {
-      const newAvailableSlots = universityData.available_parking_slots + bookingData.parking_spots.length;
-      
-      await supabase
-        .from("universities")
-        .update({ available_parking_slots: newAvailableSlots })
-        .eq("id", bookingData.university_id);
+    if (bookingSlots && bookingSlots.length > 0) {
+      const { data: layoutData } = await supabase
+        .from("university_parking_layouts")
+        .select("university_id")
+        .eq("id", bookingSlots[0].parking_layout_id)
+        .single();
+
+      if (layoutData) {
+        const { data: universityData, error: universityError } = await supabase
+          .from("universities")
+          .select("available_parking_slots")
+          .eq("id", layoutData.university_id)
+          .single();
+        
+        if (!universityError && universityData) {
+          const newAvailableSlots = universityData.available_parking_slots + bookingSlots.length;
+          
+          await supabase
+            .from("universities")
+            .update({ available_parking_slots: newAvailableSlots })
+            .eq("id", layoutData.university_id);
+        }
+      }
     }
     
     return true;
