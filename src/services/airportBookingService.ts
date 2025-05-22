@@ -32,10 +32,11 @@ export async function createAirportBooking({
     const totalPrice = selectedSlots.reduce((sum, slot) => sum + (slot.price * hours), 0);
     
     // Create the booking record - let Supabase generate the UUID
+    // IMPORTANT: user_id must be set to auth.uid() to satisfy RLS policies
     const { data: bookingData, error: bookingError } = await supabase
       .from("airport_bookings")
       .insert({
-        user_id: userId,
+        user_id: userId, // This must match auth.uid() for RLS policy
         airport_id: airportId,
         start_date: startDate.toISOString(),
         end_date: endDate.toISOString(),

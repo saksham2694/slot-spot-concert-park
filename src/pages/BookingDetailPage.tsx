@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from "react";
 import { useParams, useNavigate, Link } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
@@ -32,7 +31,7 @@ import {
 import AuthPrompt from "@/components/event/AuthPrompt";
 import { Event } from "@/types/event";
 import { ParkingSlot } from "@/types/parking";
-import { Booking } from "@/types/booking";
+import { Booking, BookingStatus } from "@/types/booking";
 import { supabase } from "@/integrations/supabase/client";
 
 // Helper functions to type check the type of booking
@@ -266,8 +265,8 @@ const BookingDetailPage = () => {
     let bookingParkingSpots: string[] = [];
     let bookingTotalPrice = 0;
     
-    if (bookingType === "event") {
-      const eventBookingData = booking as any;
+    if (bookingType === "event" && isEventBooking(booking)) {
+      const eventBookingData = booking;
       bookingTitle = eventBookingData.eventName || (eventBookingData.events?.title || "Unknown Event");
       bookingDate = eventBookingData.eventDate || "Unknown Date";
       bookingTime = eventBookingData.eventTime || "Unknown Time";
@@ -275,7 +274,7 @@ const BookingDetailPage = () => {
       bookingId = eventBookingData.eventId || eventBookingData.event_id || "";
       bookingParkingSpots = eventBookingData.parkingSpots || [];
       bookingTotalPrice = eventBookingData.totalPrice || eventBookingData.payment_amount || 0;
-    } else if (bookingType === "university") {
+    } else if (bookingType === "university" && isUniversityBooking(booking) && booking.start_date && booking.end_date) {
       bookingTitle = universityData?.name || "University";
       const startDate = new Date(booking.start_date);
       const endDate = new Date(booking.end_date);
@@ -297,7 +296,7 @@ const BookingDetailPage = () => {
       bookingId = booking.university_id || "";
       bookingParkingSpots = parkingSpots;
       bookingTotalPrice = booking.payment_amount || 0;
-    } else if (bookingType === "airport") {
+    } else if (bookingType === "airport" && isAirportBooking(booking) && booking.start_date && booking.end_date) {
       bookingTitle = airportData?.name || "Airport";
       const startDate = new Date(booking.start_date);
       const endDate = new Date(booking.end_date);
@@ -498,9 +497,8 @@ const BookingDetailPage = () => {
 
   // Helper function to get parking spots
   const getParkingSpots = () => {
-    if (bookingType === "event") {
-      const eventBookingData = booking as any;
-      return eventBookingData.parkingSpots || [];
+    if (bookingType === "event" && isEventBooking(booking)) {
+      return booking.parkingSpots || [];
     } else {
       return parkingSpots;
     }
