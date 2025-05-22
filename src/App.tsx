@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import Index from "@/pages/Index";
@@ -23,7 +24,7 @@ import AdminCreateAirport from "@/pages/admin/AdminCreateAirport";
 import VendorLayout from "@/pages/vendor/VendorLayout";
 import VendorDashboard from "@/pages/vendor/VendorDashboard";
 import EventCheckIn from "@/pages/vendor/EventCheckIn";
-import QRScanner from "@/pages/QRScanner";
+import QRScanner from "@/pages/vendor/QRScanner";
 import PaymentCallback from "@/pages/PaymentCallback";
 import { TooltipProvider } from "@/components/ui/tooltip"
 import { Toaster } from "@/components/ui/toaster"
