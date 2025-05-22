@@ -4,7 +4,7 @@ import { Link } from "react-router-dom";
 import { fetchVendorEvents, type VendorEvent } from "@/services/vendorService";
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Loader2, Calendar, Users, CheckCircle, RefreshCw, MapPin } from "lucide-react";
+import { Loader2, Calendar, Users, RefreshCw, MapPin } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { Progress } from "@/components/ui/progress";
 
@@ -139,24 +139,6 @@ const VendorDashboard = () => {
               </Card>
             </Link>
           </div>
-          
-          <div className="mt-8">
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center">
-                  <CheckCircle className="mr-2 h-5 w-5" /> Quick Check-in
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <p className="text-muted-foreground mb-4">
-                  For quick customer check-in, scan their QR code directly.
-                </p>
-                <Link to="/vendor/scan-qr">
-                  <Button>Scan QR Code</Button>
-                </Link>
-              </CardContent>
-            </Card>
-          </div>
         </div>
       )}
     </div>
@@ -164,3 +146,4 @@ const VendorDashboard = () => {
 };
 
 export default VendorDashboard;
+
