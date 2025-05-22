@@ -1,5 +1,5 @@
 
-import React from "react";
+import React, { useEffect } from "react";
 import { Info } from "lucide-react";
 import { useParkingLayout } from "@/hooks/useParkingLayout";
 import ParkingSlotLegend from "./parking/ParkingSlotLegend";
@@ -13,6 +13,7 @@ interface ParkingLayoutProps {
   availableSlots: number;
   eventPrice: number;
   onSlotSelect: (selectedSlots: ParkingSlot[], refreshLayout?: (() => Promise<void>)) => void;
+  onReservedCountChange?: (totalSlots: number, reservedCount: number) => void;
 }
 
 const ParkingLayout = ({ 
@@ -20,18 +21,28 @@ const ParkingLayout = ({
   totalSlots, 
   availableSlots, 
   eventPrice,
-  onSlotSelect 
+  onSlotSelect,
+  onReservedCountChange 
 }: ParkingLayoutProps) => {
   const {
     selectedSlots,
+    parkingSlots,
     slotsByRow,
     isLoading,
     handleSlotClick,
     refreshLayout
   } = useParkingLayout(eventId, totalSlots, eventPrice);
   
+  // Calculate reserved slots and notify parent component
+  useEffect(() => {
+    if (!isLoading && parkingSlots.length > 0 && onReservedCountChange) {
+      const reservedCount = parkingSlots.filter(slot => slot.state === "reserved").length;
+      onReservedCountChange(totalSlots, reservedCount);
+    }
+  }, [parkingSlots, isLoading, totalSlots, onReservedCountChange]);
+  
   // Update parent component whenever selected slots change
-  React.useEffect(() => {
+  useEffect(() => {
     onSlotSelect(selectedSlots, refreshLayout);
   }, [selectedSlots, onSlotSelect, refreshLayout]);
   

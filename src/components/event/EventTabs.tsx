@@ -9,6 +9,7 @@ interface EventTabsProps {
   parkingAvailable: number;
   parkingPrice: number;
   onSlotSelect: (slots: ParkingSlot[], refreshLayout?: (() => Promise<void>)) => void;
+  onReservedCountChange?: (totalSlots: number, reservedCount: number) => void;
 }
 
 const EventTabs = ({ 
@@ -16,7 +17,8 @@ const EventTabs = ({
   parkingTotal, 
   parkingAvailable, 
   parkingPrice,
-  onSlotSelect 
+  onSlotSelect,
+  onReservedCountChange
 }: EventTabsProps) => {
   return (
     <Tabs defaultValue="parking" className="w-full">
@@ -32,7 +34,8 @@ const EventTabs = ({
           totalSlots={parkingTotal}
           availableSlots={parkingAvailable}
           eventPrice={parkingPrice}
-          onSlotSelect={onSlotSelect} 
+          onSlotSelect={onSlotSelect}
+          onReservedCountChange={onReservedCountChange}
         />
       </TabsContent>
       

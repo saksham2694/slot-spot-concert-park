@@ -26,6 +26,7 @@ const EventDetail = () => {
   const [showError, setShowError] = useState(false);
   const [errorMessage, setErrorMessage] = useState("");
   const [selectedSlots, setSelectedSlots] = useState<ParkingSlot[]>([]);
+  const [actualAvailableSlots, setActualAvailableSlots] = useState(0);
   const { toast } = useToast();
   const { user, isLoading: authLoading } = useAuth();
   const navigate = useNavigate();
@@ -51,6 +52,8 @@ const EventDetail = () => {
         
         if (eventData) {
           setEvent(eventData);
+          // Calculate actual available slots when event data is loaded
+          setActualAvailableSlots(eventData.availableParkingSlots);
         } else {
           toast({
             title: "Not found",
@@ -81,6 +84,12 @@ const EventDetail = () => {
     if (refreshLayout) {
       setRefreshLayoutFn(() => refreshLayout);
     }
+  };
+
+  // Handler to update actual available slots based on parking layout data
+  const updateAvailableSlots = (totalSlots: number, reservedCount: number) => {
+    const available = Math.max(0, totalSlots - reservedCount);
+    setActualAvailableSlots(available);
   };
 
   // Handle booking click
@@ -163,16 +172,17 @@ const EventDetail = () => {
                   <EventTabs
                     eventId={event.id}
                     parkingTotal={event.totalParkingSlots || 0}
-                    parkingAvailable={event.availableParkingSlots || 0}
+                    parkingAvailable={actualAvailableSlots}
                     parkingPrice={event.parkingPrice || 0}
                     onSlotSelect={handleSlotSelect}
+                    onReservedCountChange={updateAvailableSlots}
                   />
                 )}
               </div>
               
               <div>
                 <BookingSummary
-                  event={event}
+                  event={{...event, availableParkingSlots: actualAvailableSlots}}
                   selectedSlots={selectedSlots}
                   isBooking={isBooking}
                   isUserLoggedIn={!!user}
