@@ -23,6 +23,13 @@ export interface Booking {
   payment_amount?: number;
   payment_date?: string;
   booking_date?: string | null;
+  start_date?: string;
+  end_date?: string;
+  university_id?: string;
+  airport_id?: string;
+  university_name?: string;
+  airport_name?: string;
+  parking_spots?: string[];
   events?: {
     title?: string;
     date?: string;

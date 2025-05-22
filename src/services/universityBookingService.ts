@@ -192,11 +192,15 @@ export async function fetchUniversityBookings(userId: string) {
   }
 }
 
+export async function fetchUniversityBookingsForUser(userId: string) {
+  return fetchUniversityBookings(userId);
+}
+
 export async function fetchUniversityBookingById(bookingId: string) {
   try {
     const { data, error } = await supabase
       .from("university_bookings")
-      .select("*")
+      .select("*, university:university_id(name, location)")
       .eq("id", bookingId)
       .single();
     
@@ -208,6 +212,38 @@ export async function fetchUniversityBookingById(bookingId: string) {
   } catch (error) {
     console.error("Error fetching university booking:", error);
     throw error;
+  }
+}
+
+export async function getUniversityBookingSlots(bookingId: string) {
+  try {
+    const { data, error } = await supabase
+      .from("university_booking_slots")
+      .select(`
+        id,
+        parking_layout_id,
+        university_parking_layouts (
+          row_number,
+          column_number,
+          price
+        )
+      `)
+      .eq("booking_id", bookingId);
+    
+    if (error) {
+      throw error;
+    }
+    
+    // Transform the data into an array of parking spot IDs
+    const parkingSpots = data?.map(slot => {
+      const layout = slot.university_parking_layouts;
+      return `R${layout.row_number}C${layout.column_number}`;
+    }) || [];
+    
+    return parkingSpots;
+  } catch (error) {
+    console.error("Error fetching university booking slots:", error);
+    return [];
   }
 }
 

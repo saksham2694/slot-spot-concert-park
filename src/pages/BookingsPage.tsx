@@ -17,7 +17,7 @@ import { useToast } from "@/hooks/use-toast";
 import { Calendar, Clock, Download, ExternalLink, MapPin, QrCode, Building, Plane } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
 import { fetchBookingsForUser } from "@/services/bookingService";
-import { fetchUniversityBookings } from "@/services/universityBookingService";
+import { fetchUniversityBookingsForUser } from "@/services/universityBookingService";
 import { fetchAirportBookingsForUser } from "@/services/airportBookingService";
 import { useAuth } from "@/context/AuthContext";
 import { downloadBookingPDF, showQRCode } from "@/services/pdfService";
@@ -32,6 +32,7 @@ import {
 import { Event } from "@/types/event";
 import { ParkingSlot } from "@/types/parking";
 import AuthPrompt from "@/components/event/AuthPrompt";
+import { supabase } from "@/integrations/supabase/client";
 
 interface EventBooking {
   id: string;
@@ -104,8 +105,69 @@ const BookingsPage = () => {
     isLoading: universityBookingsLoading, 
     error: universityBookingsError 
   } = useQuery({
-    queryKey: ["universityBookings"],
-    queryFn: () => user ? fetchUniversityBookings(user.id) : Promise.resolve([]),
+    queryKey: ["universityBookings", user?.id],
+    queryFn: async () => {
+      if (!user) return Promise.resolve([]);
+      
+      // Fetch booking data
+      const bookings = await fetchUniversityBookings(user.id);
+      
+      // Fetch university details for each booking
+      const bookingsWithDetails = await Promise.all(
+        bookings.map(async (booking) => {
+          try {
+            // Get university details
+            const { data: universityData, error: universityError } = await supabase
+              .from("universities")
+              .select("name, location")
+              .eq("id", booking.university_id)
+              .single();
+            
+            if (universityError) {
+              console.error("Error fetching university details:", universityError);
+              return {
+                ...booking,
+                university_name: "University",
+                location: "Unknown Location"
+              };
+            }
+            
+            // Get booking slots to determine parking spots
+            const { data: bookingSlots, error: bookingSlotsError } = await supabase
+              .from("university_booking_slots")
+              .select(`
+                parking_layout_id,
+                university_parking_layouts (
+                  row_number,
+                  column_number
+                )
+              `)
+              .eq("booking_id", booking.id);
+            
+            let parkingSpots: string[] = [];
+            
+            if (!bookingSlotsError && bookingSlots) {
+              parkingSpots = bookingSlots.map(slot => {
+                const layout = slot.university_parking_layouts;
+                return `R${layout.row_number}C${layout.column_number}`;
+              });
+            }
+            
+            return {
+              ...booking,
+              university_name: universityData.name || "University",
+              location: universityData.location || "Unknown Location",
+              parking_spots: parkingSpots
+            };
+          } catch (error) {
+            console.error("Error fetching details for university booking:", error);
+            return booking;
+          }
+        })
+      );
+      
+      return bookingsWithDetails;
+    },
     enabled: !!user,
     retry: false,
   });
@@ -116,8 +178,69 @@ const BookingsPage = () => {
     isLoading: airportBookingsLoading, 
     error: airportBookingsError 
   } = useQuery({
-    queryKey: ["airportBookings"],
-    queryFn: () => user ? fetchAirportBookingsForUser(user.id) : Promise.resolve([]),
+    queryKey: ["airportBookings", user?.id],
+    queryFn: async () => {
+      if (!user) return Promise.resolve([]);
+      
+      // Fetch booking data
+      const bookings = await fetchAirportBookingsForUser(user.id);
+      
+      // Fetch airport details for each booking
+      const bookingsWithDetails = await Promise.all(
+        bookings.map(async (booking) => {
+          try {
+            // Get airport details
+            const { data: airportData, error: airportError } = await supabase
+              .from("airports")
+              .select("name, location")
+              .eq("id", booking.airport_id)
+              .single();
+            
+            if (airportError) {
+              console.error("Error fetching airport details:", airportError);
+              return {
+                ...booking,
+                airport_name: "Airport",
+                location: "Unknown Location"
+              };
+            }
+            
+            // Get booking slots to determine parking spots
+            const { data: bookingSlots, error: bookingSlotsError } = await supabase
+              .from("airport_booking_slots")
+              .select(`
+                parking_layout_id,
+                airport_parking_layouts (
+                  row_number,
+                  column_number
+                )
+              `)
+              .eq("booking_id", booking.id);
+            
+            let parkingSpots: string[] = [];
+            
+            if (!bookingSlotsError && bookingSlots) {
+              parkingSpots = bookingSlots.map(slot => {
+                const layout = slot.airport_parking_layouts;
+                return `R${layout.row_number}C${layout.column_number}`;
+              });
+            }
+            
+            return {
+              ...booking,
+              airport_name: airportData.name || "Airport",
+              location: airportData.location || "Unknown Location",
+              parking_spots: parkingSpots
+            };
+          } catch (error) {
+            console.error("Error fetching details for airport booking:", error);
+            return booking;
+          }
+        })
+      );
+      
+      return bookingsWithDetails;
+    },
     enabled: !!user,
     retry: false,
   });
@@ -167,8 +290,8 @@ const BookingsPage = () => {
       hour12: true,
     });
 
-    // Extract parking spots (assuming we store them in a way we can retrieve)
-    const parkingSpots = [];
+    // Use the parking_spots array from the enhanced query if available
+    const parkingSpots = booking.parking_spots || [];
 
     return {
       id: booking.id,
@@ -178,7 +301,7 @@ const BookingsPage = () => {
       startTime,
       endTime,
       location: booking.location || "",
-      parkingSpots: booking.parking_spots || [],
+      parkingSpots,
       totalPrice: booking.payment_amount || 0,
       status,
       type: "university" as const
@@ -217,7 +340,8 @@ const BookingsPage = () => {
       hour12: true,
     });
 
-    const parkingSpots = booking.parkingSpots || [];
+    // Use the parking_spots array from the enhanced query if available
+    const parkingSpots = booking.parking_spots || [];
 
     return {
       id: booking.id,
@@ -227,7 +351,7 @@ const BookingsPage = () => {
       startTime,
       endTime,
       location: booking.location || "",
-      parkingSpots: parkingSpots,
+      parkingSpots,
       totalPrice: booking.payment_amount || 0,
       status,
       type: "airport" as const
