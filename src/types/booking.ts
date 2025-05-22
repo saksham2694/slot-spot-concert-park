@@ -42,4 +42,8 @@ export interface Booking {
       price: number;
     }
   }>;
+  university?: {
+    name: string;
+    location: string;
+  };
 }

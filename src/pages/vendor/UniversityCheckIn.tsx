@@ -1,181 +1,130 @@
-
-import { useState, useEffect } from "react";
+// VendorCheckIn.tsx
+import React, { useState, useEffect } from "react";
 import { useParams } from "react-router-dom";
-import { 
-  fetchUniversityBookingSlots, 
-  markUniversityCustomerArrived, 
-  type BookingSlot 
-} from "@/services/vendorService";
+import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
-import { Loader2, CheckCircle, Clock, ArrowLeft } from "lucide-react";
-import { useToast } from "@/hooks/use-toast";
-import { Link } from "react-router-dom";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { useQuery } from "@tanstack/react-query";
+import { Check, X } from 'lucide-react';
+import { useToast } from "@/hooks/use-toast";
 
 const UniversityCheckIn = () => {
-  const { universityId } = useParams();
-  const [universityName, setUniversityName] = useState<string>("");
+  const { universityId } = useParams<{ universityId: string }>();
+  const [bookingId, setBookingId] = useState<string>("");
+  const [bookingDetails, setBookingDetails] = useState<any>(null);
+  const [error, setError] = useState<string | null>(null);
   const { toast } = useToast();
 
-  // Use react-query for data fetching
-  const { 
-    data: bookingSlots = [], 
-    isLoading, 
-    refetch 
-  } = useQuery({
-    queryKey: ["universityBookingSlots", universityId],
-    queryFn: () => {
-      if (!universityId) return [];
-      return fetchUniversityBookingSlots(universityId);
-    },
-    enabled: !!universityId,
-    staleTime: 1000 * 60 * 5, // 5 minutes
-  });
-
-  const { 
-    data: universityData 
-  } = useQuery({
-    queryKey: ["universityDetails", universityId],
+  const { data: universityName, isLoading: loadingName } = useQuery({
+    queryKey: ["universityName", universityId],
     queryFn: async () => {
-      if (!universityId) return null;
-      
-      const { data: university, error } = await supabase
+      const { data, error } = await supabase
         .from("universities")
         .select("name")
         .eq("id", universityId)
         .single();
-      
-      if (error) {
-        throw error;
-      }
-      
-      return university;
+    
+      if (error) throw error;
+      return data;
     },
-    enabled: !!universityId,
-    onSuccess: (data) => {
-      if (data) {
-        setUniversityName(data.name);
+    meta: {
+      onSuccess: (data) => {
+        // Any success handlers here
+        console.log("University name loaded:", data.name);
       }
-    }
+    },
+    // Any other query options
   });
 
-  const handleMarkArrived = async (slotId: string) => {
+  const handleCheckIn = async () => {
+    setError(null);
     try {
-      const success = await markUniversityCustomerArrived(slotId);
-      
-      if (success) {
-        // Refetch the data to reflect the change
-        refetch();
-        toast({
-          title: "Success",
-          description: "Customer has been marked as arrived.",
-        });
+      // Fetch booking details
+      const { data: bookingData, error: bookingError } = await supabase
+        .from("university_bookings")
+        .select("*")
+        .eq("id", bookingId)
+        .eq("university_id", universityId)
+        .single();
+
+      if (bookingError) {
+        setError("Booking not found or invalid booking ID.");
+        setBookingDetails(null);
+        return;
       }
-    } catch (error) {
-      console.error("Error marking customer as arrived:", error);
+
+      if (!bookingData) {
+        setError("Booking not found.");
+        setBookingDetails(null);
+        return;
+      }
+
+      // Check if booking is already checked in (status == "completed")
+      if (bookingData.status === "completed") {
+        setError("Booking is already checked in.");
+        setBookingDetails(null);
+        return;
+      }
+
+      // Update booking status to "completed"
+      const { error: updateError } = await supabase
+        .from("university_bookings")
+        .update({ status: "completed" })
+        .eq("id", bookingId);
+
+      if (updateError) {
+        setError("Failed to update booking status.");
+        setBookingDetails(null);
+        return;
+      }
+
+      setBookingDetails(bookingData);
       toast({
-        title: "Error",
-        description: "Failed to mark customer as arrived.",
-        variant: "destructive",
+        title: "Check-In Successful",
+        description: "The booking has been successfully checked in.",
       });
+    } catch (err: any) {
+      setError(err.message || "An unexpected error occurred.");
+      setBookingDetails(null);
     }
   };
 
-  if (isLoading) {
-    return (
-      <div className="flex justify-center items-center h-64">
-        <Loader2 className="h-8 w-8 animate-spin text-primary" />
-      </div>
-    );
-  }
-
   return (
-    <div>
-      <div className="mb-6">
-        <Link to="/vendor/universities" className="flex items-center text-muted-foreground hover:text-foreground mb-4">
-          <ArrowLeft className="h-4 w-4 mr-2" />
-          Back to Universities
-        </Link>
-        <h2 className="text-2xl font-semibold">{universityName}</h2>
-        <p className="text-muted-foreground">Manage customer check-ins</p>
-      </div>
-
-      <div className="mb-6 flex justify-between items-center">
-        <div>
-          <Badge variant="outline" className="text-xs mb-2">
-            {bookingSlots.filter(slot => slot.customerArrived).length} / {bookingSlots.length} Checked In
-          </Badge>
-        </div>
-        <Button onClick={() => refetch()} variant="outline" size="sm">
-          Refresh
-        </Button>
-      </div>
-
-      {bookingSlots.length === 0 ? (
-        <Card>
-          <CardHeader>
-            <CardTitle>No Bookings</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <p className="text-muted-foreground">
-              There are no bookings for this university yet.
+    <div className="container mx-auto p-4">
+      <Card>
+        <CardHeader>
+          <CardTitle>University Check-In</CardTitle>
+        </CardHeader>
+        <CardContent className="grid gap-4">
+          {universityName ? (
+            <p className="text-lg font-semibold">
+              Welcome to {universityName?.name}!
             </p>
-          </CardContent>
-        </Card>
-      ) : (
-        <div className="border rounded-lg overflow-hidden">
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Parking Spot</TableHead>
-                <TableHead>Customer</TableHead>
-                <TableHead>Status</TableHead>
-                <TableHead className="text-right">Action</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {bookingSlots.map((slot) => (
-                <TableRow key={slot.id}>
-                  <TableCell className="font-medium">{slot.slotId}</TableCell>
-                  <TableCell>
-                    {slot.customerName || "N/A"}
-                    {slot.customerEmail && (
-                      <div className="text-xs text-muted-foreground mt-1">{slot.customerEmail}</div>
-                    )}
-                  </TableCell>
-                  <TableCell>
-                    {slot.customerArrived ? (
-                      <div className="flex items-center">
-                        <CheckCircle className="h-4 w-4 text-green-500 mr-2" />
-                        <span>Checked In</span>
-                      </div>
-                    ) : (
-                      <div className="flex items-center">
-                        <Clock className="h-4 w-4 text-amber-500 mr-2" />
-                        <span>Not Arrived</span>
-                      </div>
-                    )}
-                  </TableCell>
-                  <TableCell className="text-right">
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={() => handleMarkArrived(slot.id)}
-                      disabled={slot.customerArrived}
-                    >
-                      {slot.customerArrived ? "Checked In" : "Mark as Arrived"}
-                    </Button>
-                  </TableCell>
-                </TableRow>
-              ))}
-            </TableBody>
-          </Table>
-        </div>
-      )}
+          ) : (
+            <p>Loading University Name...</p>
+          )}
+          <div className="grid gap-2">
+            <Label htmlFor="bookingId">Booking ID</Label>
+            <Input
+              type="text"
+              id="bookingId"
+              placeholder="Enter Booking ID"
+              value={bookingId}
+              onChange={(e) => setBookingId(e.target.value)}
+            />
+          </div>
+          <Button onClick={handleCheckIn}>Check In</Button>
+          {error && <p className="text-red-500">{error}</p>}
+          {bookingDetails && (
+            <div className="mt-4 p-4 border rounded-md bg-green-100 text-green-800">
+              <p>Booking ID: {bookingDetails.id.substring(0, 8)}</p>
+              <p>Status: Checked In <Check className="inline-block h-4 w-4 ml-1" /></p>
+            </div>
+          )}
+        </CardContent>
+      </Card>
     </div>
   );
 };

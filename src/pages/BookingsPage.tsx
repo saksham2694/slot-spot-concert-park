@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import Navbar from "@/components/Navbar";
@@ -110,7 +111,7 @@ const BookingsPage = () => {
       if (!user) return Promise.resolve([]);
       
       // Fetch booking data
-      const bookings = await fetchUniversityBookings(user.id);
+      const bookings = await fetchUniversityBookingsForUser(user.id);
       
       // Fetch university details for each booking
       const bookingsWithDetails = await Promise.all(

@@ -32,7 +32,21 @@ import {
 import AuthPrompt from "@/components/event/AuthPrompt";
 import { Event } from "@/types/event";
 import { ParkingSlot } from "@/types/parking";
+import { Booking } from "@/types/booking";
 import { supabase } from "@/integrations/supabase/client";
+
+// Helper functions to type check the type of booking
+const isEventBooking = (booking: Booking | null): boolean => {
+  return booking !== null && (booking.eventId !== undefined || booking.event_id !== undefined);
+};
+
+const isUniversityBooking = (booking: Booking | null): boolean => {
+  return booking !== null && booking.university_id !== undefined;
+};
+
+const isAirportBooking = (booking: Booking | null): boolean => {
+  return booking !== null && booking.airport_id !== undefined;
+};
 
 const BookingDetailPage = () => {
   const { bookingId } = useParams<{ bookingId: string }>();
@@ -114,7 +128,7 @@ const BookingDetailPage = () => {
 
   // Fetch university details and parking spots
   const fetchUniversityDetails = async () => {
-    if (!universityBooking || !universityBooking.university_id) return;
+    if (!universityBooking || !isUniversityBooking(universityBooking)) return;
     
     try {
       // Fetch university data
@@ -164,7 +178,7 @@ const BookingDetailPage = () => {
 
   // Fetch airport details and parking spots
   const fetchAirportDetails = async () => {
-    if (!airportBooking || !airportBooking.airport_id) return;
+    if (!airportBooking || !isAirportBooking(airportBooking)) return;
     
     try {
       // Fetch airport data
@@ -386,12 +400,11 @@ const BookingDetailPage = () => {
   const getBookingTitle = () => {
     if (!booking) return "Booking";
     
-    if (bookingType === "event") {
-      const eventBookingData = booking as any;
-      return eventBookingData.eventName || (eventBookingData.events?.title || "Event Booking");
-    } else if (bookingType === "university") {
+    if (isEventBooking(booking)) {
+      return booking.eventName || (booking.events?.title || "Event Booking");
+    } else if (isUniversityBooking(booking)) {
       return universityData?.name || "University Booking";
-    } else if (bookingType === "airport") {
+    } else if (isAirportBooking(booking)) {
       return airportData?.name || "Airport Booking";
     }
     return "Booking";
@@ -401,10 +414,16 @@ const BookingDetailPage = () => {
   const getBookingDate = () => {
     if (!booking) return "Unknown Date";
     
-    if (bookingType === "event") {
-      const eventBookingData = booking as any;
-      return eventBookingData.eventDate || "Unknown Date";
-    } else if (bookingType === "university" || bookingType === "airport") {
+    if (isEventBooking(booking)) {
+      return booking.eventDate || "Unknown Date";
+    } else if (isUniversityBooking(booking) && booking.start_date) {
+      const startDate = new Date(booking.start_date);
+      return startDate.toLocaleDateString("en-US", {
+        year: "numeric",
+        month: "long",
+        day: "numeric",
+      });
+    } else if (isAirportBooking(booking) && booking.start_date) {
       const startDate = new Date(booking.start_date);
       return startDate.toLocaleDateString("en-US", {
         year: "numeric",
@@ -419,10 +438,21 @@ const BookingDetailPage = () => {
   const getBookingTime = () => {
     if (!booking) return "Unknown Time";
     
-    if (bookingType === "event") {
-      const eventBookingData = booking as any;
-      return eventBookingData.eventTime || "Unknown Time";
-    } else if (bookingType === "university" || bookingType === "airport") {
+    if (isEventBooking(booking)) {
+      return booking.eventTime || "Unknown Time";
+    } else if (isUniversityBooking(booking) && booking.start_date && booking.end_date) {
+      const startDate = new Date(booking.start_date);
+      const endDate = new Date(booking.end_date);
+      return `${startDate.toLocaleTimeString("en-US", {
+        hour: "numeric",
+        minute: "2-digit",
+        hour12: true,
+      })} - ${endDate.toLocaleTimeString("en-US", {
+        hour: "numeric",
+        minute: "2-digit",
+        hour12: true,
+      })}`;
+    } else if (isAirportBooking(booking) && booking.start_date && booking.end_date) {
       const startDate = new Date(booking.start_date);
       const endDate = new Date(booking.end_date);
       return `${startDate.toLocaleTimeString("en-US", {
@@ -442,12 +472,11 @@ const BookingDetailPage = () => {
   const getBookingLocation = () => {
     if (!booking) return "Unknown Location";
     
-    if (bookingType === "event") {
-      const eventBookingData = booking as any;
-      return eventBookingData.location || (eventBookingData.events?.location || "Unknown Location");
-    } else if (bookingType === "university") {
+    if (isEventBooking(booking)) {
+      return booking.location || (booking.events?.location || "Unknown Location");
+    } else if (isUniversityBooking(booking)) {
       return universityData?.location || "Unknown Location";
-    } else if (bookingType === "airport") {
+    } else if (isAirportBooking(booking)) {
       return airportData?.location || "Unknown Location";
     }
     return "Unknown Location";
@@ -457,12 +486,11 @@ const BookingDetailPage = () => {
   const getEntityId = () => {
     if (!booking) return "";
     
-    if (bookingType === "event") {
-      const eventBookingData = booking as any;
-      return eventBookingData.eventId || eventBookingData.event_id || "";
-    } else if (bookingType === "university") {
+    if (isEventBooking(booking)) {
+      return booking.eventId || booking.event_id || "";
+    } else if (isUniversityBooking(booking)) {
       return booking.university_id || "";
-    } else if (bookingType === "airport") {
+    } else if (isAirportBooking(booking)) {
       return booking.airport_id || "";
     }
     return "";
