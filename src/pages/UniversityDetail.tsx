@@ -288,19 +288,8 @@ const UniversityDetail = () => {
 
                             <div className="pt-4">
                               <p className="text-sm text-muted-foreground mb-4">
-                                Once you've selected your date and duration, proceed to select your parking slot.
+                                Select your date and duration above, then use the "Select Parking Slot" tab to choose your spot.
                               </p>
-                              <Button 
-                                className="w-full" 
-                                onClick={() => {
-                                  const tabElement = document.querySelector('[data-value="slots"]');
-                                  if (tabElement instanceof HTMLElement) {
-                                    tabElement.click();
-                                  }
-                                }}
-                              >
-                                Continue to Slot Selection
-                              </Button>
                             </div>
                           </div>
                         </CardContent>
