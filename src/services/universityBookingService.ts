@@ -29,12 +29,15 @@ export async function createUniversityBooking({
 }: CreateUniversityBookingParams): Promise<string> {
   try {
     // First verify the user is authenticated
-    const { data: { user }, error: authError } = await supabase.auth.getUser();
+    const { data, error: authError } = await supabase.auth.getUser();
+    const user = data?.user;
     
     if (authError || !user) {
       console.error("Authentication error:", authError);
       throw new Error("User not authenticated");
     }
+    
+    console.log("Creating booking for user:", user.id);
     
     // Calculate total price
     const totalPrice = selectedSlots.reduce((sum, slot) => sum + (slot.price * hours), 0);
@@ -59,6 +62,7 @@ export async function createUniversityBooking({
     }
     
     const bookingId = bookingData.id;
+    console.log("Successfully created booking with ID:", bookingId);
     
     // Mark the selected slots as reserved in the university_parking_layouts table
     for (const slot of selectedSlots) {
