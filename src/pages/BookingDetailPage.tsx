@@ -52,8 +52,10 @@ const BookingDetailPage = () => {
     queryFn: () => fetchBookingById(bookingId as string),
     enabled: !!user && !!bookingId,
     retry: false,
-    onSuccess: (data) => {
-      if (data) setBookingType("event");
+    meta: {
+      onSuccess: (data: any) => {
+        if (data) setBookingType("event");
+      }
     }
   });
 
@@ -67,8 +69,10 @@ const BookingDetailPage = () => {
     queryFn: () => fetchUniversityBookingById(bookingId as string),
     enabled: !!user && !!bookingId && !eventBooking,
     retry: false,
-    onSuccess: (data) => {
-      if (data) setBookingType("university");
+    meta: {
+      onSuccess: (data: any) => {
+        if (data) setBookingType("university");
+      }
     }
   });
 
@@ -82,10 +86,23 @@ const BookingDetailPage = () => {
     queryFn: () => fetchAirportBookingById(bookingId as string),
     enabled: !!user && !!bookingId && !eventBooking && !universityBooking,
     retry: false,
-    onSuccess: (data) => {
-      if (data) setBookingType("airport");
+    meta: {
+      onSuccess: (data: any) => {
+        if (data) setBookingType("airport");
+      }
     }
   });
+
+  // Update booking type when data is fetched
+  useEffect(() => {
+    if (eventBooking) {
+      setBookingType("event");
+    } else if (universityBooking) {
+      setBookingType("university");
+    } else if (airportBooking) {
+      setBookingType("airport");
+    }
+  }, [eventBooking, universityBooking, airportBooking]);
 
   const isLoading = eventBookingLoading || universityBookingLoading || airportBookingLoading;
 
@@ -128,17 +145,19 @@ const BookingDetailPage = () => {
     let bookingTotalPrice = 0;
     
     if (bookingType === "event") {
-      bookingTitle = booking.eventName || (booking.events?.title || "Unknown Event");
-      bookingDate = booking.eventDate || "Unknown Date";
-      bookingTime = booking.eventTime || "Unknown Time";
-      bookingLocation = booking.location || (booking.events?.location || "Unknown Location");
-      bookingId = booking.eventId || booking.event_id || "";
-      bookingParkingSpots = booking.parkingSpots || [];
-      bookingTotalPrice = booking.totalPrice || booking.payment_amount || 0;
+      const eventBookingData = booking as any;
+      bookingTitle = eventBookingData.eventName || (eventBookingData.events?.title || "Unknown Event");
+      bookingDate = eventBookingData.eventDate || "Unknown Date";
+      bookingTime = eventBookingData.eventTime || "Unknown Time";
+      bookingLocation = eventBookingData.location || (eventBookingData.events?.location || "Unknown Location");
+      bookingId = eventBookingData.eventId || eventBookingData.event_id || "";
+      bookingParkingSpots = eventBookingData.parkingSpots || [];
+      bookingTotalPrice = eventBookingData.totalPrice || eventBookingData.payment_amount || 0;
     } else if (bookingType === "university") {
-      bookingTitle = booking.university_name || "University";
-      const startDate = new Date(booking.start_date);
-      const endDate = new Date(booking.end_date);
+      const universityBookingData = booking as any;
+      bookingTitle = universityBookingData.university_name || "University";
+      const startDate = new Date(universityBookingData.start_date);
+      const endDate = new Date(universityBookingData.end_date);
       bookingDate = startDate.toLocaleDateString("en-US", {
         year: "numeric",
         month: "long",
@@ -153,14 +172,15 @@ const BookingDetailPage = () => {
         minute: "2-digit",
         hour12: true,
       })}`;
-      bookingLocation = booking.location || "";
-      bookingId = booking.university_id || "";
-      bookingParkingSpots = booking.parking_spots || [];
-      bookingTotalPrice = booking.payment_amount || 0;
+      bookingLocation = universityBookingData.location || "";
+      bookingId = universityBookingData.university_id || "";
+      bookingParkingSpots = universityBookingData.parking_spots || [];
+      bookingTotalPrice = universityBookingData.payment_amount || 0;
     } else if (bookingType === "airport") {
-      bookingTitle = booking.airport_name || "Airport";
-      const startDate = new Date(booking.start_date);
-      const endDate = new Date(booking.end_date);
+      const airportBookingData = booking as any;
+      bookingTitle = airportBookingData.airport_name || "Airport";
+      const startDate = new Date(airportBookingData.start_date);
+      const endDate = new Date(airportBookingData.end_date);
       bookingDate = startDate.toLocaleDateString("en-US", {
         year: "numeric",
         month: "long",
@@ -175,10 +195,10 @@ const BookingDetailPage = () => {
         minute: "2-digit",
         hour12: true,
       })}`;
-      bookingLocation = booking.location || "";
-      bookingId = booking.airport_id || "";
-      bookingParkingSpots = booking.parking_spots || [];
-      bookingTotalPrice = booking.payment_amount || 0;
+      bookingLocation = airportBookingData.location || "";
+      bookingId = airportBookingData.airport_id || "";
+      bookingParkingSpots = airportBookingData.parking_spots || [];
+      bookingTotalPrice = airportBookingData.payment_amount || 0;
     }
     
     mockEvent = {
@@ -258,22 +278,30 @@ const BookingDetailPage = () => {
 
   // Helper function to get booking title
   const getBookingTitle = () => {
+    if (!booking) return "Booking";
+    
     if (bookingType === "event") {
-      return booking?.eventName || (booking?.events?.title || "Event Booking");
+      const eventBookingData = booking as any;
+      return eventBookingData.eventName || (eventBookingData.events?.title || "Event Booking");
     } else if (bookingType === "university") {
-      return booking?.university_name || "University Booking";
+      const universityBookingData = booking as any;
+      return universityBookingData.university_name || "University Booking";
     } else if (bookingType === "airport") {
-      return booking?.airport_name || "Airport Booking";
+      const airportBookingData = booking as any;
+      return airportBookingData.airport_name || "Airport Booking";
     }
     return "Booking";
   };
 
   // Helper function to get booking date
   const getBookingDate = () => {
+    if (!booking) return "Unknown Date";
+    
     if (bookingType === "event") {
-      return booking?.eventDate || "Unknown Date";
+      const eventBookingData = booking as any;
+      return eventBookingData.eventDate || "Unknown Date";
     } else if (bookingType === "university" || bookingType === "airport") {
-      const startDate = new Date(booking?.start_date);
+      const startDate = new Date(booking.start_date);
       return startDate.toLocaleDateString("en-US", {
         year: "numeric",
         month: "long",
@@ -285,11 +313,14 @@ const BookingDetailPage = () => {
 
   // Helper function to get booking time
   const getBookingTime = () => {
+    if (!booking) return "Unknown Time";
+    
     if (bookingType === "event") {
-      return booking?.eventTime || "Unknown Time";
+      const eventBookingData = booking as any;
+      return eventBookingData.eventTime || "Unknown Time";
     } else if (bookingType === "university" || bookingType === "airport") {
-      const startDate = new Date(booking?.start_date);
-      const endDate = new Date(booking?.end_date);
+      const startDate = new Date(booking.start_date);
+      const endDate = new Date(booking.end_date);
       return `${startDate.toLocaleTimeString("en-US", {
         hour: "numeric",
         minute: "2-digit",
@@ -305,26 +336,68 @@ const BookingDetailPage = () => {
 
   // Helper function to get booking location
   const getBookingLocation = () => {
+    if (!booking) return "Unknown Location";
+    
     if (bookingType === "event") {
-      return booking?.location || (booking?.events?.location || "Unknown Location");
-    } else if (bookingType === "university") {
-      return booking?.location || "Unknown Location";
-    } else if (bookingType === "airport") {
-      return booking?.location || "Unknown Location";
+      const eventBookingData = booking as any;
+      return eventBookingData.location || (eventBookingData.events?.location || "Unknown Location");
+    } else if (bookingType === "university" || bookingType === "airport") {
+      return booking.location || "Unknown Location";
     }
     return "Unknown Location";
   };
 
   // Helper function to get entity ID
   const getEntityId = () => {
+    if (!booking) return "";
+    
     if (bookingType === "event") {
-      return booking?.eventId || booking?.event_id || "";
+      const eventBookingData = booking as any;
+      return eventBookingData.eventId || eventBookingData.event_id || "";
     } else if (bookingType === "university") {
-      return booking?.university_id || "";
+      const universityBookingData = booking as any;
+      return universityBookingData.university_id || "";
     } else if (bookingType === "airport") {
-      return booking?.airport_id || "";
+      const airportBookingData = booking as any;
+      return airportBookingData.airport_id || "";
     }
     return "";
+  };
+
+  // Helper function to get parking spots
+  const getParkingSpots = () => {
+    if (!booking) return [];
+    
+    if (bookingType === "event") {
+      const eventBookingData = booking as any;
+      return eventBookingData.parkingSpots || [];
+    } else if (bookingType === "university") {
+      const universityBookingData = booking as any;
+      return universityBookingData.parking_spots || [];
+    } else if (bookingType === "airport") {
+      const airportBookingData = booking as any;
+      return airportBookingData.parking_spots || [];
+    }
+    return [];
+  };
+
+  // Helper function to get payment amount
+  const getPaymentAmount = () => {
+    if (!booking) return 0;
+    
+    if (bookingType === "event") {
+      const eventBookingData = booking as any;
+      return eventBookingData.totalPrice || eventBookingData.payment_amount || 0;
+    } else if (bookingType === "university" || bookingType === "airport") {
+      return booking.payment_amount || 0;
+    }
+    return 0;
+  };
+
+  // Helper function to get status
+  const getBookingStatus = () => {
+    if (!booking) return "unknown";
+    return booking.status || "unknown";
   };
 
   // Helper function to get view entity link
@@ -411,8 +484,8 @@ const BookingDetailPage = () => {
                 <div className="mt-6">
                   <h3 className="text-lg font-medium mb-3">Your Parking Spots</h3>
                   <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3">
-                    {((booking.parkingSpots || []).length > 0) ? (
-                      (booking.parkingSpots || []).map((spot) => (
+                    {(getParkingSpots().length > 0) ? (
+                      getParkingSpots().map((spot) => (
                         <div 
                           key={spot} 
                           className="bg-primary/10 border border-primary/20 rounded-md p-3 text-center"
@@ -432,16 +505,16 @@ const BookingDetailPage = () => {
                 <div className="pt-4 border-t mt-6">
                   <div className="flex justify-between items-center">
                     <span className="font-medium">Total Price:</span>
-                    <span className="text-lg font-bold">₹{(booking.totalPrice || booking.payment_amount || 0).toFixed(2)}</span>
+                    <span className="text-lg font-bold">₹{getPaymentAmount().toFixed(2)}</span>
                   </div>
                   <div className="flex justify-between items-center mt-2">
                     <span className="font-medium">Status:</span>
                     <span className={`px-2 py-1 rounded-full text-xs font-medium ${
-                      booking.status === "upcoming" || booking.status === "confirmed" ? 
+                      getBookingStatus() === "upcoming" || getBookingStatus() === "confirmed" ? 
                       "bg-green-100 text-green-800" : 
                       "bg-gray-100 text-gray-800"
                     }`}>
-                      {booking.status ? (booking.status.charAt(0).toUpperCase() + booking.status.slice(1)) : "Unknown"}
+                      {getBookingStatus() ? (getBookingStatus().charAt(0).toUpperCase() + getBookingStatus().slice(1)) : "Unknown"}
                     </span>
                   </div>
                 </div>
@@ -454,7 +527,7 @@ const BookingDetailPage = () => {
                 <CardDescription>Manage your booking</CardDescription>
               </CardHeader>
               <CardContent className="space-y-4">
-                {(booking.status === "upcoming" || booking.status === "confirmed") && (
+                {(getBookingStatus() === "upcoming" || getBookingStatus() === "confirmed") && (
                   <Button 
                     className="w-full justify-start" 
                     onClick={handleShowQR}

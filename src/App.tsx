@@ -58,7 +58,7 @@ export default function App() {
   return (
     <QueryClientProvider client={queryClient}>
       <AuthProvider>
-        <ThemeProvider defaultTheme="system">
+        <ThemeProvider defaultTheme="dark">
           <BrowserRouter>
             <TooltipProvider>
               <Toaster />
