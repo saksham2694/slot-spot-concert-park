@@ -12,8 +12,8 @@ interface EventCardProps {
 
 const EventCard = ({ event }: EventCardProps) => {
   // Calculate availability percentage (available out of total slots)
-  const availabilityPercentage = event.parkingTotal > 0
-    ? (event.parkingAvailable / event.parkingTotal) * 100
+  const availabilityPercentage = event.totalParkingSlots > 0
+    ? (event.availableParkingSlots / event.totalParkingSlots) * 100
     : 0;
 
   return (
@@ -54,7 +54,7 @@ const EventCard = ({ event }: EventCardProps) => {
           <div>
             <div className="flex items-center justify-between text-sm">
               <span className="text-muted-foreground">Available Spots</span>
-              <span className="font-medium">{event.parkingAvailable} / {event.parkingTotal}</span>
+              <span className="font-medium">{event.availableParkingSlots} / {event.totalParkingSlots}</span>
             </div>
             <Progress className="h-2 mt-1" value={availabilityPercentage} />
           </div>

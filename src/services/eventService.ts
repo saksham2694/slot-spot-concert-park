@@ -129,8 +129,8 @@ function mapDbEventToEvent(dbEvent: any): Event {
     }),
     location: dbEvent.location,
     image: dbEvent.image_url || "https://images.unsplash.com/photo-1501281668745-f7f57925c3b4",
-    parkingAvailable: dbEvent.available_parking_slots,
-    parkingTotal: dbEvent.total_parking_slots,
+    availableParkingSlots: dbEvent.available_parking_slots,
+    totalParkingSlots: dbEvent.total_parking_slots,
     parkingPrice: dbEvent.parking_price
   };
 }

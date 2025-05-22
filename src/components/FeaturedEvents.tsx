@@ -47,19 +47,6 @@ const FeaturedEvents = () => {
     console.error("Error fetching events:", error);
   }
 
-  // Map database events to our Event type format
-  const formattedEvents = events.map((event: any) => ({
-    id: event.id,
-    title: event.title,
-    date: new Date(event.date).toLocaleDateString(),
-    time: new Date(event.date).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'}),
-    location: event.location,
-    image: event.image_url,
-    parkingAvailable: event.available_parking_slots,
-    parkingTotal: event.total_parking_slots,
-    parkingPrice: event.parking_price
-  }));
-
   return (
     <section className="py-12">
       <div className="container">
@@ -83,9 +70,9 @@ const FeaturedEvents = () => {
               </div>
             ))}
           </div>
-        ) : formattedEvents.length > 0 ? (
+        ) : events.length > 0 ? (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-            {formattedEvents.slice(0, 4).map((event) => (
+            {events.slice(0, 4).map((event) => (
               <EventCard key={event.id} event={event} />
             ))}
           </div>

@@ -6,7 +6,7 @@ export interface Event {
   time: string;
   location: string;
   image: string;
-  parkingAvailable: number;
-  parkingTotal: number;
+  availableParkingSlots: number;
+  totalParkingSlots: number;
   parkingPrice: number;
 }
