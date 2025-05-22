@@ -32,6 +32,11 @@ import VendorUniversities from "@/pages/vendor/VendorUniversities";
 import UniversityCheckIn from "@/pages/vendor/UniversityCheckIn";
 import VendorAirports from "@/pages/vendor/VendorAirports";
 import AirportCheckIn from "@/pages/vendor/AirportCheckIn";
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import { AuthProvider } from "@/context/AuthContext";
+
+// Create a new QueryClient instance
+const queryClient = new QueryClient();
 
 export default function App() {
   const [isOnline, setIsOnline] = useState(navigator.onLine);
@@ -50,48 +55,52 @@ export default function App() {
   }, []);
 
   return (
-    <BrowserRouter>
-      <TooltipProvider>
-        <Toaster />
-        <Routes>
-          <Route path="/" element={<Index />} />
-          <Route path="/about" element={<AboutPage />} />
-          <Route path="/events" element={<EventsPage />} />
-          <Route path="/events/:eventId" element={<EventDetail />} />
-          <Route path="/universities" element={<UniversitiesPage />} />
-          <Route path="/universities/:universityId" element={<UniversityDetail />} />
-          <Route path="/airports" element={<AirportsPage />} />
-          <Route path="/airports/:airportId" element={<AirportDetail />} />
-          <Route path="/bookings" element={<BookingsPage />} />
-          <Route path="/bookings/:bookingId" element={<BookingDetailPage />} />
-          <Route path="/profile" element={<ProfilePage />} />
-          <Route path="/payment/callback" element={<PaymentCallback />} />
-          
-          {/* Vendor routes */}
-          <Route path="/vendor" element={<VendorLayout />}>
-            <Route index element={<VendorDashboard />} />
-            <Route path="events/:eventId" element={<EventCheckIn />} />
-            <Route path="universities" element={<VendorUniversities />} />
-            <Route path="universities/:universityId" element={<UniversityCheckIn />} />
-            <Route path="airports" element={<VendorAirports />} />
-            <Route path="airports/:airportId" element={<AirportCheckIn />} />
-            <Route path="scan-qr" element={<QRScanner />} />
-          </Route>
-          
-          {/* Admin routes */}
-          <Route path="/admin" element={<AdminLayout />}>
-            <Route index element={<AdminDashboard />} />
-            <Route path="users" element={<UserManagement />} />
-            <Route path="events" element={<AdminCreateEvent />} />
-            <Route path="universities" element={<AdminUniversities />} />
-            <Route path="create-university" element={<AdminCreateUniversity />} />
-            <Route path="airports" element={<AdminAirports />} />
-            <Route path="create-airport" element={<AdminCreateAirport />} />
-          </Route>
-          
-          <Route path="*" element={<NotFound />} />
-        </Routes>
-      </TooltipProvider>
-    </BrowserRouter>
+    <QueryClientProvider client={queryClient}>
+      <AuthProvider>
+        <BrowserRouter>
+          <TooltipProvider>
+            <Toaster />
+            <Routes>
+              <Route path="/" element={<Index />} />
+              <Route path="/about" element={<AboutPage />} />
+              <Route path="/events" element={<EventsPage />} />
+              <Route path="/events/:eventId" element={<EventDetail />} />
+              <Route path="/universities" element={<UniversitiesPage />} />
+              <Route path="/universities/:universityId" element={<UniversityDetail />} />
+              <Route path="/airports" element={<AirportsPage />} />
+              <Route path="/airports/:airportId" element={<AirportDetail />} />
+              <Route path="/bookings" element={<BookingsPage />} />
+              <Route path="/bookings/:bookingId" element={<BookingDetailPage />} />
+              <Route path="/profile" element={<ProfilePage />} />
+              <Route path="/payment/callback" element={<PaymentCallback />} />
+              
+              {/* Vendor routes */}
+              <Route path="/vendor" element={<VendorLayout />}>
+                <Route index element={<VendorDashboard />} />
+                <Route path="events/:eventId" element={<EventCheckIn />} />
+                <Route path="universities" element={<VendorUniversities />} />
+                <Route path="universities/:universityId" element={<UniversityCheckIn />} />
+                <Route path="airports" element={<VendorAirports />} />
+                <Route path="airports/:airportId" element={<AirportCheckIn />} />
+                <Route path="scan-qr" element={<QRScanner />} />
+              </Route>
+              
+              {/* Admin routes */}
+              <Route path="/admin" element={<AdminLayout />}>
+                <Route index element={<AdminDashboard />} />
+                <Route path="users" element={<UserManagement />} />
+                <Route path="events" element={<AdminCreateEvent />} />
+                <Route path="universities" element={<AdminUniversities />} />
+                <Route path="create-university" element={<AdminCreateUniversity />} />
+                <Route path="airports" element={<AdminAirports />} />
+                <Route path="create-airport" element={<AdminCreateAirport />} />
+              </Route>
+              
+              <Route path="*" element={<NotFound />} />
+            </Routes>
+          </TooltipProvider>
+        </BrowserRouter>
+      </AuthProvider>
+    </QueryClientProvider>
   );
 }
