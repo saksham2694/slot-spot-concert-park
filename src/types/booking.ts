@@ -1,5 +1,5 @@
 
-export type BookingStatus = 'upcoming' | 'completed' | 'cancelled' | 'pending_payment' | 'payment_pending' | 'payment_failed' | 'confirmed' | 'pending';
+export type BookingStatus = 'upcoming' | 'completed' | 'cancelled' | 'pending_payment' | 'payment_pending' | 'payment_failed' | 'confirmed' | 'pending' | string;
 
 export interface Booking {
   id: string;
