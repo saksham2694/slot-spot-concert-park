@@ -23,6 +23,7 @@ import AdminAirports from "@/pages/admin/AdminAirports";
 import AdminCreateAirport from "@/pages/admin/AdminCreateAirport";
 import VendorLayout from "@/pages/vendor/VendorLayout";
 import VendorDashboard from "@/pages/vendor/VendorDashboard";
+import VendorEvents from "@/pages/vendor/VendorEvents";
 import EventCheckIn from "@/pages/vendor/EventCheckIn";
 import QRScanner from "@/pages/vendor/QRScanner";
 import PaymentCallback from "@/pages/PaymentCallback";
@@ -79,6 +80,7 @@ export default function App() {
                 {/* Vendor routes */}
                 <Route path="/vendor" element={<VendorLayout />}>
                   <Route index element={<VendorDashboard />} />
+                  <Route path="events" element={<VendorEvents />} />
                   <Route path="events/:eventId" element={<EventCheckIn />} />
                   <Route path="universities" element={<VendorUniversities />} />
                   <Route path="universities/:universityId" element={<UniversityCheckIn />} />

@@ -87,80 +87,75 @@ const VendorDashboard = () => {
         <div className="flex justify-center items-center h-64">
           <Loader2 className="h-8 w-8 animate-spin text-primary" />
         </div>
-      ) : events.length === 0 ? (
-        <div className="text-center p-8">
-          <h2 className="text-xl font-semibold mb-4">No Events Available</h2>
-          <p className="text-muted-foreground">There are currently no events available for management.</p>
-        </div>
       ) : (
         <div>
-          <div className="flex justify-between items-center mb-6">
-            <h2 className="text-2xl font-semibold">Manage Events</h2>
-            <div className="flex gap-2">
-              <Button 
-                variant="outline" 
-                size="icon"
-                onClick={handleManualRefresh}
-                disabled={isRefreshing}
-                title="Refresh data"
-              >
-                <RefreshCw className={`h-4 w-4 ${isRefreshing ? 'animate-spin' : ''}`} />
-                <span className="sr-only">Refresh</span>
-              </Button>
-              <Link to="/vendor/scan-qr">
-                <Button>Scan QR Code</Button>
-              </Link>
-            </div>
+          <div className="mb-8">
+            <h1 className="text-2xl font-semibold mb-4">Vendor Dashboard</h1>
+            <p className="text-muted-foreground">
+              Welcome to the vendor dashboard. Here you can manage check-ins for events, universities, and airports.
+            </p>
           </div>
-
-          <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-            {events.map((event) => (
-              <Card key={event.id} className="overflow-hidden">
-                <CardHeader className="pb-3">
-                  <CardTitle>{event.title}</CardTitle>
+          
+          <div className="grid gap-6 md:grid-cols-3">
+            <Link to="/vendor/events">
+              <Card className="h-full hover:bg-accent/50 transition-colors cursor-pointer">
+                <CardHeader>
+                  <CardTitle className="flex items-center">
+                    <Calendar className="mr-2 h-5 w-5" /> Events
+                  </CardTitle>
                 </CardHeader>
-                
-                {event.imageUrl && (
-                  <div className="h-48 w-full overflow-hidden">
-                    <img 
-                      src={event.imageUrl} 
-                      alt={event.title} 
-                      className="w-full h-full object-cover"
-                    />
-                  </div>
-                )}
-                
-                <CardContent className="space-y-2 pt-4">
-                  <div className="flex items-center gap-2">
-                    <Calendar className="h-4 w-4 text-muted-foreground" />
-                    <span>{event.date}</span>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <MapPin className="h-4 w-4 text-muted-foreground" />
-                    <span>{event.location}</span>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <Users className="h-4 w-4 text-muted-foreground" />
-                    <span>
-                      {event.arrivedCustomers} / {event.totalBookings} customers arrived
-                    </span>
-                  </div>
-                  <Progress 
-                    value={event.totalBookings ? (event.arrivedCustomers / event.totalBookings) * 100 : 0} 
-                    className="h-2" 
-                  />
+                <CardContent>
+                  <p className="text-muted-foreground">Manage event check-ins and view booking statistics.</p>
                 </CardContent>
-                
                 <CardFooter>
-                  <Link to={`/vendor/events/${event.id}`} className="w-full">
-                    <Button variant="outline" className="w-full">
-                      <CheckCircle className="mr-2 h-4 w-4" />
-                      Manage Check-ins
-                    </Button>
-                  </Link>
+                  <p className="text-sm">{events.length} events available</p>
                 </CardFooter>
               </Card>
-            ))}
+            </Link>
+            
+            <Link to="/vendor/universities">
+              <Card className="h-full hover:bg-accent/50 transition-colors cursor-pointer">
+                <CardHeader>
+                  <CardTitle className="flex items-center">
+                    <Users className="mr-2 h-5 w-5" /> Universities
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <p className="text-muted-foreground">Manage university parking check-ins.</p>
+                </CardContent>
+              </Card>
+            </Link>
+            
+            <Link to="/vendor/airports">
+              <Card className="h-full hover:bg-accent/50 transition-colors cursor-pointer">
+                <CardHeader>
+                  <CardTitle className="flex items-center">
+                    <MapPin className="mr-2 h-5 w-5" /> Airports
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <p className="text-muted-foreground">Manage airport parking check-ins.</p>
+                </CardContent>
+              </Card>
+            </Link>
+          </div>
+          
+          <div className="mt-8">
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center">
+                  <CheckCircle className="mr-2 h-5 w-5" /> Quick Check-in
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <p className="text-muted-foreground mb-4">
+                  For quick customer check-in, scan their QR code directly.
+                </p>
+                <Link to="/vendor/scan-qr">
+                  <Button>Scan QR Code</Button>
+                </Link>
+              </CardContent>
+            </Card>
           </div>
         </div>
       )}

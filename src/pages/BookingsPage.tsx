@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import Navbar from "@/components/Navbar";
@@ -476,8 +475,8 @@ const BookingsPage = () => {
         time: booking.eventTime,
         location: booking.location,
         image: "",
-        parkingAvailable: 0,
-        parkingTotal: 0,
+        availableParkingSlots: 0,  // Fixed property name
+        totalParkingSlots: 0,      // Fixed property name
         parkingPrice: booking.totalPrice / booking.parkingSpots.length
       };
     } else if (booking.type === "university") {
@@ -488,8 +487,8 @@ const BookingsPage = () => {
         time: `${booking.startTime} - ${booking.endTime}`,
         location: booking.location,
         image: "",
-        parkingAvailable: 0,
-        parkingTotal: 0,
+        availableParkingSlots: 0,  // Fixed property name
+        totalParkingSlots: 0,      // Fixed property name
         parkingPrice: booking.totalPrice / booking.parkingSpots.length
       };
     } else {
@@ -500,8 +499,8 @@ const BookingsPage = () => {
         time: `${booking.startTime} - ${booking.endTime}`,
         location: booking.location,
         image: "",
-        parkingAvailable: 0,
-        parkingTotal: 0,
+        availableParkingSlots: 0,  // Fixed property name
+        totalParkingSlots: 0,      // Fixed property name
         parkingPrice: booking.totalPrice / booking.parkingSpots.length
       };
     }
