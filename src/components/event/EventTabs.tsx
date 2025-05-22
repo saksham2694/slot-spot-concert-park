@@ -2,6 +2,7 @@
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import ParkingLayout from "@/components/ParkingLayout";
 import { ParkingSlot } from "@/types/parking";
+import { useState, useEffect } from "react";
 
 interface EventTabsProps {
   eventId: string;
@@ -20,6 +21,25 @@ const EventTabs = ({
   onSlotSelect,
   onReservedCountChange
 }: EventTabsProps) => {
+  const [displayedAvailableSlots, setDisplayedAvailableSlots] = useState(parkingAvailable);
+  
+  // Update displayed available slots when props change
+  useEffect(() => {
+    setDisplayedAvailableSlots(parkingAvailable);
+  }, [parkingAvailable]);
+  
+  // Handle reserved count changes from ParkingLayout
+  const handleReservedCountChange = (totalSlots: number, reservedCount: number) => {
+    // Calculate and update actual available slots
+    const actualAvailable = totalSlots - reservedCount;
+    setDisplayedAvailableSlots(actualAvailable);
+    
+    // Propagate to parent if needed
+    if (onReservedCountChange) {
+      onReservedCountChange(totalSlots, reservedCount);
+    }
+  };
+  
   return (
     <Tabs defaultValue="parking" className="w-full">
       <TabsList className="mb-6">
@@ -32,10 +52,10 @@ const EventTabs = ({
         <ParkingLayout 
           eventId={eventId} 
           totalSlots={parkingTotal}
-          availableSlots={parkingAvailable}
+          availableSlots={displayedAvailableSlots}
           eventPrice={parkingPrice}
           onSlotSelect={onSlotSelect}
-          onReservedCountChange={onReservedCountChange}
+          onReservedCountChange={handleReservedCountChange}
         />
       </TabsContent>
       

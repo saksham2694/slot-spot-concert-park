@@ -1,19 +1,20 @@
+
 import React from "react";
 import { useEffect, useState } from "react";
 import { fetchBookingsForUser } from "@/services/bookingService";
 import { useAuth } from "@/context/AuthContext";
 import { Button } from "@/components/ui/button";
 import { Link } from "react-router-dom";
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
 import { Booking } from "@/types/booking";
-import { Calendar, Clock, MapPin } from "lucide-react";
+import { Calendar, Clock, MapPin, Tag, FileText } from "lucide-react";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardFooter,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
 
 const BookingsPage = () => {
   const { user, isLoading } = useAuth();
@@ -54,156 +55,133 @@ const BookingsPage = () => {
     return <div className="text-center py-10">Loading bookings...</div>;
   }
 
-  const eventMockData = [
-    {
-      id: "1",
-      title: "Concert at Stadium",
-      date: "May 15, 2025",
-      time: "8:00 PM",
-      location: "Main City Stadium",
-      image: "https://images.unsplash.com/photo-1501281668745-f7f57925c3b4",
-      availableParkingSlots: 120,
-      totalParkingSlots: 200,
-      parkingPrice: 20,
-    },
-    {
-      id: "2",
-      title: "Football Match",
-      date: "June 5, 2025",
-      time: "4:00 PM",
-      location: "Sports Arena",
-      image: "https://images.unsplash.com/photo-1501281668745-f7f57925c3b4",
-      availableParkingSlots: 80,
-      totalParkingSlots: 150,
-      parkingPrice: 15,
-    },
-    {
-      id: "3",
-      title: "Music Festival",
-      date: "July 10, 2025",
-      time: "2:00 PM",
-      location: "Central Park",
-      image: "https://images.unsplash.com/photo-1501281668745-f7f57925c3b4",
-      availableParkingSlots: 200,
-      totalParkingSlots: 300,
-      parkingPrice: 25,
-    },
-  ];
+  const getStatusClass = (status: string) => {
+    switch (status?.toLowerCase()) {
+      case 'confirmed':
+        return "bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200";
+      case 'pending':
+      case 'pending_payment':
+      case 'payment_pending':
+        return "bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200";
+      case 'cancelled':
+      case 'payment_failed':
+        return "bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200";
+      default:
+        return "bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200";
+    }
+  };
+
+  const formatParkingSpots = (booking: Booking) => {
+    if (booking.parking_spots && booking.parking_spots.length > 0) {
+      return booking.parking_spots.join(', ');
+    }
+    
+    if (booking.booking_slots && booking.booking_slots.length > 0) {
+      return booking.booking_slots.map(slot => 
+        `R${slot.parking_layouts.row_number}C${slot.parking_layouts.column_number}`
+      ).join(', ');
+    }
+    
+    return 'N/A';
+  };
 
   return (
     <div className="container py-8">
       <h2 className="text-2xl font-semibold mb-6">My Bookings</h2>
 
       {bookings.length === 0 ? (
-        <div className="text-center py-8">
+        <div className="text-center py-8 bg-muted rounded-lg">
           <p className="text-lg text-muted-foreground">
             No bookings found. Explore our{" "}
-            <Link to="/events" className="text-parking-primary hover:underline">
+            <Link to="/events" className="text-primary hover:underline">
               events
             </Link>{" "}
             and book your parking spot today!
           </p>
         </div>
       ) : (
-        <Table>
-          <TableHeader>
-            <TableRow>
-              <TableHead>Booking Details</TableHead>
-              <TableHead>Date & Time</TableHead>
-              <TableHead>Location</TableHead>
-              <TableHead className="text-right">Status</TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {bookings.map((booking) => (
-              <TableRow key={booking.id}>
-                <TableCell>
-                  {booking.events ? (
-                    <>
-                      <p className="text-lg font-medium">
-                        {booking.events?.title || "Unknown Event"}
-                      </p>
-                      <p>
-                        <Calendar className="h-4 w-4 mr-2 inline-block" />
-                        {booking.eventDate || "Unknown Date"}
-                      </p>
-                      <p>
-                        <Clock className="h-4 w-4 mr-2 inline-block" />
-                        {booking.eventTime || ""}
-                      </p>
-                      <p>
-                        <MapPin className="h-4 w-4 mr-2 inline-block" />
-                        {booking.location || "Unknown Location"}
-                      </p>
-                    </>
-                  ) : booking.university ? (
-                    <>
-                      <p className="text-lg font-medium">
-                        {booking.university?.name || "Unknown University"}
-                      </p>
-                      <p>
-                        {new Date(booking.start_date || "").toLocaleDateString()}
-                      </p>
-                      <p>
-                        {booking.start_date
-                          ? new Date(booking.start_date).toLocaleTimeString(
-                              [],
-                              { hour: "2-digit", minute: "2-digit" }
-                            )
-                          : ""}{" "}
-                        -{" "}
-                        {booking.end_date
-                          ? new Date(booking.end_date).toLocaleTimeString([], {
-                              hour: "2-digit",
-                              minute: "2-digit",
-                            })
-                          : ""}
-                      </p>
-                    </>
-                  ) : booking.airport ? (
-                    <>
-                      <p className="text-lg font-medium">
-                        {booking.airport?.name || "Unknown Airport"}
-                      </p>
-                      <p>
-                        {new Date(booking.start_date || "").toLocaleDateString()}
-                      </p>
-                      <p>
-                        {booking.start_date
-                          ? new Date(booking.start_date).toLocaleTimeString(
-                              [],
-                              { hour: "2-digit", minute: "2-digit" }
-                            )
-                          : ""}{" "}
-                        -{" "}
-                        {booking.end_date
-                          ? new Date(booking.end_date).toLocaleTimeString([], {
-                              hour: "2-digit",
-                              minute: "2-digit",
-                            })
-                          : ""}
-                      </p>
-                    </>
-                  ) : (
-                    <p>Unknown Booking Type</p>
-                  )}
-                </TableCell>
-                <TableCell>
-                  {booking.booking_date
-                    ? new Date(booking.booking_date).toLocaleDateString()
-                    : "N/A"}
-                </TableCell>
-                <TableCell>
-                  {booking.events?.location ||
-                    booking.university?.location ||
-                    booking.airport?.location ||
-                    "N/A"}
-                </TableCell>
-                <TableCell className="text-right">{booking.status}</TableCell>
-              </TableRow>
-            ))}
-          </TableBody>
-        </Table>
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          {bookings.map((booking) => (
+            <Card key={booking.id} className="overflow-hidden hover:shadow-md transition-shadow">
+              <CardHeader className="bg-muted/50 pb-2">
+                <CardTitle className="text-lg">
+                  {booking.events?.title || 
+                   booking.university?.name || 
+                   booking.airport?.name || 
+                   "Booking"}
+                </CardTitle>
+                <CardDescription>
+                  {booking.booking_date ? new Date(booking.booking_date).toLocaleDateString() : "N/A"}
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="pt-4 space-y-3">
+                <div className="flex items-start gap-2">
+                  <Calendar className="h-4 w-4 mt-1 text-muted-foreground" />
+                  <span>
+                    {booking.eventDate || booking.start_date 
+                      ? new Date(booking.eventDate || booking.start_date).toLocaleDateString()
+                      : "N/A"}
+                  </span>
+                </div>
+                
+                {booking.eventTime || (booking.start_date && booking.end_date) ? (
+                  <div className="flex items-start gap-2">
+                    <Clock className="h-4 w-4 mt-1 text-muted-foreground" />
+                    <span>
+                      {booking.eventTime || (
+                        <>
+                          {new Date(booking.start_date).toLocaleTimeString([], { 
+                            hour: "2-digit", 
+                            minute: "2-digit" 
+                          })} 
+                          {" - "}
+                          {new Date(booking.end_date).toLocaleTimeString([], { 
+                            hour: "2-digit", 
+                            minute: "2-digit" 
+                          })}
+                        </>
+                      )}
+                    </span>
+                  </div>
+                ) : null}
+                
+                <div className="flex items-start gap-2">
+                  <MapPin className="h-4 w-4 mt-1 text-muted-foreground" />
+                  <span>
+                    {booking.events?.location || 
+                     booking.university?.location || 
+                     booking.airport?.location || 
+                     "Unknown Location"}
+                  </span>
+                </div>
+                
+                <div className="flex items-start gap-2">
+                  <Tag className="h-4 w-4 mt-1 text-muted-foreground" />
+                  <span>
+                    <span className="font-medium">Parking Spots:</span> {formatParkingSpots(booking)}
+                  </span>
+                </div>
+                
+                {booking.payment_amount && (
+                  <div className="flex items-start gap-2">
+                    <FileText className="h-4 w-4 mt-1 text-muted-foreground" />
+                    <span>
+                      <span className="font-medium">Amount:</span> ${booking.payment_amount}
+                    </span>
+                  </div>
+                )}
+              </CardContent>
+              <CardFooter className="flex items-center justify-between pt-2 border-t">
+                <span className={`px-3 py-1 rounded-full text-xs font-medium ${getStatusClass(booking.status)}`}>
+                  {booking.status}
+                </span>
+                <Button asChild variant="outline" size="sm">
+                  <Link to={`/bookings/${booking.id}`}>View Details</Link>
+                </Button>
+              </CardFooter>
+            </Card>
+          ))}
+        </div>
       )}
     </div>
   );
