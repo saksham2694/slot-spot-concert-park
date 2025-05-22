@@ -1,3 +1,4 @@
+
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/components/ui/use-toast";
 
@@ -70,7 +71,7 @@ export const fetchVendorEvents = async (): Promise<VendorEvent[]> => {
     // For each event, get booking statistics with cache control
     const eventsWithStats = await Promise.all(
       events.map(async (event) => {
-        // Query booking slots directly with the event_id filter
+        // Query booking slots directly with the event_id filter - removing user-specific filters
         const { data: bookingData, error: bookingError } = await supabase
           .from("booking_slots")
           .select(`
@@ -155,13 +156,17 @@ export const fetchVendorUniversities = async (): Promise<VendorUniversity[]> => 
       return [];
     }
 
-    // For each university, get booking statistics
+    // For each university, get booking statistics - removing user-specific filters
     const universitiesWithStats = await Promise.all(
       universities.map(async (university) => {
         const { data: bookingData, error: bookingError } = await supabase
-          .from("vendor_university_bookings_view")
-          .select("booking_slot_id, customer_arrived")
-          .eq("university_id", university.id);
+          .from("university_booking_slots")
+          .select(`
+            id, 
+            customer_arrived,
+            university_bookings!inner(university_id)
+          `)
+          .eq("university_bookings.university_id", university.id);
 
         if (bookingError) {
           console.error(`Error fetching bookings for university ${university.id}:`, bookingError);
@@ -189,7 +194,7 @@ export const fetchVendorUniversities = async (): Promise<VendorUniversity[]> => 
         }
 
         const totalBookings = bookingData.length || 0;
-        const arrivedCustomers = bookingData.filter(b => b.customer_arrived)?.length || 0;
+        const arrivedCustomers = bookingData.filter(b => b.customer_arrived).length || 0;
 
         return {
           id: university.id,
@@ -238,13 +243,17 @@ export const fetchVendorAirports = async (): Promise<VendorAirport[]> => {
       return [];
     }
 
-    // For each airport, get booking statistics
+    // For each airport, get booking statistics - removing user-specific filters
     const airportsWithStats = await Promise.all(
       airports.map(async (airport) => {
         const { data: bookingData, error: bookingError } = await supabase
-          .from("vendor_airport_bookings_view")
-          .select("booking_slot_id, customer_arrived")
-          .eq("airport_id", airport.id);
+          .from("airport_booking_slots")
+          .select(`
+            id,
+            customer_arrived,
+            airport_bookings!inner(airport_id)
+          `)
+          .eq("airport_bookings.airport_id", airport.id);
 
         if (bookingError) {
           console.error(`Error fetching bookings for airport ${airport.id}:`, bookingError);
@@ -272,7 +281,7 @@ export const fetchVendorAirports = async (): Promise<VendorAirport[]> => {
         }
 
         const totalBookings = bookingData.length || 0;
-        const arrivedCustomers = bookingData.filter(b => b.customer_arrived)?.length || 0;
+        const arrivedCustomers = bookingData.filter(b => b.customer_arrived).length || 0;
 
         return {
           id: airport.id,
@@ -302,6 +311,7 @@ export const fetchVendorAirports = async (): Promise<VendorAirport[]> => {
 export const fetchEventBookingSlots = async (eventId: string): Promise<BookingSlot[]> => {
   try {
     // Use an inner join to ensure we only get booking slots for this specific event
+    // Removing user-specific filters to show all bookings
     const { data, error } = await supabase
       .from("booking_slots")
       .select(`
@@ -384,10 +394,25 @@ export const fetchEventBookingSlots = async (eventId: string): Promise<BookingSl
 // Fetch all booking slots for a specific university
 export const fetchUniversityBookingSlots = async (universityId: string): Promise<BookingSlot[]> => {
   try {
+    // Query directly against the tables instead of using the view to get all bookings
     const { data, error } = await supabase
-      .from("vendor_university_bookings_view")
-      .select("*")
-      .eq("university_id", universityId);
+      .from("university_booking_slots")
+      .select(`
+        id,
+        booking_id,
+        customer_arrived,
+        university_bookings!inner(
+          id,
+          user_id,
+          university_id
+        ),
+        university_parking_layouts(
+          id,
+          row_number,
+          column_number
+        )
+      `)
+      .eq("university_bookings.university_id", universityId);
 
     if (error) {
       console.error("Error fetching university booking slots:", error);
@@ -398,17 +423,46 @@ export const fetchUniversityBookingSlots = async (universityId: string): Promise
       return [];
     }
 
-    return data.map(item => ({
-      id: item.booking_slot_id,
-      bookingId: item.booking_id,
-      slotId: item.slot_id,
-      rowNumber: item.row_number,
-      columnNumber: item.column_number,
-      customerName: item.customer_name,
-      customerEmail: item.customer_email,
-      customerArrived: item.customer_arrived || false,
-      qrCodeUrl: item.qr_code_url
-    }));
+    console.log("All university booking slots fetched:", data);
+
+    // Get user information
+    const userIds = data
+      .map(slot => slot.university_bookings?.user_id)
+      .filter(id => id !== null && id !== undefined) as string[];
+    
+    let usersMap: Record<string, { email: string, first_name: string | null, last_name: string | null }> = {};
+
+    if (userIds.length > 0) {
+      const { data: users } = await supabase
+        .from("users")
+        .select("id, email, first_name, last_name")
+        .in("id", userIds);
+
+      if (users) {
+        usersMap = users.reduce((acc, user) => {
+          acc[user.id] = user;
+          return acc;
+        }, {} as Record<string, any>);
+      }
+    }
+
+    // Map the data to our BookingSlot type
+    return data.map(item => {
+      const userId = item.university_bookings?.user_id;
+      const user = userId ? usersMap[userId] : null;
+      
+      return {
+        id: item.id,
+        bookingId: item.booking_id,
+        slotId: `R${item.university_parking_layouts?.row_number || 0}C${item.university_parking_layouts?.column_number || 0}`,
+        rowNumber: item.university_parking_layouts?.row_number || 0,
+        columnNumber: item.university_parking_layouts?.column_number || 0,
+        customerName: user ? `${user.first_name || ''} ${user.last_name || ''}`.trim() : null,
+        customerEmail: user ? user.email : null,
+        customerArrived: item.customer_arrived || false,
+        qrCodeUrl: null
+      };
+    });
   } catch (error) {
     console.error("Error in fetchUniversityBookingSlots:", error);
     toast({
@@ -423,10 +477,25 @@ export const fetchUniversityBookingSlots = async (universityId: string): Promise
 // Fetch all booking slots for a specific airport
 export const fetchAirportBookingSlots = async (airportId: string): Promise<BookingSlot[]> => {
   try {
+    // Query directly against the tables instead of using the view to get all bookings
     const { data, error } = await supabase
-      .from("vendor_airport_bookings_view")
-      .select("*")
-      .eq("airport_id", airportId);
+      .from("airport_booking_slots")
+      .select(`
+        id,
+        booking_id,
+        customer_arrived,
+        airport_bookings!inner(
+          id,
+          user_id,
+          airport_id
+        ),
+        airport_parking_layouts(
+          id,
+          row_number,
+          column_number
+        )
+      `)
+      .eq("airport_bookings.airport_id", airportId);
 
     if (error) {
       console.error("Error fetching airport booking slots:", error);
@@ -437,17 +506,46 @@ export const fetchAirportBookingSlots = async (airportId: string): Promise<Booki
       return [];
     }
 
-    return data.map(item => ({
-      id: item.booking_slot_id,
-      bookingId: item.booking_id,
-      slotId: item.slot_id,
-      rowNumber: item.row_number,
-      columnNumber: item.column_number,
-      customerName: item.customer_name,
-      customerEmail: item.customer_email,
-      customerArrived: item.customer_arrived || false,
-      qrCodeUrl: item.qr_code_url
-    }));
+    console.log("All airport booking slots fetched:", data);
+
+    // Get user information
+    const userIds = data
+      .map(slot => slot.airport_bookings?.user_id)
+      .filter(id => id !== null && id !== undefined) as string[];
+    
+    let usersMap: Record<string, { email: string, first_name: string | null, last_name: string | null }> = {};
+
+    if (userIds.length > 0) {
+      const { data: users } = await supabase
+        .from("users")
+        .select("id, email, first_name, last_name")
+        .in("id", userIds);
+
+      if (users) {
+        usersMap = users.reduce((acc, user) => {
+          acc[user.id] = user;
+          return acc;
+        }, {} as Record<string, any>);
+      }
+    }
+
+    // Map the data to our BookingSlot type
+    return data.map(item => {
+      const userId = item.airport_bookings?.user_id;
+      const user = userId ? usersMap[userId] : null;
+      
+      return {
+        id: item.id,
+        bookingId: item.booking_id,
+        slotId: `R${item.airport_parking_layouts?.row_number || 0}C${item.airport_parking_layouts?.column_number || 0}`,
+        rowNumber: item.airport_parking_layouts?.row_number || 0,
+        columnNumber: item.airport_parking_layouts?.column_number || 0,
+        customerName: user ? `${user.first_name || ''} ${user.last_name || ''}`.trim() : null,
+        customerEmail: user ? user.email : null,
+        customerArrived: item.customer_arrived || false,
+        qrCodeUrl: null
+      };
+    });
   } catch (error) {
     console.error("Error in fetchAirportBookingSlots:", error);
     toast({
