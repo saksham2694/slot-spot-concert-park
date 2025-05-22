@@ -8,7 +8,7 @@ import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { Plane, CalendarIcon } from "lucide-react";
 import { Airport } from "@/types/airport";
-import { ParkingSlot, assertData } from "@/types/parking";
+import { ParkingSlot } from "@/types/parking";
 import { Card, CardContent } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Calendar } from "@/components/ui/calendar";
@@ -72,7 +72,7 @@ const AirportDetail = () => {
         }
 
         if (data) {
-          setAirport(assertData<Airport>(data));
+          setAirport(data as Airport);
         } else {
           toast({
             title: "Not found",
@@ -119,24 +119,28 @@ const AirportDetail = () => {
 
     try {
       setIsBooking(true);
-      const endDate = addHours(date as Date, hours);
+      const endDate = addHours(date, hours);
       
       const newBookingId = await createAirportBooking({
         airportId: airport.id,
         selectedSlots,
-        startDate: date as Date,
+        startDate: date,
         endDate,
         hours
       });
       
       if (newBookingId) {
         setBookingId(newBookingId);
+        toast({
+          title: "Booking Successful",
+          description: "Your airport parking has been successfully booked.",
+        });
       } else {
         throw new Error("Failed to create booking. No booking ID returned.");
       }
-    } catch (error) {
+    } catch (error: any) {
       console.error("Error creating booking:", error);
-      setErrorMessage("Failed to create the booking. Please try again.");
+      setErrorMessage(error.message || "Failed to create the booking. Please try again.");
       setShowError(true);
     } finally {
       setIsBooking(false);
@@ -390,7 +394,7 @@ const AirportDetail = () => {
       
       <Footer />
       
-      {/* Auth Prompt Dialog - Fix the props passed to AuthPrompt */}
+      {/* Auth Prompt Dialog */}
       {showAuthPrompt && (
         <AuthPrompt 
           isOpen={true}

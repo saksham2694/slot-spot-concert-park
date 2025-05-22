@@ -46,4 +46,8 @@ export interface Booking {
     name: string;
     location: string;
   };
+  airport?: {
+    name: string;
+    location: string;
+  };
 }

@@ -6,6 +6,7 @@ import ParkingSlotLegend from "./ParkingSlotLegend";
 import ParkingSlotButton from "./ParkingSlot";
 import { ParkingSlot } from "@/types/parking";
 import { useTheme } from "@/context/ThemeProvider";
+import { ScrollArea } from "@/components/ui/scroll-area";
 
 interface AirportParkingLayoutProps {
   airportId: string;
@@ -52,21 +53,28 @@ const AirportParkingLayout = ({
           ENTRANCE / EXIT
         </div>
         
-        <div className="space-y-2">
-          {Object.keys(slotsByRow).map((rowNum) => (
-            <div key={rowNum} className="flex justify-center gap-2">
-              {slotsByRow[Number(rowNum)]
-                .sort((a, b) => a.column - b.column)
-                .map((slot) => (
-                  <ParkingSlotButton 
-                    key={slot.id} 
-                    slot={slot} 
-                    onClick={handleSlotClick} 
-                  />
-                ))}
-            </div>
-          ))}
-        </div>
+        <ScrollArea className="h-[350px] w-full">
+          <div className="space-y-4 px-4">
+            {Object.keys(slotsByRow).map((rowNum) => (
+              <div key={rowNum} className="mb-4">
+                <div className="text-sm text-muted-foreground mb-1">Row {rowNum}</div>
+                <div className="overflow-auto">
+                  <div className="flex justify-start gap-2 pb-2 min-w-max">
+                    {slotsByRow[Number(rowNum)]
+                      .sort((a, b) => a.column - b.column)
+                      .map((slot) => (
+                        <ParkingSlotButton 
+                          key={slot.id} 
+                          slot={slot} 
+                          onClick={handleSlotClick} 
+                        />
+                      ))}
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+        </ScrollArea>
       </div>
       
       <div className={`${theme === 'dark' ? 'bg-slate-700' : 'bg-muted'} p-4 rounded-lg`}>

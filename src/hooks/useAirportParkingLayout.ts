@@ -1,7 +1,7 @@
 
 import { useState, useEffect, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
-import { ParkingSlot, AirportReservedSpot, safeQueryResult } from "@/types/parking";
+import { ParkingSlot } from "@/types/parking";
 import { useToast } from "@/hooks/use-toast";
 
 export function useAirportParkingLayout(airportId: string, totalSlots: number, hourlyRate: number) {
@@ -38,12 +38,12 @@ export function useAirportParkingLayout(airportId: string, totalSlots: number, h
         return;
       }
       
-      // Safely handle the query result
-      const reservedSpots = data ? safeQueryResult<AirportReservedSpot[]>(data, null) : [];
+      // Handle reserved spots data
+      const reservedSpots = data || [];
       
       // Create a map of reserved spots for quick lookup
       const reservedSpotsMap = new Map<string, number>();
-      reservedSpots.forEach((spot: AirportReservedSpot) => {
+      reservedSpots.forEach((spot) => {
         const key = `R${spot.row_number}C${spot.column_number}`;
         reservedSpotsMap.set(key, spot.price);
       });
@@ -84,6 +84,11 @@ export function useAirportParkingLayout(airportId: string, totalSlots: number, h
       setSelectedSlots([]);
     } catch (err) {
       console.error("Error in fetchReservedSpotsAndGenerateLayout:", err);
+      toast({
+        title: "Error",
+        description: "Failed to generate parking layout. Please refresh the page.",
+        variant: "destructive",
+      });
     } finally {
       setIsLoading(false);
     }
@@ -128,6 +133,7 @@ export function useAirportParkingLayout(airportId: string, totalSlots: number, h
     slotsByRow,
     isLoading,
     handleSlotClick,
-    resetSelectedSlots: () => setSelectedSlots([])
+    resetSelectedSlots: () => setSelectedSlots([]),
+    refreshLayout: fetchReservedSpotsAndGenerateLayout
   };
 }

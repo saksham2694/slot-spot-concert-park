@@ -1,10 +1,7 @@
-import { supabase } from "@/integrations/supabase/client";
-import { ParkingSlot, AirportReservedSpot } from "@/types/parking";
 
-const safeQueryResult = <T>(data: unknown, defaultValue: T): T => {
-  if (data === null || data === undefined) return defaultValue;
-  return data as T;
-};
+import { supabase } from "@/integrations/supabase/client";
+import { ParkingSlot } from "@/types/parking";
+import { Booking } from "@/types/booking";
 
 interface CreateAirportBookingParams {
   airportId: string;
@@ -103,7 +100,7 @@ export async function createAirportBooking({
         }
       } else {
         // Insert new slot
-        const { error: updateError } = await supabase
+        const { error: insertError } = await supabase
           .from("airport_parking_layouts")
           .insert({
             airport_id: airportId,
@@ -113,8 +110,8 @@ export async function createAirportBooking({
             price
           });
         
-        if (updateError) {
-          console.error("Error inserting slot:", updateError);
+        if (insertError) {
+          console.error("Error inserting slot:", insertError);
         }
       }
 
@@ -164,7 +161,7 @@ export async function createAirportBooking({
   }
 }
 
-export const fetchAirportBookingById = async (bookingId: string) => {
+export const fetchAirportBookingById = async (bookingId: string): Promise<Booking | null> => {
   try {
     const { data: booking, error: bookingError } = await supabase
       .from("airport_bookings")
@@ -180,6 +177,17 @@ export const fetchAirportBookingById = async (bookingId: string) => {
     if (!booking) {
       console.log("Booking not found");
       return null;
+    }
+
+    // Get airport details
+    const { data: airportData, error: airportError } = await supabase
+      .from("airports")
+      .select("name, location")
+      .eq("id", booking.airport_id)
+      .single();
+      
+    if (airportError) {
+      console.error("Error fetching airport details:", airportError);
     }
 
     const { data: slotsData, error: slotsError } = await supabase
@@ -212,15 +220,22 @@ export const fetchAirportBookingById = async (bookingId: string) => {
 
     return {
       ...booking,
+      status: booking.status as any,
       parkingSpots,
-    };
+      airport_name: airportData?.name || "Unknown Airport",
+      location: airportData?.location || "Unknown Location",
+      airport: {
+        name: airportData?.name || "Unknown Airport",
+        location: airportData?.location || "Unknown Location"
+      }
+    } as Booking;
   } catch (error) {
     console.error("Error in fetchAirportBookingById:", error);
     return null;
   }
 };
 
-export const fetchAirportBookingsForUser = async (userId: string) => {
+export const fetchAirportBookingsForUser = async (userId: string): Promise<Booking[]> => {
   try {
     // Fetch bookings directly for the user
     const { data: bookings, error: bookingsError } = await supabase
@@ -277,9 +292,15 @@ export const fetchAirportBookingsForUser = async (userId: string) => {
       
       enhancedBookings.push({
         ...booking,
+        status: booking.status as any,
         parkingSpots,
         airport_name: airportData?.name || "Unknown Airport",
-        location: airportData?.location || "Unknown Location"
+        location: airportData?.location || "Unknown Location",
+        parking_spots: parkingSpots,
+        airport: {
+          name: airportData?.name || "Unknown Airport",
+          location: airportData?.location || "Unknown Location"
+        }
       });
     }
 
@@ -303,8 +324,7 @@ export const getReservedAirportParkingSpots = async (airportId: string) => {
       return [];
     }
 
-    const reservedSpots = data ? safeQueryResult<AirportReservedSpot[]>(data, []) : [];
-    return reservedSpots;
+    return data || [];
   } catch (error) {
     console.error("Error fetching reserved parking spots:", error);
     return [];
