@@ -14,77 +14,74 @@ import { Link } from "react-router-dom";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { useQuery } from "@tanstack/react-query";
 
 const UniversityCheckIn = () => {
   const { universityId } = useParams();
-  const [bookingSlots, setBookingSlots] = useState<BookingSlot[]>([]);
-  const [isLoading, setIsLoading] = useState<boolean>(true);
   const [universityName, setUniversityName] = useState<string>("");
   const { toast } = useToast();
 
-  useEffect(() => {
-    const fetchUniversityDetails = async () => {
-      try {
-        if (!universityId) return;
-        
-        // Fetch university details
-        const { data: university } = await supabase
-          .from("universities")
-          .select("name")
-          .eq("id", universityId)
-          .single();
-        
-        if (university) {
-          setUniversityName(university.name);
-        }
-        
-        // Fetch booking slots
-        await loadBookingSlots();
-      } catch (error) {
-        console.error("Error loading university details:", error);
-        toast({
-          title: "Error",
-          description: "Failed to load university information.",
-          variant: "destructive",
-        });
-      }
-    };
+  // Use react-query for data fetching
+  const { 
+    data: bookingSlots = [], 
+    isLoading, 
+    refetch 
+  } = useQuery({
+    queryKey: ["universityBookingSlots", universityId],
+    queryFn: () => {
+      if (!universityId) return [];
+      return fetchUniversityBookingSlots(universityId);
+    },
+    enabled: !!universityId,
+    staleTime: 1000 * 60 * 5, // 5 minutes
+  });
 
-    fetchUniversityDetails();
-  }, [universityId]);
-
-  const loadBookingSlots = async () => {
-    setIsLoading(true);
-    try {
-      if (!universityId) return;
+  const { 
+    data: universityData 
+  } = useQuery({
+    queryKey: ["universityDetails", universityId],
+    queryFn: async () => {
+      if (!universityId) return null;
       
-      const slots = await fetchUniversityBookingSlots(universityId);
-      console.log("University booking slots:", slots);
-      setBookingSlots(slots);
-    } catch (error) {
-      console.error("Error loading booking slots:", error);
-      toast({
-        title: "Error",
-        description: "Failed to load booking information.",
-        variant: "destructive",
-      });
-    } finally {
-      setIsLoading(false);
+      const { data: university, error } = await supabase
+        .from("universities")
+        .select("name")
+        .eq("id", universityId)
+        .single();
+      
+      if (error) {
+        throw error;
+      }
+      
+      return university;
+    },
+    enabled: !!universityId,
+    onSuccess: (data) => {
+      if (data) {
+        setUniversityName(data.name);
+      }
     }
-  };
+  });
 
   const handleMarkArrived = async (slotId: string) => {
     try {
       const success = await markUniversityCustomerArrived(slotId);
       
       if (success) {
-        // Update the local state to reflect the change
-        setBookingSlots(bookingSlots.map(slot => 
-          slot.id === slotId ? { ...slot, customerArrived: true } : slot
-        ));
+        // Refetch the data to reflect the change
+        refetch();
+        toast({
+          title: "Success",
+          description: "Customer has been marked as arrived.",
+        });
       }
     } catch (error) {
       console.error("Error marking customer as arrived:", error);
+      toast({
+        title: "Error",
+        description: "Failed to mark customer as arrived.",
+        variant: "destructive",
+      });
     }
   };
 
@@ -113,7 +110,7 @@ const UniversityCheckIn = () => {
             {bookingSlots.filter(slot => slot.customerArrived).length} / {bookingSlots.length} Checked In
           </Badge>
         </div>
-        <Button onClick={loadBookingSlots} variant="outline" size="sm">
+        <Button onClick={() => refetch()} variant="outline" size="sm">
           Refresh
         </Button>
       </div>

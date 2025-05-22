@@ -1,11 +1,14 @@
+
 import React, { useState, useEffect } from "react";
 import { useParams, useNavigate, Link } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
-import { Calendar, Clock, Download, MapPin, QrCode, ChevronLeft, Ticket } from "lucide-react";
+import { Calendar, Clock, Download, MapPin, QrCode, ChevronLeft, Ticket, Building } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useToast } from "@/hooks/use-toast";
 import { fetchBookingById } from "@/services/bookingService";
+import { fetchUniversityBookingById } from "@/services/universityBookingService";
+import { fetchAirportBookingById } from "@/services/airportBookingService";
 import { downloadBookingPDF, showQRCode } from "@/services/pdfService";
 import { useAuth } from "@/context/AuthContext";
 import Navbar from "@/components/Navbar";
@@ -37,29 +40,71 @@ const BookingDetailPage = () => {
   const { user, isLoading: authLoading } = useAuth();
   const [qrDialogOpen, setQrDialogOpen] = useState(false);
   const [showAuthPrompt, setShowAuthPrompt] = useState<boolean>(false);
+  const [bookingType, setBookingType] = useState<"event" | "university" | "airport" | null>(null);
 
-  // Fetch booking details
+  // Try to fetch event booking first
   const { 
-    data: booking, 
-    isLoading, 
-    error 
+    data: eventBooking, 
+    isLoading: eventBookingLoading, 
+    error: eventBookingError 
   } = useQuery({
-    queryKey: ["booking", bookingId],
+    queryKey: ["eventBooking", bookingId],
     queryFn: () => fetchBookingById(bookingId as string),
     enabled: !!user && !!bookingId,
     retry: false,
+    onSuccess: (data) => {
+      if (data) setBookingType("event");
+    }
   });
 
+  // If not an event booking, try university booking
+  const { 
+    data: universityBooking, 
+    isLoading: universityBookingLoading, 
+    error: universityBookingError 
+  } = useQuery({
+    queryKey: ["universityBooking", bookingId],
+    queryFn: () => fetchUniversityBookingById(bookingId as string),
+    enabled: !!user && !!bookingId && !eventBooking,
+    retry: false,
+    onSuccess: (data) => {
+      if (data) setBookingType("university");
+    }
+  });
+
+  // If not an event or university booking, try airport booking
+  const { 
+    data: airportBooking, 
+    isLoading: airportBookingLoading, 
+    error: airportBookingError 
+  } = useQuery({
+    queryKey: ["airportBooking", bookingId],
+    queryFn: () => fetchAirportBookingById(bookingId as string),
+    enabled: !!user && !!bookingId && !eventBooking && !universityBooking,
+    retry: false,
+    onSuccess: (data) => {
+      if (data) setBookingType("airport");
+    }
+  });
+
+  const isLoading = eventBookingLoading || universityBookingLoading || airportBookingLoading;
+
+  // Combine the booking data based on type
+  const booking = bookingType === "event" ? eventBooking : 
+                  bookingType === "university" ? universityBooking :
+                  bookingType === "airport" ? airportBooking : null;
+
   useEffect(() => {
-    if (error) {
-      console.error("Error fetching booking:", error);
+    const errors = [eventBookingError, universityBookingError, airportBookingError].filter(Boolean);
+    if (errors.length === 3) {
+      console.error("Error fetching booking:", errors);
       toast({
         title: "Error",
         description: "Failed to load booking details. Please try again.",
         variant: "destructive",
       });
     }
-  }, [error, toast]);
+  }, [eventBookingError, universityBookingError, airportBookingError, toast]);
 
   const handleShowQR = () => {
     if (booking) {
@@ -72,26 +117,89 @@ const BookingDetailPage = () => {
   const handleDownloadTicket = () => {
     if (!booking) return;
 
-    // Create mock event and slot data for the PDF generator
-    const mockEvent: Event = {
-      id: booking.eventId || booking.event_id,
-      title: booking.eventName || (booking.events?.title || "Unknown Event"),
-      date: booking.eventDate || "Unknown Date",
-      time: booking.eventTime || "Unknown Time",
-      location: booking.location || (booking.events?.location || "Unknown Location"),
+    // Create appropriate mock event data based on booking type
+    let mockEvent: Event;
+    let bookingTitle = "";
+    let bookingDate = "";
+    let bookingTime = "";
+    let bookingLocation = "";
+    let bookingId = "";
+    let bookingParkingSpots: string[] = [];
+    let bookingTotalPrice = 0;
+    
+    if (bookingType === "event") {
+      bookingTitle = booking.eventName || (booking.events?.title || "Unknown Event");
+      bookingDate = booking.eventDate || "Unknown Date";
+      bookingTime = booking.eventTime || "Unknown Time";
+      bookingLocation = booking.location || (booking.events?.location || "Unknown Location");
+      bookingId = booking.eventId || booking.event_id || "";
+      bookingParkingSpots = booking.parkingSpots || [];
+      bookingTotalPrice = booking.totalPrice || booking.payment_amount || 0;
+    } else if (bookingType === "university") {
+      bookingTitle = booking.university_name || "University";
+      const startDate = new Date(booking.start_date);
+      const endDate = new Date(booking.end_date);
+      bookingDate = startDate.toLocaleDateString("en-US", {
+        year: "numeric",
+        month: "long",
+        day: "numeric",
+      });
+      bookingTime = `${startDate.toLocaleTimeString("en-US", {
+        hour: "numeric",
+        minute: "2-digit",
+        hour12: true,
+      })} - ${endDate.toLocaleTimeString("en-US", {
+        hour: "numeric",
+        minute: "2-digit",
+        hour12: true,
+      })}`;
+      bookingLocation = booking.location || "";
+      bookingId = booking.university_id || "";
+      bookingParkingSpots = booking.parking_spots || [];
+      bookingTotalPrice = booking.payment_amount || 0;
+    } else if (bookingType === "airport") {
+      bookingTitle = booking.airport_name || "Airport";
+      const startDate = new Date(booking.start_date);
+      const endDate = new Date(booking.end_date);
+      bookingDate = startDate.toLocaleDateString("en-US", {
+        year: "numeric",
+        month: "long",
+        day: "numeric",
+      });
+      bookingTime = `${startDate.toLocaleTimeString("en-US", {
+        hour: "numeric",
+        minute: "2-digit",
+        hour12: true,
+      })} - ${endDate.toLocaleTimeString("en-US", {
+        hour: "numeric",
+        minute: "2-digit",
+        hour12: true,
+      })}`;
+      bookingLocation = booking.location || "";
+      bookingId = booking.airport_id || "";
+      bookingParkingSpots = booking.parking_spots || [];
+      bookingTotalPrice = booking.payment_amount || 0;
+    }
+    
+    mockEvent = {
+      id: bookingId,
+      title: bookingTitle,
+      date: bookingDate,
+      time: bookingTime,
+      location: bookingLocation,
       image: "", 
       parkingAvailable: 0,
       parkingTotal: 0,
-      parkingPrice: (booking.totalPrice || booking.payment_amount || 0) / (booking.parkingSpots?.length || 1)
+      parkingPrice: bookingParkingSpots.length > 0 ? bookingTotalPrice / bookingParkingSpots.length : 0
     };
     
     // Create mock slots
-    const mockSlots: ParkingSlot[] = (booking.parkingSpots || []).map((spotId, index) => ({
+    const mockSlots: ParkingSlot[] = bookingParkingSpots.map((spotId, index) => ({
       id: spotId,
       state: "reserved",
       row: parseInt(spotId.charAt(1)),
       column: parseInt(spotId.charAt(3)),
-      price: (booking.totalPrice || booking.payment_amount || 0) / (booking.parkingSpots?.length || 1)
+      price: bookingParkingSpots.length > 0 ? bookingTotalPrice / bookingParkingSpots.length : 0
     }));
     
     const qrCodeData = `TIME2PARK-BOOKING-${booking.id}`;
@@ -148,6 +256,109 @@ const BookingDetailPage = () => {
     );
   }
 
+  // Helper function to get booking title
+  const getBookingTitle = () => {
+    if (bookingType === "event") {
+      return booking?.eventName || (booking?.events?.title || "Event Booking");
+    } else if (bookingType === "university") {
+      return booking?.university_name || "University Booking";
+    } else if (bookingType === "airport") {
+      return booking?.airport_name || "Airport Booking";
+    }
+    return "Booking";
+  };
+
+  // Helper function to get booking date
+  const getBookingDate = () => {
+    if (bookingType === "event") {
+      return booking?.eventDate || "Unknown Date";
+    } else if (bookingType === "university" || bookingType === "airport") {
+      const startDate = new Date(booking?.start_date);
+      return startDate.toLocaleDateString("en-US", {
+        year: "numeric",
+        month: "long",
+        day: "numeric",
+      });
+    }
+    return "Unknown Date";
+  };
+
+  // Helper function to get booking time
+  const getBookingTime = () => {
+    if (bookingType === "event") {
+      return booking?.eventTime || "Unknown Time";
+    } else if (bookingType === "university" || bookingType === "airport") {
+      const startDate = new Date(booking?.start_date);
+      const endDate = new Date(booking?.end_date);
+      return `${startDate.toLocaleTimeString("en-US", {
+        hour: "numeric",
+        minute: "2-digit",
+        hour12: true,
+      })} - ${endDate.toLocaleTimeString("en-US", {
+        hour: "numeric",
+        minute: "2-digit",
+        hour12: true,
+      })}`;
+    }
+    return "Unknown Time";
+  };
+
+  // Helper function to get booking location
+  const getBookingLocation = () => {
+    if (bookingType === "event") {
+      return booking?.location || (booking?.events?.location || "Unknown Location");
+    } else if (bookingType === "university") {
+      return booking?.location || "Unknown Location";
+    } else if (bookingType === "airport") {
+      return booking?.location || "Unknown Location";
+    }
+    return "Unknown Location";
+  };
+
+  // Helper function to get entity ID
+  const getEntityId = () => {
+    if (bookingType === "event") {
+      return booking?.eventId || booking?.event_id || "";
+    } else if (bookingType === "university") {
+      return booking?.university_id || "";
+    } else if (bookingType === "airport") {
+      return booking?.airport_id || "";
+    }
+    return "";
+  };
+
+  // Helper function to get view entity link
+  const getEntityLink = () => {
+    if (bookingType === "event") {
+      return `/events/${getEntityId()}`;
+    } else if (bookingType === "university") {
+      return `/universities/${getEntityId()}`;
+    } else if (bookingType === "airport") {
+      return `/airports/${getEntityId()}`;
+    }
+    return "/";
+  };
+
+  // Helper function to get entity type text
+  const getEntityTypeText = () => {
+    if (bookingType === "event") {
+      return "Event";
+    } else if (bookingType === "university") {
+      return "University";
+    } else if (bookingType === "airport") {
+      return "Airport";
+    }
+    return "Event";
+  };
+
+  // Helper function to get entity type icon
+  const getEntityTypeIcon = () => {
+    if (bookingType === "university") {
+      return <Building className="mr-2 h-4 w-4" />;
+    }
+    return <Calendar className="mr-2 h-4 w-4" />;
+  };
+
   return (
     <div className="min-h-screen flex flex-col">
       <Navbar />
@@ -180,35 +391,41 @@ const BookingDetailPage = () => {
           <div className="grid md:grid-cols-3 gap-6">
             <Card className="md:col-span-2">
               <CardHeader>
-                <CardTitle>{booking.eventName || (booking.events?.title || "Unknown Event")}</CardTitle>
+                <CardTitle>{getBookingTitle()}</CardTitle>
                 <CardDescription>Booking ID: {booking.id.substring(0, 8)}</CardDescription>
               </CardHeader>
               <CardContent className="space-y-4">
                 <div className="flex items-center">
                   <Calendar className="h-5 w-5 mr-3 text-muted-foreground" />
-                  <span>{booking.eventDate || "Unknown Date"}</span>
+                  <span>{getBookingDate()}</span>
                 </div>
                 <div className="flex items-center">
                   <Clock className="h-5 w-5 mr-3 text-muted-foreground" />
-                  <span>{booking.eventTime || "Unknown Time"}</span>
+                  <span>{getBookingTime()}</span>
                 </div>
                 <div className="flex items-center">
                   <MapPin className="h-5 w-5 mr-3 text-muted-foreground" />
-                  <span>{booking.location || (booking.events?.location || "Unknown Location")}</span>
+                  <span>{getBookingLocation()}</span>
                 </div>
                 
                 <div className="mt-6">
                   <h3 className="text-lg font-medium mb-3">Your Parking Spots</h3>
                   <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3">
-                    {(booking.parkingSpots || []).map((spot) => (
-                      <div 
-                        key={spot} 
-                        className="bg-primary/10 border border-primary/20 rounded-md p-3 text-center"
-                      >
-                        <Ticket className="h-5 w-5 mx-auto mb-1 text-primary" />
-                        <span className="font-medium">{spot}</span>
+                    {((booking.parkingSpots || []).length > 0) ? (
+                      (booking.parkingSpots || []).map((spot) => (
+                        <div 
+                          key={spot} 
+                          className="bg-primary/10 border border-primary/20 rounded-md p-3 text-center"
+                        >
+                          <Ticket className="h-5 w-5 mx-auto mb-1 text-primary" />
+                          <span className="font-medium">{spot}</span>
+                        </div>
+                      ))
+                    ) : (
+                      <div className="col-span-2 text-muted-foreground">
+                        No parking spots found for this booking.
                       </div>
-                    ))}
+                    )}
                   </div>
                 </div>
                 
@@ -220,9 +437,11 @@ const BookingDetailPage = () => {
                   <div className="flex justify-between items-center mt-2">
                     <span className="font-medium">Status:</span>
                     <span className={`px-2 py-1 rounded-full text-xs font-medium ${
-                      booking.status === "upcoming" ? "bg-green-100 text-green-800" : "bg-gray-100 text-gray-800"
+                      booking.status === "upcoming" || booking.status === "confirmed" ? 
+                      "bg-green-100 text-green-800" : 
+                      "bg-gray-100 text-gray-800"
                     }`}>
-                      {booking.status.charAt(0).toUpperCase() + booking.status.slice(1)}
+                      {booking.status ? (booking.status.charAt(0).toUpperCase() + booking.status.slice(1)) : "Unknown"}
                     </span>
                   </div>
                 </div>
@@ -235,7 +454,7 @@ const BookingDetailPage = () => {
                 <CardDescription>Manage your booking</CardDescription>
               </CardHeader>
               <CardContent className="space-y-4">
-                {booking.status === "upcoming" && (
+                {(booking.status === "upcoming" || booking.status === "confirmed") && (
                   <Button 
                     className="w-full justify-start" 
                     onClick={handleShowQR}
@@ -251,13 +470,13 @@ const BookingDetailPage = () => {
                   <Download className="mr-2 h-4 w-4" />
                   Download Ticket
                 </Button>
-                <Link to={`/events/${booking.eventId || booking.event_id}`}>
+                <Link to={getEntityLink()}>
                   <Button
                     variant="outline"
                     className="w-full justify-start"
                   >
-                    <Calendar className="mr-2 h-4 w-4" />
-                    View Event
+                    {getEntityTypeIcon()}
+                    View {getEntityTypeText()}
                   </Button>
                 </Link>
               </CardContent>
