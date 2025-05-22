@@ -68,7 +68,7 @@ const AdminDashboard = () => {
                 </TableCell>
                 <TableCell>{event.location}</TableCell>
                 <TableCell className="text-right">
-                  {event.parkingAvailable}/{event.parkingTotal}
+                  {event.availableParkingSlots}/{event.totalParkingSlots}
                 </TableCell>
                 <TableCell className="text-right">
                   <Button variant="ghost" size="sm" asChild>

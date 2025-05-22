@@ -326,8 +326,8 @@ const BookingDetailPage = () => {
       time: bookingTime,
       location: bookingLocation,
       image: "", 
-      parkingAvailable: 0,
-      parkingTotal: 0,
+      availableParkingSlots: 0,
+      totalParkingSlots: 0,
       parkingPrice: bookingParkingSpots.length > 0 ? bookingTotalPrice / bookingParkingSpots.length : 0
     };
     

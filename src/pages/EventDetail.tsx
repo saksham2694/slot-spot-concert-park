@@ -162,8 +162,8 @@ const EventDetail = () => {
                 {event && (
                   <EventTabs
                     eventId={event.id}
-                    parkingTotal={event.parkingTotal || 0}
-                    parkingAvailable={event.parkingAvailable || 0}
+                    parkingTotal={event.totalParkingSlots || 0}
+                    parkingAvailable={event.availableParkingSlots || 0}
                     parkingPrice={event.parkingPrice || 0}
                     onSlotSelect={handleSlotSelect}
                   />

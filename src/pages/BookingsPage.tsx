@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import Navbar from "@/components/Navbar";
@@ -698,6 +697,610 @@ const BookingsPage = () => {
     );
   };
 
+  // Helper function to create dummy event data
+  const createDummyEvent = (
+    id: string,
+    title: string,
+    date: string,
+    time: string,
+    location: string
+  ): Event => {
+    return {
+      id,
+      title,
+      date,
+      time,
+      location,
+      image: "https://images.unsplash.com/photo-1492684223066-81342ee5ff30",
+      availableParkingSlots: 50,
+      totalParkingSlots: 200,
+      parkingPrice: 20,
+    };
+  };
+
+  const renderEventBookings = () => {
+    const transformedEventBookings = eventBookings.reduce<EventBooking[]>((acc, booking) => {
+      if (!booking.events) return acc;
+      
+      const eventDate = new Date(booking.events.date);
+      const now = new Date();
+      
+      let status: "upcoming" | "completed" = "upcoming";
+      
+      // Skip cancelled bookings entirely
+      if (booking.status === "cancelled") {
+        return acc;
+      } 
+      // If the event date is in the past, mark it as completed
+      else if (eventDate < now) {
+        status = "completed";
+      }
+
+      // Format the event date and time
+      const formattedDate = eventDate.toLocaleDateString("en-US", {
+        year: "numeric",
+        month: "long",
+        day: "numeric",
+      });
+      
+      const formattedTime = eventDate.toLocaleTimeString("en-US", {
+        hour: "numeric",
+        minute: "2-digit",
+        hour12: true,
+      });
+
+      // Extract parking spots from booking_slots
+      const parkingSpots = booking.booking_slots?.map(slot => 
+        `R${slot.parking_layouts.row_number}C${slot.parking_layouts.column_number}`
+      ) || [];
+
+      // Calculate total price
+      const totalPrice = booking.booking_slots?.reduce((total, slot) => 
+        total + (slot.parking_layouts.price || 0), 0
+      ) || 0;
+
+      const transformedBooking: EventBooking = {
+        id: booking.id,
+        eventId: booking.event_id || "",
+        eventName: booking.events.title,
+        eventDate: formattedDate,
+        eventTime: `${formattedTime} - ${new Date(eventDate.getTime() + 3 * 60 * 60 * 1000).toLocaleTimeString("en-US", {
+          hour: "numeric",
+          minute: "2-digit",
+          hour12: true,
+        })}`,
+        location: booking.events.location,
+        parkingSpots,
+        totalPrice,
+        status,
+        type: "event"
+      };
+
+      acc.push(transformedBooking);
+      return acc;
+    }, []);
+
+    return (
+      <Table>
+        <TableHeader>
+          <TableRow>
+            <TableHead>Booking ID</TableHead>
+            <TableHead>
+              {activeCategory === 'all' ? 'Name' : 
+               activeCategory === 'event' ? 'Event' : 
+               activeCategory === 'university' ? 'University' : 'Airport'}
+            </TableHead>
+            <TableHead className="hidden md:table-cell">Date & Time</TableHead>
+            <TableHead className="hidden md:table-cell">Location</TableHead>
+            <TableHead>Spots</TableHead>
+            <TableHead>Price</TableHead>
+            <TableHead className="text-right">Actions</TableHead>
+          </TableRow>
+        </TableHeader>
+        <TableBody>
+          {transformedEventBookings.map((booking) => {
+            // Determine booking name and location based on type
+            let name = "";
+            let date = "";
+            let time = "";
+            let location = "";
+            let icon = <Calendar className="h-4 w-4 mr-2 text-muted-foreground" />;
+            
+            if (booking.type === "event") {
+              name = booking.eventName;
+              date = booking.eventDate;
+              time = booking.eventTime;
+              location = booking.location;
+            } else if (booking.type === "university") {
+              name = booking.universityName;
+              date = booking.bookingDate;
+              time = `${booking.startTime} - ${booking.endTime}`;
+              location = booking.location;
+              icon = <Building className="h-4 w-4 mr-2 text-muted-foreground" />;
+            } else {
+              name = booking.airportName;
+              date = booking.bookingDate;
+              time = `${booking.startTime} - ${booking.endTime}`;
+              location = booking.location;
+              icon = <Plane className="h-4 w-4 mr-2 text-muted-foreground" />;
+            }
+
+            return (
+              <TableRow key={`${booking.type}-${booking.id}`}>
+                <TableCell className="font-medium">{booking.id.substring(0, 8)}</TableCell>
+                <TableCell>
+                  <div>
+                    <p className="font-medium line-clamp-1">{name}</p>
+                    <div className="md:hidden text-xs text-muted-foreground mt-1">
+                      <div className="flex items-center">
+                        <Calendar className="h-3 w-3 mr-1" />
+                        {date}
+                      </div>
+                      <div className="flex items-center">
+                        <Clock className="h-3 w-3 mr-1" />
+                        {time}
+                      </div>
+                    </div>
+                  </div>
+                </TableCell>
+                <TableCell className="hidden md:table-cell">
+                  <div className="flex flex-col">
+                    <div className="flex items-center">
+                      {icon}
+                      {date}
+                    </div>
+                    <div className="flex items-center mt-1">
+                      <Clock className="h-4 w-4 mr-2 text-muted-foreground" />
+                      {time}
+                    </div>
+                  </div>
+                </TableCell>
+                <TableCell className="hidden md:table-cell">
+                  <div className="flex items-center">
+                    <MapPin className="h-4 w-4 mr-2 text-muted-foreground" />
+                    <span className="line-clamp-1">{location}</span>
+                  </div>
+                </TableCell>
+                <TableCell>
+                  {booking.parkingSpots.length > 0 ? 
+                    booking.parkingSpots.length > 1 ? 
+                      `${booking.parkingSpots.length} spots` : 
+                      booking.parkingSpots[0] 
+                    : "No spots"}
+                </TableCell>
+                <TableCell>₹{booking.totalPrice.toFixed(2)}</TableCell>
+                <TableCell className="text-right">
+                  <div className="flex justify-end items-center gap-2">
+                    {type === "upcoming" && (
+                      <>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          onClick={() => handleShowQR(booking.id)}
+                          title="Show QR Code"
+                        >
+                          <QrCode className="h-4 w-4" />
+                        </Button>
+                      </>
+                    )}
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      onClick={() => handleDownloadTicket(booking)}
+                      title="Download Ticket"
+                    >
+                      <Download className="h-4 w-4" />
+                    </Button>
+                    <Link to={`/bookings/${booking.id}`}>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        title="View Booking Details"
+                      >
+                        <ExternalLink className="h-4 w-4" />
+                      </Button>
+                    </Link>
+                  </div>
+                </TableCell>
+              </TableRow>
+            );
+          })}
+        </TableBody>
+      </Table>
+    );
+  };
+
+  const renderUniversityBookings = () => {
+    const universityBookings = universityBookingsData.map(booking => {
+      const startDate = new Date(booking.start_date);
+      const endDate = new Date(booking.end_date);
+      const now = new Date();
+
+      let status: "upcoming" | "completed" = "upcoming";
+      if (booking.status === "cancelled") {
+        return null; // Skip cancelled bookings
+      } else if (endDate < now) {
+        status = "completed";
+      }
+
+      // Format dates
+      const formattedDate = startDate.toLocaleDateString("en-US", {
+        year: "numeric",
+        month: "long",
+        day: "numeric",
+      });
+
+      const startTime = startDate.toLocaleTimeString("en-US", {
+        hour: "numeric",
+        minute: "2-digit",
+        hour12: true,
+      });
+
+      const endTime = endDate.toLocaleTimeString("en-US", {
+        hour: "numeric",
+        minute: "2-digit",
+        hour12: true,
+      });
+
+      // Use the parking_spots array from the enhanced query if available
+      const parkingSpots = booking.parking_spots || [];
+
+      return {
+        id: booking.id,
+        universityId: booking.university_id,
+        universityName: booking.university_name || "University",
+        bookingDate: formattedDate,
+        startTime,
+        endTime,
+        location: booking.location || "",
+        parkingSpots,
+        totalPrice: booking.payment_amount || 0,
+        status,
+        type: "university" as const
+      };
+    }).filter(Boolean) as UniversityBooking[];
+
+    return (
+      <Table>
+        <TableHeader>
+          <TableRow>
+            <TableHead>Booking ID</TableHead>
+            <TableHead>
+              {activeCategory === 'all' ? 'Name' : 
+               activeCategory === 'event' ? 'Event' : 
+               activeCategory === 'university' ? 'University' : 'Airport'}
+            </TableHead>
+            <TableHead className="hidden md:table-cell">Date & Time</TableHead>
+            <TableHead className="hidden md:table-cell">Location</TableHead>
+            <TableHead>Spots</TableHead>
+            <TableHead>Price</TableHead>
+            <TableHead className="text-right">Actions</TableHead>
+          </TableRow>
+        </TableHeader>
+        <TableBody>
+          {universityBookings.map((booking) => {
+            // Determine booking name and location based on type
+            let name = "";
+            let date = "";
+            let time = "";
+            let location = "";
+            let icon = <Calendar className="h-4 w-4 mr-2 text-muted-foreground" />;
+            
+            if (booking.type === "event") {
+              name = booking.eventName;
+              date = booking.eventDate;
+              time = booking.eventTime;
+              location = booking.location;
+            } else if (booking.type === "university") {
+              name = booking.universityName;
+              date = booking.bookingDate;
+              time = `${booking.startTime} - ${booking.endTime}`;
+              location = booking.location;
+              icon = <Building className="h-4 w-4 mr-2 text-muted-foreground" />;
+            } else {
+              name = booking.airportName;
+              date = booking.bookingDate;
+              time = `${booking.startTime} - ${booking.endTime}`;
+              location = booking.location;
+              icon = <Plane className="h-4 w-4 mr-2 text-muted-foreground" />;
+            }
+
+            return (
+              <TableRow key={`${booking.type}-${booking.id}`}>
+                <TableCell className="font-medium">{booking.id.substring(0, 8)}</TableCell>
+                <TableCell>
+                  <div>
+                    <p className="font-medium line-clamp-1">{name}</p>
+                    <div className="md:hidden text-xs text-muted-foreground mt-1">
+                      <div className="flex items-center">
+                        <Calendar className="h-3 w-3 mr-1" />
+                        {date}
+                      </div>
+                      <div className="flex items-center">
+                        <Clock className="h-3 w-3 mr-1" />
+                        {time}
+                      </div>
+                    </div>
+                  </div>
+                </TableCell>
+                <TableCell className="hidden md:table-cell">
+                  <div className="flex flex-col">
+                    <div className="flex items-center">
+                      {icon}
+                      {date}
+                    </div>
+                    <div className="flex items-center mt-1">
+                      <Clock className="h-4 w-4 mr-2 text-muted-foreground" />
+                      {time}
+                    </div>
+                  </div>
+                </TableCell>
+                <TableCell className="hidden md:table-cell">
+                  <div className="flex items-center">
+                    <MapPin className="h-4 w-4 mr-2 text-muted-foreground" />
+                    <span className="line-clamp-1">{location}</span>
+                  </div>
+                </TableCell>
+                <TableCell>
+                  {booking.parkingSpots.length > 0 ? 
+                    booking.parkingSpots.length > 1 ? 
+                      `${booking.parkingSpots.length} spots` : 
+                      booking.parkingSpots[0] 
+                    : "No spots"}
+                </TableCell>
+                <TableCell>₹{booking.totalPrice.toFixed(2)}</TableCell>
+                <TableCell className="text-right">
+                  <div className="flex justify-end items-center gap-2">
+                    {type === "upcoming" && (
+                      <>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          onClick={() => handleShowQR(booking.id)}
+                          title="Show QR Code"
+                        >
+                          <QrCode className="h-4 w-4" />
+                        </Button>
+                      </>
+                    )}
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      onClick={() => handleDownloadTicket(booking)}
+                      title="Download Ticket"
+                    >
+                      <Download className="h-4 w-4" />
+                    </Button>
+                    <Link to={`/bookings/${booking.id}`}>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        title="View Booking Details"
+                      >
+                        <ExternalLink className="h-4 w-4" />
+                      </Button>
+                    </Link>
+                  </div>
+                </TableCell>
+              </TableRow>
+            );
+          })}
+        </TableBody>
+      </Table>
+    );
+  };
+
+  const renderAirportBookings = () => {
+    const airportBookings = airportBookingsData.map(booking => {
+      const startDate = new Date(booking.start_date);
+      const endDate = new Date(booking.end_date);
+      const now = new Date();
+
+      let status: "upcoming" | "completed" = "upcoming";
+      if (booking.status === "cancelled") {
+        return null; // Skip cancelled bookings
+      } else if (endDate < now) {
+        status = "completed";
+      }
+
+      // Format dates
+      const formattedDate = startDate.toLocaleDateString("en-US", {
+        year: "numeric",
+        month: "long",
+        day: "numeric",
+      });
+
+      const startTime = startDate.toLocaleTimeString("en-US", {
+        hour: "numeric",
+        minute: "2-digit",
+        hour12: true,
+      });
+
+      const endTime = endDate.toLocaleTimeString("en-US", {
+        hour: "numeric",
+        minute: "2-digit",
+        hour12: true,
+      });
+
+      // Use the parking_spots array from the enhanced query if available
+      const parkingSpots = booking.parking_spots || [];
+
+      return {
+        id: booking.id,
+        airportId: booking.airport_id,
+        airportName: booking.airport_name || "Airport",
+        bookingDate: formattedDate,
+        startTime,
+        endTime,
+        location: booking.location || "",
+        parkingSpots,
+        totalPrice: booking.payment_amount || 0,
+        status,
+        type: "airport" as const
+      };
+    }).filter(Boolean) as AirportBooking[];
+
+    return (
+      <Table>
+        <TableHeader>
+          <TableRow>
+            <TableHead>Booking ID</TableHead>
+            <TableHead>
+              {activeCategory === 'all' ? 'Name' : 
+               activeCategory === 'event' ? 'Event' : 
+               activeCategory === 'university' ? 'University' : 'Airport'}
+            </TableHead>
+            <TableHead className="hidden md:table-cell">Date & Time</TableHead>
+            <TableHead className="hidden md:table-cell">Location</TableHead>
+            <TableHead>Spots</TableHead>
+            <TableHead>Price</TableHead>
+            <TableHead className="text-right">Actions</TableHead>
+          </TableRow>
+        </TableHeader>
+        <TableBody>
+          {airportBookings.map((booking) => {
+            // Determine booking name and location based on type
+            let name = "";
+            let date = "";
+            let time = "";
+            let location = "";
+            let icon = <Calendar className="h-4 w-4 mr-2 text-muted-foreground" />;
+            
+            if (booking.type === "event") {
+              name = booking.eventName;
+              date = booking.eventDate;
+              time = booking.eventTime;
+              location = booking.location;
+            } else if (booking.type === "university") {
+              name = booking.universityName;
+              date = booking.bookingDate;
+              time = `${booking.startTime} - ${booking.endTime}`;
+              location = booking.location;
+              icon = <Building className="h-4 w-4 mr-2 text-muted-foreground" />;
+            } else {
+              name = booking.airportName;
+              date = booking.bookingDate;
+              time = `${booking.startTime} - ${booking.endTime}`;
+              location = booking.location;
+              icon = <Plane className="h-4 w-4 mr-2 text-muted-foreground" />;
+            }
+
+            return (
+              <TableRow key={`${booking.type}-${booking.id}`}>
+                <TableCell className="font-medium">{booking.id.substring(0, 8)}</TableCell>
+                <TableCell>
+                  <div>
+                    <p className="font-medium line-clamp-1">{name}</p>
+                    <div className="md:hidden text-xs text-muted-foreground mt-1">
+                      <div className="flex items-center">
+                        <Calendar className="h-3 w-3 mr-1" />
+                        {date}
+                      </div>
+                      <div className="flex items-center">
+                        <Clock className="h-3 w-3 mr-1" />
+                        {time}
+                      </div>
+                    </div>
+                  </div>
+                </TableCell>
+                <TableCell className="hidden md:table-cell">
+                  <div className="flex flex-col">
+                    <div className="flex items-center">
+                      {icon}
+                      {date}
+                    </div>
+                    <div className="flex items-center mt-1">
+                      <Clock className="h-4 w-4 mr-2 text-muted-foreground" />
+                      {time}
+                    </div>
+                  </div>
+                </TableCell>
+                <TableCell className="hidden md:table-cell">
+                  <div className="flex items-center">
+                    <MapPin className="h-4 w-4 mr-2 text-muted-foreground" />
+                    <span className="line-clamp-1">{location}</span>
+                  </div>
+                </TableCell>
+                <TableCell>
+                  {booking.parkingSpots.length > 0 ? 
+                    booking.parkingSpots.length > 1 ? 
+                      `${booking.parkingSpots.length} spots` : 
+                      booking.parkingSpots[0] 
+                    : "No spots"}
+                </TableCell>
+                <TableCell>₹{booking.totalPrice.toFixed(2)}</TableCell>
+                <TableCell className="text-right">
+                  <div className="flex justify-end items-center gap-2">
+                    {type === "upcoming" && (
+                      <>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          onClick={() => handleShowQR(booking.id)}
+                          title="Show QR Code"
+                        >
+                          <QrCode className="h-4 w-4" />
+                        </Button>
+                      </>
+                    )}
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      onClick={() => handleDownloadTicket(booking)}
+                      title="Download Ticket"
+                    >
+                      <Download className="h-4 w-4" />
+                    </Button>
+                    <Link to={`/bookings/${booking.id}`}>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        title="View Booking Details"
+                      >
+                        <ExternalLink className="h-4 w-4" />
+                      </Button>
+                    </Link>
+                  </div>
+                </TableCell>
+              </TableRow>
+            );
+          })}
+        </TableBody>
+      </Table>
+    );
+  };
+
+  const renderEmptyState = () => {
+    return (
+      <div className="text-center py-12">
+        <p className="text-muted-foreground mb-4">
+          {activeCategory === 'all' 
+            ? `You don't have any upcoming ${activeCategory !== 'all' ? activeCategory : ''} bookings.` 
+            : `You don't have any completed ${activeCategory !== 'all' ? activeCategory : ''} bookings.`}
+        </p>
+        {activeCategory === 'all' && (
+          <div className="space-x-4">
+            {(activeCategory === 'all' || activeCategory === 'event') && (
+              <Link to="/events">
+                <Button className="mr-2">Find Events</Button>
+              </Link>
+            )}
+            {(activeCategory === 'all' || activeCategory === 'university') && (
+              <Link to="/universities">
+                <Button className="mr-2" variant="outline">Find Universities</Button>
+              </Link>
+            )}
+            {(activeCategory === 'all' || activeCategory === 'airport') && (
+              <Link to="/airports">
+                <Button variant="outline">Find Airports</Button>
+              </Link>
+            )}
+          </div>
+        )}
+      </div>
+    );
+  };
+
   // Show loading state while checking authentication
   if (authLoading) {
     return (
@@ -779,10 +1382,14 @@ const BookingsPage = () => {
               </div>
               
               <div className="border rounded-lg p-4">
-                <BookingsList 
-                  items={filteredBookings}
-                  type={activeTab}
-                />
+                {filteredBookings.length > 0 ? (
+                  <BookingsList 
+                    items={filteredBookings}
+                    type={activeTab}
+                  />
+                ) : (
+                  renderEmptyState()
+                )}
               </div>
             </>
           )}
