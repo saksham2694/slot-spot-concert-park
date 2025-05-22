@@ -29,6 +29,9 @@ const AirportBookingConfirmationView = ({
 }: AirportBookingConfirmationViewProps) => {
   const navigate = useNavigate();
   const { theme } = useTheme();
+  
+  // Generate QR code image URL (using a public QR code API)
+  const qrCodeUrl = `https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${bookingId}`;
 
   return (
     <div className="w-full max-w-2xl mx-auto">
@@ -46,6 +49,20 @@ const AirportBookingConfirmationView = ({
 
       <Card className={theme === 'dark' ? 'border-slate-800' : ''}>
         <CardContent className="p-6">
+          <div className="flex justify-center mb-6">
+            <div className="p-4 bg-white rounded-lg">
+              <img 
+                src={qrCodeUrl} 
+                alt="Booking QR Code" 
+                className="w-48 h-48" 
+              />
+            </div>
+          </div>
+          
+          <p className="text-center mb-6 text-sm text-muted-foreground">
+            Present this QR code upon arrival at the parking location
+          </p>
+
           <div className="space-y-4">
             <div className="flex justify-between border-b pb-3">
               <h3 className="font-semibold">Booking Reference</h3>
