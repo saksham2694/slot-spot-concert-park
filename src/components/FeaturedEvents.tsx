@@ -6,6 +6,8 @@ import { Event } from "@/types/event";
 import { useQuery } from "@tanstack/react-query";
 import { useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
+import { Link } from "react-router-dom";
+import { Button } from "@/components/ui/button";
 
 const FeaturedEvents = () => {
   const { data: events = [], isLoading, error, refetch } = useQuery({
@@ -48,7 +50,12 @@ const FeaturedEvents = () => {
   return (
     <section className="py-12">
       <div className="container">
-        <h2 className="text-2xl font-bold mb-6">Featured Events</h2>
+        <div className="flex justify-between items-center mb-6">
+          <h2 className="text-2xl font-bold">Featured Events</h2>
+          <Link to="/events">
+            <Button variant="outline">View All</Button>
+          </Link>
+        </div>
         
         {isLoading ? (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">

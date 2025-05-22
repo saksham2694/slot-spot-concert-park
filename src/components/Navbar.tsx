@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
 import { useAuth } from "@/context/AuthContext";
@@ -189,8 +188,8 @@ const Navbar = () => {
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
                   <Button variant="ghost" className="p-0" aria-label="User menu">
-                    <Avatar className="h-9 w-9">
-                      <AvatarFallback className="bg-primary/10 text-primary">
+                    <Avatar className="h-9 w-9 ring-2 ring-primary dark:ring-white dark:bg-primary/30">
+                      <AvatarFallback className="bg-primary/10 text-primary dark:bg-white/20 dark:text-white">
                         {getInitials(profile?.first_name || "", profile?.last_name || "")}
                       </AvatarFallback>
                     </Avatar>

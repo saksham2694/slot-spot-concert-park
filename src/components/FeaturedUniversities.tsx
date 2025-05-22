@@ -6,6 +6,7 @@ import { Card, CardContent, CardFooter, CardHeader } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge";
 import { supabase } from "@/integrations/supabase/client";
 import { MapPin, Building } from "lucide-react";
+import { Progress } from "@/components/ui/progress";
 import type { University as UniversityType } from "@/types/university";
 
 const FeaturedUniversities = () => {
@@ -45,14 +46,14 @@ const FeaturedUniversities = () => {
     <section className="py-12">
       <div className="container">
         <div className="flex justify-between items-center mb-8">
-          <h2 className="text-3xl font-bold tracking-tight">Popular Universities</h2>
+          <h2 className="text-2xl font-bold">Popular Universities</h2>
           <Link to="/universities">
             <Button variant="outline">View All</Button>
           </Link>
         </div>
         
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-          {universities.slice(0, 3).map((university) => (
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+          {universities.slice(0, 4).map((university) => (
             <Card key={university.id} className="overflow-hidden flex flex-col">
               <div className="h-48 relative">
                 {university.image_url ? (
@@ -83,17 +84,12 @@ const FeaturedUniversities = () => {
               
               <CardContent className="pb-2">
                 <div className="flex items-center justify-between text-sm">
-                  <span className="text-muted-foreground">Available Parking Spots</span>
-                  <span className="font-medium">{university.available_parking_slots}</span>
+                  <span className="text-muted-foreground">Available Spots</span>
+                  <span className="font-medium">{university.available_parking_slots} / {university.total_parking_slots}</span>
                 </div>
-                <div className="h-2 bg-muted rounded-full mt-2">
-                  <div 
-                    className="h-full bg-primary rounded-full" 
-                    style={{ 
-                      width: `${(university.available_parking_slots / university.total_parking_slots) * 100}%` 
-                    }}
-                  />
-                </div>
+                <Progress className="h-2 mt-2" value={
+                  (university.available_parking_slots / university.total_parking_slots) * 100
+                } />
               </CardContent>
               
               <CardFooter className="mt-auto pt-4">
