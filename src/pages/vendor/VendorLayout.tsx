@@ -1,10 +1,11 @@
 
 import { useEffect, useState } from "react";
-import { Outlet, useNavigate, Link } from "react-router-dom";
+import { Outlet, useNavigate, Link, NavLink } from "react-router-dom";
 import { useAuth } from "@/context/AuthContext";
 import { useToast } from "@/components/ui/use-toast";
-import { Loader2, ExternalLink } from "lucide-react";
+import { Loader2, ExternalLink, LayoutGrid, Building, Plane, Calendar } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { cn } from "@/lib/utils";
 
 const VendorLayout = () => {
   const navigate = useNavigate();
@@ -78,6 +79,61 @@ const VendorLayout = () => {
           </Button>
         </Link>
       </div>
+      
+      <div className="mb-6 border-b pb-4">
+        <nav className="flex space-x-4">
+          <NavLink 
+            to="/vendor" 
+            end
+            className={({ isActive }) => cn(
+              "flex items-center px-3 py-2 text-sm font-medium rounded-md",
+              isActive 
+                ? "bg-primary text-primary-foreground" 
+                : "text-muted-foreground hover:text-foreground hover:bg-accent"
+            )}
+          >
+            <LayoutGrid className="h-4 w-4 mr-2" />
+            Dashboard
+          </NavLink>
+          <NavLink 
+            to="/vendor/events" 
+            className={({ isActive }) => cn(
+              "flex items-center px-3 py-2 text-sm font-medium rounded-md",
+              isActive 
+                ? "bg-primary text-primary-foreground" 
+                : "text-muted-foreground hover:text-foreground hover:bg-accent"
+            )}
+          >
+            <Calendar className="h-4 w-4 mr-2" />
+            Events
+          </NavLink>
+          <NavLink 
+            to="/vendor/universities" 
+            className={({ isActive }) => cn(
+              "flex items-center px-3 py-2 text-sm font-medium rounded-md",
+              isActive 
+                ? "bg-primary text-primary-foreground" 
+                : "text-muted-foreground hover:text-foreground hover:bg-accent"
+            )}
+          >
+            <Building className="h-4 w-4 mr-2" />
+            Universities
+          </NavLink>
+          <NavLink 
+            to="/vendor/airports" 
+            className={({ isActive }) => cn(
+              "flex items-center px-3 py-2 text-sm font-medium rounded-md",
+              isActive 
+                ? "bg-primary text-primary-foreground" 
+                : "text-muted-foreground hover:text-foreground hover:bg-accent"
+            )}
+          >
+            <Plane className="h-4 w-4 mr-2" />
+            Airports
+          </NavLink>
+        </nav>
+      </div>
+      
       <div className="bg-card rounded-lg shadow-sm border p-4 md:p-6">
         <Outlet />
       </div>
