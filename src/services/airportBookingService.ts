@@ -47,7 +47,7 @@ export async function createAirportBooking({
     
     if (bookingError || !bookingData) {
       console.error("Error creating booking:", bookingError);
-      throw new Error("Failed to create booking");
+      throw new Error(bookingError?.message || "Failed to create booking");
     }
     
     const bookingId = bookingData.id;
@@ -155,7 +155,7 @@ export async function createAirportBooking({
     }
     
     return bookingId;
-  } catch (error) {
+  } catch (error: any) {
     console.error("Error in createAirportBooking:", error);
     throw error;
   }
@@ -220,7 +220,7 @@ export const fetchAirportBookingById = async (bookingId: string): Promise<Bookin
 
     return {
       ...booking,
-      status: booking.status as any,
+      status: booking.status as BookingStatus,
       parkingSpots,
       airport_name: airportData?.name || "Unknown Airport",
       location: airportData?.location || "Unknown Location",
@@ -228,7 +228,7 @@ export const fetchAirportBookingById = async (bookingId: string): Promise<Bookin
         name: airportData?.name || "Unknown Airport",
         location: airportData?.location || "Unknown Location"
       }
-    } as Booking;
+    };
   } catch (error) {
     console.error("Error in fetchAirportBookingById:", error);
     return null;
@@ -292,7 +292,7 @@ export const fetchAirportBookingsForUser = async (userId: string): Promise<Booki
       
       enhancedBookings.push({
         ...booking,
-        status: booking.status as any,
+        status: booking.status as BookingStatus,
         parkingSpots,
         airport_name: airportData?.name || "Unknown Airport",
         location: airportData?.location || "Unknown Location",
