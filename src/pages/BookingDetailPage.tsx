@@ -35,15 +35,15 @@ import { Booking, BookingStatus } from "@/types/booking";
 import { supabase } from "@/integrations/supabase/client";
 
 // Helper functions to type check the type of booking
-const isEventBooking = (booking: Booking | null): boolean => {
+const isEventBooking = (booking: Booking | null): booking is Booking & { eventId?: string, event_id?: string } => {
   return booking !== null && (booking.eventId !== undefined || booking.event_id !== undefined);
 };
 
-const isUniversityBooking = (booking: Booking | null): boolean => {
+const isUniversityBooking = (booking: Booking | null): booking is Booking & { university_id: string } => {
   return booking !== null && booking.university_id !== undefined;
 };
 
-const isAirportBooking = (booking: Booking | null): boolean => {
+const isAirportBooking = (booking: Booking | null): booking is Booking & { airport_id: string } => {
   return booking !== null && booking.airport_id !== undefined;
 };
 
@@ -266,14 +266,13 @@ const BookingDetailPage = () => {
     let bookingTotalPrice = 0;
     
     if (bookingType === "event" && isEventBooking(booking)) {
-      const eventBookingData = booking;
-      bookingTitle = eventBookingData.eventName || (eventBookingData.events?.title || "Unknown Event");
-      bookingDate = eventBookingData.eventDate || "Unknown Date";
-      bookingTime = eventBookingData.eventTime || "Unknown Time";
-      bookingLocation = eventBookingData.location || (eventBookingData.events?.location || "Unknown Location");
-      bookingId = eventBookingData.eventId || eventBookingData.event_id || "";
-      bookingParkingSpots = eventBookingData.parkingSpots || [];
-      bookingTotalPrice = eventBookingData.totalPrice || eventBookingData.payment_amount || 0;
+      bookingTitle = booking.eventName || (booking.events?.title || "Unknown Event");
+      bookingDate = booking.eventDate || "Unknown Date";
+      bookingTime = booking.eventTime || "Unknown Time";
+      bookingLocation = booking.location || (booking.events?.location || "Unknown Location");
+      bookingId = booking.eventId || booking.event_id || "";
+      bookingParkingSpots = booking.parkingSpots || [];
+      bookingTotalPrice = booking.totalPrice || booking.payment_amount || 0;
     } else if (bookingType === "university" && isUniversityBooking(booking) && booking.start_date && booking.end_date) {
       bookingTitle = universityData?.name || "University";
       const startDate = new Date(booking.start_date);

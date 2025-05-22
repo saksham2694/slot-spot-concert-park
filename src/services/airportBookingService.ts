@@ -1,7 +1,7 @@
 
 import { supabase } from "@/integrations/supabase/client";
 import { ParkingSlot } from "@/types/parking";
-import { Booking } from "@/types/booking";
+import { Booking, BookingStatus } from "@/types/booking";
 
 interface CreateAirportBookingParams {
   airportId: string;
@@ -31,12 +31,11 @@ export async function createAirportBooking({
     // Calculate total price
     const totalPrice = selectedSlots.reduce((sum, slot) => sum + (slot.price * hours), 0);
     
-    // Create the booking record - let Supabase generate the UUID
-    // IMPORTANT: user_id must be set to auth.uid() to satisfy RLS policies
+    // Create the booking record
     const { data: bookingData, error: bookingError } = await supabase
       .from("airport_bookings")
       .insert({
-        user_id: userId, // This must match auth.uid() for RLS policy
+        user_id: userId,
         airport_id: airportId,
         start_date: startDate.toISOString(),
         end_date: endDate.toISOString(),
@@ -219,9 +218,12 @@ export const fetchAirportBookingById = async (bookingId: string): Promise<Bookin
       }
     }
 
+    // Cast the status to BookingStatus type to ensure type safety
+    const bookingStatus = booking.status as BookingStatus || "pending";
+
     return {
       ...booking,
-      status: booking.status as BookingStatus,
+      status: bookingStatus,
       parkingSpots,
       airport_name: airportData?.name || "Unknown Airport",
       location: airportData?.location || "Unknown Location",
@@ -290,10 +292,13 @@ export const fetchAirportBookingsForUser = async (userId: string): Promise<Booki
           }
         }
       }
+
+      // Cast the status to BookingStatus type to ensure type safety
+      const bookingStatus = booking.status as BookingStatus || "pending";
       
       enhancedBookings.push({
         ...booking,
-        status: booking.status as BookingStatus,
+        status: bookingStatus,
         parkingSpots,
         airport_name: airportData?.name || "Unknown Airport",
         location: airportData?.location || "Unknown Location",
