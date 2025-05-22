@@ -32,6 +32,7 @@ import {
 import AuthPrompt from "@/components/event/AuthPrompt";
 import { Event } from "@/types/event";
 import { ParkingSlot } from "@/types/parking";
+import { supabase } from "@/integrations/supabase/client";
 
 const BookingDetailPage = () => {
   const { bookingId } = useParams<{ bookingId: string }>();
@@ -41,6 +42,9 @@ const BookingDetailPage = () => {
   const [qrDialogOpen, setQrDialogOpen] = useState(false);
   const [showAuthPrompt, setShowAuthPrompt] = useState<boolean>(false);
   const [bookingType, setBookingType] = useState<"event" | "university" | "airport" | null>(null);
+  const [universityData, setUniversityData] = useState<{ name: string; location: string } | null>(null);
+  const [airportData, setAirportData] = useState<{ name: string; location: string } | null>(null);
+  const [parkingSpots, setParkingSpots] = useState<string[]>([]);
 
   // Try to fetch event booking first
   const { 
@@ -99,10 +103,114 @@ const BookingDetailPage = () => {
       setBookingType("event");
     } else if (universityBooking) {
       setBookingType("university");
+      // Fetch university details and parking spots
+      fetchUniversityDetails();
     } else if (airportBooking) {
       setBookingType("airport");
+      // Fetch airport details and parking spots
+      fetchAirportDetails();
     }
   }, [eventBooking, universityBooking, airportBooking]);
+
+  // Fetch university details and parking spots
+  const fetchUniversityDetails = async () => {
+    if (!universityBooking || !universityBooking.university_id) return;
+    
+    try {
+      // Fetch university data
+      const { data: universityData, error: universityError } = await supabase
+        .from("universities")
+        .select("name, location")
+        .eq("id", universityBooking.university_id)
+        .single();
+      
+      if (universityError) {
+        console.error("Error fetching university:", universityError);
+        return;
+      }
+      
+      setUniversityData(universityData);
+      
+      // Fetch booking slots
+      const { data: bookingSlots, error: slotsError } = await supabase
+        .from("university_booking_slots")
+        .select("parking_layout_id")
+        .eq("booking_id", bookingId);
+      
+      if (slotsError) {
+        console.error("Error fetching booking slots:", slotsError);
+        return;
+      }
+      
+      // For each slot, get the layout details
+      const spots: string[] = [];
+      for (const slot of bookingSlots || []) {
+        const { data: layoutData, error: layoutError } = await supabase
+          .from("university_parking_layouts")
+          .select("row_number, column_number")
+          .eq("id", slot.parking_layout_id)
+          .single();
+        
+        if (!layoutError && layoutData) {
+          spots.push(`R${layoutData.row_number}C${layoutData.column_number}`);
+        }
+      }
+      
+      setParkingSpots(spots);
+    } catch (error) {
+      console.error("Error fetching university details:", error);
+    }
+  };
+
+  // Fetch airport details and parking spots
+  const fetchAirportDetails = async () => {
+    if (!airportBooking || !airportBooking.airport_id) return;
+    
+    try {
+      // Fetch airport data
+      const { data: airportData, error: airportError } = await supabase
+        .from("airports")
+        .select("name, location")
+        .eq("id", airportBooking.airport_id)
+        .single();
+      
+      if (airportError) {
+        console.error("Error fetching airport:", airportError);
+        return;
+      }
+      
+      setAirportData(airportData);
+      
+      // Fetch booking slots
+      const { data: bookingSlots, error: slotsError } = await supabase
+        .from("airport_booking_slots")
+        .select("parking_layout_id")
+        .eq("booking_id", bookingId);
+      
+      if (slotsError) {
+        console.error("Error fetching booking slots:", slotsError);
+        return;
+      }
+      
+      // For each slot, get the layout details
+      const spots: string[] = [];
+      for (const slot of bookingSlots || []) {
+        const { data: layoutData, error: layoutError } = await supabase
+          .from("airport_parking_layouts")
+          .select("row_number, column_number")
+          .eq("id", slot.parking_layout_id)
+          .single();
+        
+        if (!layoutError && layoutData) {
+          spots.push(`R${layoutData.row_number}C${layoutData.column_number}`);
+        }
+      }
+      
+      setParkingSpots(spots);
+    } catch (error) {
+      console.error("Error fetching airport details:", error);
+    }
+  };
 
   const isLoading = eventBookingLoading || universityBookingLoading || airportBookingLoading;
 
@@ -154,10 +262,9 @@ const BookingDetailPage = () => {
       bookingParkingSpots = eventBookingData.parkingSpots || [];
       bookingTotalPrice = eventBookingData.totalPrice || eventBookingData.payment_amount || 0;
     } else if (bookingType === "university") {
-      const universityBookingData = booking as any;
-      bookingTitle = universityBookingData.university_name || "University";
-      const startDate = new Date(universityBookingData.start_date);
-      const endDate = new Date(universityBookingData.end_date);
+      bookingTitle = universityData?.name || "University";
+      const startDate = new Date(booking.start_date);
+      const endDate = new Date(booking.end_date);
       bookingDate = startDate.toLocaleDateString("en-US", {
         year: "numeric",
         month: "long",
@@ -172,15 +279,14 @@ const BookingDetailPage = () => {
         minute: "2-digit",
         hour12: true,
       })}`;
-      bookingLocation = universityBookingData.location || "";
-      bookingId = universityBookingData.university_id || "";
-      bookingParkingSpots = universityBookingData.parking_spots || [];
-      bookingTotalPrice = universityBookingData.payment_amount || 0;
+      bookingLocation = universityData?.location || "";
+      bookingId = booking.university_id || "";
+      bookingParkingSpots = parkingSpots;
+      bookingTotalPrice = booking.payment_amount || 0;
     } else if (bookingType === "airport") {
-      const airportBookingData = booking as any;
-      bookingTitle = airportBookingData.airport_name || "Airport";
-      const startDate = new Date(airportBookingData.start_date);
-      const endDate = new Date(airportBookingData.end_date);
+      bookingTitle = airportData?.name || "Airport";
+      const startDate = new Date(booking.start_date);
+      const endDate = new Date(booking.end_date);
       bookingDate = startDate.toLocaleDateString("en-US", {
         year: "numeric",
         month: "long",
@@ -195,10 +301,10 @@ const BookingDetailPage = () => {
         minute: "2-digit",
         hour12: true,
       })}`;
-      bookingLocation = airportBookingData.location || "";
-      bookingId = airportBookingData.airport_id || "";
-      bookingParkingSpots = airportBookingData.parking_spots || [];
-      bookingTotalPrice = airportBookingData.payment_amount || 0;
+      bookingLocation = airportData?.location || "";
+      bookingId = booking.airport_id || "";
+      bookingParkingSpots = parkingSpots;
+      bookingTotalPrice = booking.payment_amount || 0;
     }
     
     mockEvent = {
@@ -284,11 +390,9 @@ const BookingDetailPage = () => {
       const eventBookingData = booking as any;
       return eventBookingData.eventName || (eventBookingData.events?.title || "Event Booking");
     } else if (bookingType === "university") {
-      const universityBookingData = booking as any;
-      return universityBookingData.university_name || "University Booking";
+      return universityData?.name || "University Booking";
     } else if (bookingType === "airport") {
-      const airportBookingData = booking as any;
-      return airportBookingData.airport_name || "Airport Booking";
+      return airportData?.name || "Airport Booking";
     }
     return "Booking";
   };
@@ -341,8 +445,10 @@ const BookingDetailPage = () => {
     if (bookingType === "event") {
       const eventBookingData = booking as any;
       return eventBookingData.location || (eventBookingData.events?.location || "Unknown Location");
-    } else if (bookingType === "university" || bookingType === "airport") {
-      return booking.location || "Unknown Location";
+    } else if (bookingType === "university") {
+      return universityData?.location || "Unknown Location";
+    } else if (bookingType === "airport") {
+      return airportData?.location || "Unknown Location";
     }
     return "Unknown Location";
   };
@@ -355,43 +461,28 @@ const BookingDetailPage = () => {
       const eventBookingData = booking as any;
       return eventBookingData.eventId || eventBookingData.event_id || "";
     } else if (bookingType === "university") {
-      const universityBookingData = booking as any;
-      return universityBookingData.university_id || "";
+      return booking.university_id || "";
     } else if (bookingType === "airport") {
-      const airportBookingData = booking as any;
-      return airportBookingData.airport_id || "";
+      return booking.airport_id || "";
     }
     return "";
   };
 
   // Helper function to get parking spots
   const getParkingSpots = () => {
-    if (!booking) return [];
-    
     if (bookingType === "event") {
       const eventBookingData = booking as any;
       return eventBookingData.parkingSpots || [];
-    } else if (bookingType === "university") {
-      const universityBookingData = booking as any;
-      return universityBookingData.parking_spots || [];
-    } else if (bookingType === "airport") {
-      const airportBookingData = booking as any;
-      return airportBookingData.parking_spots || [];
+    } else {
+      return parkingSpots;
     }
-    return [];
   };
 
   // Helper function to get payment amount
   const getPaymentAmount = () => {
     if (!booking) return 0;
     
-    if (bookingType === "event") {
-      const eventBookingData = booking as any;
-      return eventBookingData.totalPrice || eventBookingData.payment_amount || 0;
-    } else if (bookingType === "university" || bookingType === "airport") {
-      return booking.payment_amount || 0;
-    }
-    return 0;
+    return booking.payment_amount || 0;
   };
 
   // Helper function to get status
